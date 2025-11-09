@@ -1,0 +1,31 @@
+# ===================================
+# 酒店管理系统 - 配置文件示例
+# ===================================
+# 使用方法：
+# 1. 复制此文件为 .env
+# 2. 修改下面的配置为你自己的值
+# 3. 不要把 .env 文件提交到 Git！
+
+# 服务器配置
+SERVER_PORT=:8080
+SERVER_MODE=debug  # debug, release, test
+
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password_here
+DB_NAME=hotel
+DB_MAX_IDLE_CONNS=10
+DB_MAX_OPEN_CONNS=100
+
+# JWT 配置
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRE_TIME=24h
+
+# Redis 配置（可选，用于缓存）
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
