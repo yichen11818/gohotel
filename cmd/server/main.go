@@ -1,0 +1,170 @@
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"gohotel/internal/config"
+	"gohotel/internal/database"
+	"gohotel/internal/handler"
+	"gohotel/internal/middleware"
+	"gohotel/internal/repository"
+	"gohotel/internal/service"
+
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	// 1. 加载配置
+	fmt.Println("📖 正在加载配置...")
+	if err := config.Load(); err != nil {
+		log.Fatal("配置加载失败:", err)
+	}
+	fmt.Println("✅ 配置加载成功!")
+
+	// 2. 连接数据库
+	fmt.Println("🔌 正在连接数据库...")
+	if err := database.InitMySQL(); err != nil {
+		log.Fatal("数据库连接失败:", err)
+	}
+	defer database.CloseDB()
+
+	// 3. 自动迁移数据库表
+	fmt.Println("🔄 正在执行数据库迁移...")
+	if err := database.AutoMigrate(); err != nil {
+		log.Fatal("数据库迁移失败:", err)
+	}
+
+	// 4. 插入测试数据（可选）
+	if err := database.SeedData(); err != nil {
+		log.Fatal("测试数据插入失败:", err)
+	}
+
+	// 5. 初始化依赖注入
+	// Repository 层
+	userRepo := repository.NewUserRepository(database.DB)
+	roomRepo := repository.NewRoomRepository(database.DB)
+	bookingRepo := repository.NewBookingRepository(database.DB)
+
+	// Service 层
+	userService := service.NewUserService(userRepo)
+	roomService := service.NewRoomService(roomRepo)
+	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
+
+	// Handler 层
+	userHandler := handler.NewUserHandler(userService)
+	roomHandler := handler.NewRoomHandler(roomService)
+	bookingHandler := handler.NewBookingHandler(bookingService)
+
+	// 6. 设置 Gin 模式
+	gin.SetMode(config.AppConfig.Server.Mode)
+
+	// 7. 创建 Gin 引擎
+	r := gin.New()
+
+	// 8. 使用中间件
+	r.Use(gin.Recovery())                // 恢复中间件（处理 panic）
+	r.Use(middleware.CORSMiddleware())   // 跨域中间件
+	r.Use(middleware.LoggerMiddleware()) // 日志中间件
+
+	// 9. 设置路由
+	setupRoutes(r, userHandler, roomHandler, bookingHandler)
+
+	// 10. 启动服务器
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Println("🏨 酒店管理系统 API 服务器")
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Printf("📍 服务器地址: http://localhost%s\n", config.AppConfig.Server.Port)
+	fmt.Printf("📝 运行模式: %s\n", config.AppConfig.Server.Mode)
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Println("API 文档:")
+	fmt.Println("  POST   /api/auth/register      - 用户注册")
+	fmt.Println("  POST   /api/auth/login         - 用户登录")
+	fmt.Println("  GET    /api/rooms              - 获取房间列表")
+	fmt.Println("  GET    /api/rooms/:id          - 获取房间详情")
+	fmt.Println("  POST   /api/bookings           - 创建预订（需登录）")
+	fmt.Println("  GET    /api/bookings/my        - 我的预订（需登录）")
+	fmt.Println("═══════════════════════════════════════════════")
+
+	if err := r.Run(config.AppConfig.Server.Port); err != nil {
+		log.Fatal("服务器启动失败:", err)
+	}
+}
+
+// setupRoutes 设置所有路由
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler) {
+	// 健康检查
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"message": "酒店管理系统运行正常",
+		})
+	})
+
+	// API 路由组
+	api := r.Group("/api")
+	{
+		// 认证路由（公开）
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", userHandler.Register)
+			auth.POST("/login", userHandler.Login)
+		}
+
+		// 房间路由（公开查询）
+		rooms := api.Group("/rooms")
+		{
+			rooms.GET("", roomHandler.ListRooms)                // 获取所有房间
+			rooms.GET("/available", roomHandler.ListAvailableRooms) // 获取可用房间
+			rooms.GET("/:id", roomHandler.GetRoomByID)          // 获取房间详情
+			rooms.GET("/search/type", roomHandler.SearchRoomsByType) // 按房型搜索
+
+			// 需要认证的房间管理路由（管理员）
+			roomsAuth := rooms.Group("")
+			roomsAuth.Use(middleware.AuthMiddleware())
+			{
+				roomsAuth.POST("", roomHandler.CreateRoom)        // 创建房间
+				roomsAuth.PUT("/:id", roomHandler.UpdateRoom)     // 更新房间
+				roomsAuth.DELETE("/:id", roomHandler.DeleteRoom)  // 删除房间
+			}
+		}
+
+		// 需要认证的路由
+		authorized := api.Group("")
+		authorized.Use(middleware.AuthMiddleware())
+		{
+			// 用户路由
+			users := authorized.Group("/users")
+			{
+				users.GET("/profile", userHandler.GetProfile)       // 获取个人信息
+				users.PUT("/profile", userHandler.UpdateProfile)    // 更新个人信息
+				users.PUT("/password", userHandler.ChangePassword)  // 修改密码
+			}
+
+			// 预订路由
+			bookings := authorized.Group("/bookings")
+			{
+				bookings.POST("", bookingHandler.CreateBooking)           // 创建预订
+				bookings.GET("/my", bookingHandler.GetMyBookings)         // 我的预订列表
+				bookings.GET("/:id", bookingHandler.GetBookingByID)       // 获取预订详情
+				bookings.PUT("/:id/cancel", bookingHandler.CancelBooking) // 取消预订
+			}
+
+			// 管理员路由
+			admin := authorized.Group("/admin")
+			admin.Use(middleware.AdminMiddleware())
+			{
+				// 用户管理
+				admin.GET("/users", userHandler.ListUsers)
+				admin.GET("/users/:id", userHandler.GetUserByID)
+
+				// 预订管理
+				admin.GET("/bookings", bookingHandler.ListAllBookings)
+				admin.PUT("/bookings/:id/confirm", bookingHandler.ConfirmBooking)
+				admin.PUT("/bookings/:id/checkin", bookingHandler.CheckIn)
+				admin.PUT("/bookings/:id/checkout", bookingHandler.CheckOut)
+			}
+		}
+	}
+}
+
