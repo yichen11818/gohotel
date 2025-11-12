@@ -128,6 +128,24 @@ func (h *RoomHandler) ListAvailableRooms(c *gin.Context) {
 	utils.SuccessWithPage(c, rooms, page, pageSize, total)
 }
 
+// GetRoomByFloor 根据楼层获取房间
+// GET /api/rooms/floor/:floor
+func (h *RoomHandler) GetRoomByFloor(c *gin.Context) {
+	floor,err := strconv.Atoi(c.Param("floor"))//strconv.Atoi 将字符串转换为整数
+	if err != nil {
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的楼层"))
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	rooms, total, err := h.roomService.ListRoomsByFloor(floor, page, pageSize)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+	utils.SuccessWithPage(c, rooms, page, pageSize, total)
+}
+
 // SearchRoomsByType 按房型搜索
 // GET /api/rooms/search/type
 func (h *RoomHandler) SearchRoomsByType(c *gin.Context) {

@@ -113,6 +113,22 @@ func (r *RoomRepository) FindByPriceRange(minPrice, maxPrice float64, page, page
 	return rooms, total, err
 }
 
+// FindByFloor 根据楼层查询房间
+func (r *RoomRepository) FindRoomByFloor(floor, page, pageSize int) ([]models.Room, int64, error) {
+	var rooms []models.Room
+	var total int64
+
+	query := r.db.Model(&models.Room{}).Where("floor = ?", floor)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.Offset(offset).Limit(pageSize).Order("room_number").Find(&rooms).Error//排序方式
+	return rooms, total, err
+}
+
 // UpdateStatus 更新房间状态
 func (r *RoomRepository) UpdateStatus(id uint, status string) error {
 	return r.db.Model(&models.Room{}).Where("id = ?", id).Update("status", status).Error
@@ -124,20 +140,4 @@ func (r *RoomRepository) ExistsByRoomNumber(roomNumber string) (bool, error) {
 	err := r.db.Model(&models.Room{}).Where("room_number = ?", roomNumber).Count(&count).Error
 	return count > 0, err
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

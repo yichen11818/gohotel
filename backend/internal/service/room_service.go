@@ -219,6 +219,22 @@ func (s *RoomService) SearchRoomsByType(roomType string, page, pageSize int) ([]
 	return rooms, total, nil
 }
 
+// ListRoomsByFloor 根据楼层获取房间
+func (s *RoomService) ListRoomsByFloor(floor, page, pageSize int) ([]models.Room, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+	// 直接查询房间表，楼层号相同的一层，无需再查其他表
+	rooms, total, err := s.roomRepo.FindRoomByFloor(floor, page, pageSize)
+	if err != nil {
+		return nil, 0, errors.NewDatabaseError("list rooms by floor", err)
+	}
+	return rooms, total, nil
+}
+
 // SearchRoomsByPrice 根据价格范围搜索房间
 func (s *RoomService) SearchRoomsByPrice(minPrice, maxPrice float64, page, pageSize int) ([]models.Room, int64, error) {
 	if page < 1 {
@@ -254,21 +270,3 @@ func (s *RoomService) UpdateRoomStatus(id uint, status string) error {
 
 	return nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
