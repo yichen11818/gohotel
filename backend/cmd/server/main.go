@@ -59,18 +59,17 @@ func main() {
 	// 6. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
 
-
 	// 7. 创建 Gin 引擎
 	r := gin.New()
 
 	// 8. 使用中间件
-	r.Use(gin.Recovery())                // 恢复中间件（处理 panic） 
+	r.Use(gin.Recovery())                // 恢复中间件（处理 panic）
 	r.Use(middleware.CORSMiddleware())   // 跨域中间件
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 9. 设置路由
 	setupRoutes(r, userHandler, roomHandler, bookingHandler)
-	
+
 	// 10. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Println("🏨 酒店管理系统 API 服务器")
@@ -124,9 +123,9 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 			roomsAuth := rooms.Group("")
 			roomsAuth.Use(middleware.AuthMiddleware())
 			{
-				roomsAuth.POST("", roomHandler.CreateRoom)       // 创建房间
-				roomsAuth.PUT("/:id", roomHandler.UpdateRoom)    // 更新房间
-				roomsAuth.DELETE("/:id", roomHandler.DeleteRoom) // 删除房间
+				roomsAuth.POST("", roomHandler.CreateRoom)            // 创建房间
+				roomsAuth.POST("/:id", roomHandler.UpdateRoom)        // 更新房间
+				roomsAuth.POST("/:id/delete", roomHandler.DeleteRoom) // 删除房间
 			}
 		}
 
@@ -137,18 +136,18 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 			// 用户路由
 			users := authorized.Group("/users")
 			{
-				users.GET("/profile", userHandler.GetProfile)      // 获取个人信息
-				users.PUT("/profile", userHandler.UpdateProfile)   // 更新个人信息
-				users.PUT("/password", userHandler.ChangePassword) // 修改密码
+				users.GET("/profile", userHandler.GetProfile)       // 获取个人信息
+				users.POST("/profile", userHandler.UpdateProfile)   // 更新个人信息
+				users.POST("/password", userHandler.ChangePassword) // 修改密码
 			}
 
 			// 预订路由
 			bookings := authorized.Group("/bookings")
 			{
-				bookings.POST("", bookingHandler.CreateBooking)           // 创建预订
-				bookings.GET("/my", bookingHandler.GetMyBookings)         // 我的预订列表
-				bookings.GET("/:id", bookingHandler.GetBookingByID)       // 获取预订详情
-				bookings.PUT("/:id/cancel", bookingHandler.CancelBooking) // 取消预订
+				bookings.POST("", bookingHandler.CreateBooking)            // 创建预订
+				bookings.GET("/my", bookingHandler.GetMyBookings)          // 我的预订列表
+				bookings.GET("/:id", bookingHandler.GetBookingByID)        // 获取预订详情
+				bookings.POST("/:id/cancel", bookingHandler.CancelBooking) // 取消预订
 			}
 
 			// 管理员路由
@@ -161,9 +160,9 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 
 				// 预订管理
 				admin.GET("/bookings", bookingHandler.ListAllBookings)
-				admin.PUT("/bookings/:id/confirm", bookingHandler.ConfirmBooking)
-				admin.PUT("/bookings/:id/checkin", bookingHandler.CheckIn)
-				admin.PUT("/bookings/:id/checkout", bookingHandler.CheckOut)
+				admin.POST("/bookings/:id/confirm", bookingHandler.ConfirmBooking)
+				admin.POST("/bookings/:id/checkin", bookingHandler.CheckIn)
+				admin.POST("/bookings/:id/checkout", bookingHandler.CheckOut)
 			}
 		}
 	}

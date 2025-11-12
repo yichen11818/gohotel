@@ -85,7 +85,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 }
 
 // UpdateProfile 更新个人信息
-// PUT /api/users/profile
+// POST /api/users/profile
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// 获取当前用户 ID
 	userID, _ := c.Get("user_id")
@@ -111,7 +111,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 }
 
 // ChangePassword 修改密码
-// PUT /api/users/password
+// POST /api/users/password
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 

@@ -133,3 +133,11 @@ func (r *RoomRepository) ExistsByRoomNumber(roomNumber string) (bool, error) {
 
 
 
+
+
+
+
+
+
+
+

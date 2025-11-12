@@ -77,3 +77,11 @@ func (b *Booking) CanCheckIn() bool {
 
 
 
+
+
+
+
+
+
+
+

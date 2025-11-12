@@ -57,7 +57,7 @@ func (h *RoomHandler) GetRoomByID(c *gin.Context) {
 }
 
 // UpdateRoom 更新房间（管理员）
-// PUT /api/rooms/:id
+// POST /api/rooms/:id
 func (h *RoomHandler) UpdateRoom(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -81,7 +81,7 @@ func (h *RoomHandler) UpdateRoom(c *gin.Context) {
 }
 
 // DeleteRoom 删除房间（管理员）
-// DELETE /api/rooms/:id
+// POST /api/rooms/:id/delete
 func (h *RoomHandler) DeleteRoom(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

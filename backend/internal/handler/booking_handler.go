@@ -78,7 +78,7 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 }
 
 // CancelBooking 取消预订
-// PUT /api/bookings/:id/cancel
+// POST /api/bookings/:id/cancel
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -103,7 +103,7 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 }
 
 // ConfirmBooking 确认预订（管理员）
-// PUT /api/bookings/:id/confirm
+// POST /api/bookings/:id/confirm
 func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -121,7 +121,7 @@ func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 }
 
 // CheckIn 办理入住（管理员）
-// PUT /api/bookings/:id/checkin
+// POST /api/bookings/:id/checkin
 func (h *BookingHandler) CheckIn(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -139,7 +139,7 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 }
 
 // CheckOut 办理退房（管理员）
-// PUT /api/bookings/:id/checkout
+// POST /api/bookings/:id/checkout
 func (h *BookingHandler) CheckOut(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -170,4 +170,3 @@ func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 
 	utils.SuccessWithPage(c, bookings, page, pageSize, total)
 }
-
