@@ -12,7 +12,30 @@ import (
 	"gohotel/internal/service"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "gohotel/docs" // 导入生成的 docs 包
 )
+
+// @title           酒店管理系统 API
+// @version         1.0
+// @description     这是一个酒店预订管理系统的 RESTful API 服务
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.email  support@gohotel.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      nas.yumi.chat:19999
+// @BasePath  
+
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description 输入 "Bearer {token}" 格式的 JWT token
 
 func main() {
 	// 1. 加载配置
@@ -76,6 +99,7 @@ func main() {
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Printf("📍 服务器地址: http://%s\n", config.AppConfig.Server.Port)
 	fmt.Printf("📝 运行模式: %s\n", config.AppConfig.Server.Mode)
+	fmt.Printf("📚 Swagger 文档: http://%s/swagger/index.html\n", config.AppConfig.Server.Port)
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Println("API 文档:")
 	fmt.Println("  POST   /api/auth/register      - 用户注册")
@@ -93,7 +117,17 @@ func main() {
 
 // setupRoutes 设置所有路由
 func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler) {
+	// Swagger 文档路由
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 健康检查
+	// @Summary 健康检查
+	// @Description 检查服务器运行状态
+	// @Tags 系统
+	// @Accept json
+	// @Produce json
+	// @Success 200 {object} map[string]interface{}
+	// @Router /health [get]
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",

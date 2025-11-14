@@ -1,0 +1,1137 @@
+definitions:
+  errors.ErrorInfo:
+    properties:
+      code:
+        example: BAD_REQUEST
+        type: string
+      message:
+        example: 请求参数错误
+        type: string
+    type: object
+  errors.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/errors.ErrorInfo'
+      success:
+        example: false
+        type: boolean
+    type: object
+  models.Booking:
+    properties:
+      booking_number:
+        description: 预订单号（唯一）
+        type: string
+      cancel_reason:
+        description: 取消原因
+        type: string
+      check_in:
+        description: 入住日期（有索引）
+        type: string
+      check_out:
+        description: 退房日期（有索引）
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      guest_id_card:
+        description: 入住人身份证号
+        type: string
+      guest_name:
+        description: 入住人姓名
+        type: string
+      guest_phone:
+        description: 入住人电话
+        type: string
+      id:
+        description: 主键
+        type: integer
+      payment_method:
+        description: 支付方式：wechat, alipay, card
+        type: string
+      payment_status:
+        description: 支付状态：unpaid, paid, refunded
+        type: string
+      room:
+        allOf:
+        - $ref: '#/definitions/models.Room'
+        description: 关联的房间
+      room_id:
+        description: 房间 ID（有索引）
+        type: integer
+      special_request:
+        description: 特殊要求
+        type: string
+      status:
+        description: 状态：pending, confirmed, checkin, checkout, cancelled
+        type: string
+      total_days:
+        description: 总天数
+        type: integer
+      total_price:
+        description: 总价
+        type: number
+      updated_at:
+        description: 更新时间
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: |-
+          关联查询（可选）
+          当查询 Booking 时，可以同时加载 User 和 Room 的信息
+      user_id:
+        description: 用户 ID（有索引）
+        type: integer
+    type: object
+  models.Room:
+    properties:
+      area:
+        description: 面积（平方米）
+        type: number
+      bed_type:
+        description: 床型：单人床、双人床、大床
+        type: string
+      capacity:
+        description: 可住人数
+        type: integer
+      created_at:
+        description: 创建时间
+        type: string
+      description:
+        description: 房间描述
+        type: string
+      facilities:
+        description: 设施（JSON 字符串）
+        type: string
+      floor:
+        description: 楼层
+        type: integer
+      id:
+        description: 主键
+        type: integer
+      images:
+        description: 图片 URL（JSON 数组）
+        type: string
+      original_price:
+        description: 原价
+        type: number
+      price:
+        description: 价格（每晚）
+        type: number
+      room_number:
+        description: 房间号（唯一，有索引）
+        type: string
+      room_type:
+        description: 房间类型（有索引）
+        type: string
+      status:
+        description: 状态：available, occupied, maintenance
+        type: string
+      updated_at:
+        description: 更新时间
+        type: string
+    type: object
+  models.User:
+    properties:
+      avatar:
+        description: 头像 URL
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      email:
+        description: 邮箱（唯一）
+        type: string
+      id:
+        description: 主键
+        type: integer
+      phone:
+        description: 手机号
+        type: string
+      real_name:
+        description: 真实姓名
+        type: string
+      role:
+        description: 角色：user, admin
+        type: string
+      status:
+        description: 状态：active, blocked
+        type: string
+      updated_at:
+        description: 更新时间
+        type: string
+      username:
+        description: 用户名（唯一）
+        type: string
+    type: object
+  service.CreateBookingRequest:
+    properties:
+      check_in:
+        description: '格式: "2024-01-01"'
+        type: string
+      check_out:
+        description: '格式: "2024-01-05"'
+        type: string
+      guest_id_card:
+        type: string
+      guest_name:
+        type: string
+      guest_phone:
+        type: string
+      room_id:
+        type: integer
+      special_request:
+        type: string
+    required:
+    - check_in
+    - check_out
+    - guest_name
+    - guest_phone
+    - room_id
+    type: object
+  service.CreateRoomRequest:
+    properties:
+      area:
+        type: number
+      bed_type:
+        type: string
+      capacity:
+        type: integer
+      description:
+        type: string
+      facilities:
+        type: string
+      floor:
+        type: integer
+      images:
+        type: string
+      original_price:
+        type: number
+      price:
+        type: number
+      room_number:
+        type: string
+      room_type:
+        type: string
+    required:
+    - capacity
+    - floor
+    - price
+    - room_number
+    - room_type
+    type: object
+  service.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  service.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  service.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      real_name:
+        type: string
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  service.UpdateRoomRequest:
+    properties:
+      area:
+        type: number
+      bed_type:
+        type: string
+      capacity:
+        type: integer
+      description:
+        type: string
+      facilities:
+        type: string
+      floor:
+        type: integer
+      images:
+        type: string
+      original_price:
+        type: number
+      price:
+        type: number
+      room_type:
+        type: string
+      status:
+        type: string
+    type: object
+host: nas.yumi.chat:19999
+info:
+  contact:
+    email: support@gohotel.com
+    name: API Support
+  description: 这是一个酒店预订管理系统的 RESTful API 服务
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: 酒店管理系统 API
+  version: "1.0"
+paths:
+  /api/admin/bookings:
+    get:
+      consumes:
+      - application/json
+      description: 管理员获取所有预订列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Booking'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取所有预订（管理员）
+      tags:
+      - 管理员
+  /api/admin/users:
+    get:
+      consumes:
+      - application/json
+      description: 管理员获取所有用户列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取用户列表（管理员）
+      tags:
+      - 管理员
+  /api/admin/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 管理员根据用户ID获取用户详细信息
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取用户详情（管理员）
+      tags:
+      - 管理员
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录接口，返回用户信息和 JWT token
+      parameters:
+      - description: 登录信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 用户登录
+      tags:
+      - 认证
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 新用户注册接口
+      parameters:
+      - description: 注册信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 用户注册
+      tags:
+      - 认证
+  /api/bookings:
+    post:
+      consumes:
+      - application/json
+      description: 创建新的房间预订，需要登录
+      parameters:
+      - description: 预订信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateBookingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Booking'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 创建预订
+      tags:
+      - 预订
+  /api/bookings/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据预订ID获取预订详细信息，只能查看自己的预订
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Booking'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取预订详情
+      tags:
+      - 预订
+  /api/bookings/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消指定的预订，只能取消自己的预订
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 取消原因
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 取消预订
+      tags:
+      - 预订
+  /api/bookings/{id}/checkin:
+    post:
+      consumes:
+      - application/json
+      description: 管理员为已确认的预订办理入住
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 办理入住（管理员）
+      tags:
+      - 管理员
+  /api/bookings/{id}/checkout:
+    post:
+      consumes:
+      - application/json
+      description: 管理员为入住中的预订办理退房
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 办理退房（管理员）
+      tags:
+      - 管理员
+  /api/bookings/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 管理员确认待处理的预订
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 确认预订（管理员）
+      tags:
+      - 管理员
+  /api/bookings/my:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的所有预订列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Booking'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取我的预订列表
+      tags:
+      - 预订
+  /api/rooms:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有房间列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Room'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 获取房间列表
+      tags:
+      - 房间
+    post:
+      consumes:
+      - application/json
+      description: 管理员创建新房间
+      parameters:
+      - description: 房间信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Room'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 创建房间（管理员）
+      tags:
+      - 管理员
+  /api/rooms/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据房间ID获取房间详细信息
+      parameters:
+      - description: 房间 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Room'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 获取房间详情
+      tags:
+      - 房间
+    post:
+      consumes:
+      - application/json
+      description: 管理员更新房间信息
+      parameters:
+      - description: 房间 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 房间信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Room'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新房间（管理员）
+      tags:
+      - 管理员
+  /api/rooms/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 管理员删除房间
+      parameters:
+      - description: 房间 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 删除房间（管理员）
+      tags:
+      - 管理员
+  /api/rooms/available:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有可用状态的房间列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Room'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 获取可用房间列表
+      tags:
+      - 房间
+  /api/rooms/floor/{floor}:
+    get:
+      consumes:
+      - application/json
+      description: 根据楼层号获取该楼层的所有房间，支持分页
+      parameters:
+      - description: 楼层号
+        in: path
+        name: floor
+        required: true
+        type: integer
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Room'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 根据楼层获取房间
+      tags:
+      - 房间
+  /api/rooms/search/type:
+    get:
+      consumes:
+      - application/json
+      description: 根据房型搜索房间，支持分页
+      parameters:
+      - description: 房型
+        in: query
+        name: type
+        required: true
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Room'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 按房型搜索房间
+      tags:
+      - 房间
+  /api/users/password:
+    post:
+      consumes:
+      - application/json
+      description: 修改当前登录用户的密码
+      parameters:
+      - description: 密码信息
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 修改密码
+      tags:
+      - 用户
+  /api/users/profile:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的个人信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取个人信息
+      tags:
+      - 用户
+    post:
+      consumes:
+      - application/json
+      description: 更新当前登录用户的个人信息
+      parameters:
+      - description: 更新信息
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新个人信息
+      tags:
+      - 用户
+securityDefinitions:
+  Bearer:
+    description: 输入 "Bearer {token}" 格式的 JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

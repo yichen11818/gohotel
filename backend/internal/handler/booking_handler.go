@@ -20,7 +20,17 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 }
 
 // CreateBooking 创建预订
-// POST /api/bookings
+// @Summary 创建预订
+// @Description 创建新的房间预订，需要登录
+// @Tags 预订
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body service.CreateBookingRequest true "预订信息"
+// @Success 200 {object} models.Booking
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Router /api/bookings [post]
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	// 获取当前登录用户 ID
 	userID, _ := c.Get("user_id")
@@ -41,7 +51,19 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 }
 
 // GetBookingByID 获取预订详情
-// GET /api/bookings/:id
+// @Summary 获取预订详情
+// @Description 根据预订ID获取预订详细信息，只能查看自己的预订
+// @Tags 预订
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "预订 ID"
+// @Success 200 {object} models.Booking
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/bookings/{id} [get]
 func (h *BookingHandler) GetBookingByID(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -61,7 +83,18 @@ func (h *BookingHandler) GetBookingByID(c *gin.Context) {
 }
 
 // GetMyBookings 获取我的预订列表
-// GET /api/bookings/my
+// @Summary 获取我的预订列表
+// @Description 获取当前登录用户的所有预订列表，支持分页
+// @Tags 预订
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Success 200 {array} models.Booking
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Router /api/bookings/my [get]
 func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -78,7 +111,19 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 }
 
 // CancelBooking 取消预订
-// POST /api/bookings/:id/cancel
+// @Summary 取消预订
+// @Description 取消指定的预订，只能取消自己的预订
+// @Tags 预订
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "预订 ID"
+// @Param request body object true "取消原因" example({"reason":"行程变更"})
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/bookings/{id}/cancel [post]
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -103,7 +148,19 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 }
 
 // ConfirmBooking 确认预订（管理员）
-// POST /api/bookings/:id/confirm
+// @Summary 确认预订（管理员）
+// @Description 管理员确认待处理的预订
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "预订 ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/bookings/{id}/confirm [post]
 func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -121,7 +178,19 @@ func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 }
 
 // CheckIn 办理入住（管理员）
-// POST /api/bookings/:id/checkin
+// @Summary 办理入住（管理员）
+// @Description 管理员为已确认的预订办理入住
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "预订 ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/bookings/{id}/checkin [post]
 func (h *BookingHandler) CheckIn(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -139,7 +208,19 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 }
 
 // CheckOut 办理退房（管理员）
-// POST /api/bookings/:id/checkout
+// @Summary 办理退房（管理员）
+// @Description 管理员为入住中的预订办理退房
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "预订 ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/bookings/{id}/checkout [post]
 func (h *BookingHandler) CheckOut(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -157,7 +238,19 @@ func (h *BookingHandler) CheckOut(c *gin.Context) {
 }
 
 // ListAllBookings 获取所有预订（管理员）
-// GET /api/admin/bookings
+// @Summary 获取所有预订（管理员）
+// @Description 管理员获取所有预订列表，支持分页
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Success 200 {array} models.Booking
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/admin/bookings [get]
 func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))

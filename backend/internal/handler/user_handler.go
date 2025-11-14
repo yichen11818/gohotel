@@ -20,7 +20,16 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 // Register 用户注册
-// POST /api/auth/register
+// @Summary 用户注册
+// @Description 新用户注册接口
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body service.RegisterRequest true "注册信息"
+// @Success 200 {object} models.User
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 409 {object} errors.ErrorResponse
+// @Router /api/auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 
 	var req service.RegisterRequest
@@ -44,7 +53,16 @@ func (h *UserHandler) Register(c *gin.Context) {
 }
 
 // Login 用户登录
-// POST /api/auth/login
+// @Summary 用户登录
+// @Description 用户登录接口，返回用户信息和 JWT token
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body service.LoginRequest true "登录信息"
+// @Success 200 {object} service.LoginResponse
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Router /api/auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req service.LoginRequest
 
@@ -66,7 +84,16 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 // GetProfile 获取个人信息
-// GET /api/users/profile
+// @Summary 获取个人信息
+// @Description 获取当前登录用户的个人信息
+// @Tags 用户
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} models.User
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/users/profile [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	// 从上下文中获取当前用户 ID
 	userID, exists := c.Get("user_id")
@@ -85,7 +112,18 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 }
 
 // UpdateProfile 更新个人信息
-// POST /api/users/profile
+// @Summary 更新个人信息
+// @Description 更新当前登录用户的个人信息
+// @Tags 用户
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body object true "更新信息" example({"phone":"13800138000","real_name":"张三","avatar":"https://example.com/avatar.jpg"})
+// @Success 200 {object} models.User
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/users/profile [post]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// 获取当前用户 ID
 	userID, _ := c.Get("user_id")
@@ -111,7 +149,17 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 }
 
 // ChangePassword 修改密码
-// POST /api/users/password
+// @Summary 修改密码
+// @Description 修改当前登录用户的密码
+// @Tags 用户
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body object true "密码信息" example({"old_password":"old123456","new_password":"new123456"})
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Router /api/users/password [post]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -135,7 +183,19 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 }
 
 // GetUserByID 根据 ID 获取用户（管理员）
-// GET /api/users/:id
+// @Summary 获取用户详情（管理员）
+// @Description 管理员根据用户ID获取用户详细信息
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "用户 ID"
+// @Success 200 {object} models.User
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Router /api/admin/users/{id} [get]
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -153,7 +213,18 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 }
 
 // ListUsers 获取用户列表（管理员）
-// GET /api/users
+// @Summary 获取用户列表（管理员）
+// @Description 管理员获取所有用户列表，支持分页
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Success 200 {array} models.User
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/admin/users [get]
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	// 获取分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

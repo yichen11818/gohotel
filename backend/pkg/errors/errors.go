@@ -118,3 +118,15 @@ func NewDatabaseError(operation string, err error) AppError {
 		errorMessage: fmt.Sprintf("数据库操作失败 [%s]: %v", operation, err),
 	}
 }
+
+// ErrorResponse Swagger 错误响应结构
+type ErrorResponse struct {
+	Success bool      `json:"success" example:"false"`
+	Error   ErrorInfo `json:"error"`
+}
+
+// ErrorInfo 错误信息
+type ErrorInfo struct {
+	Code    string `json:"code" example:"BAD_REQUEST"`
+	Message string `json:"message" example:"请求参数错误"`
+}
