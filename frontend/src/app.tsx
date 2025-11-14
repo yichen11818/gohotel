@@ -21,15 +21,23 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    try {
-      const msg = await queryCurrentUser({
-        skipErrorHandler: true,
-      });
-      return msg.data;
-    } catch (_error) {
-      history.push(loginPath);
-    }
-    return undefined;
+    // TODO: 暂时禁用登录验证，等登录功能完成后再启用
+    // try {
+    //   const msg = await queryCurrentUser({
+    //     skipErrorHandler: true,
+    //   });
+    //   return msg.data;
+    // } catch (_error) {
+    //   history.push(loginPath);
+    // }
+    // return undefined;
+    
+    // 暂时返回一个模拟用户，避免登录验证
+    return {
+      name: '管理员',
+      avatar: 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
+      userid: '1',
+    } as API.CurrentUser;
   };
   // 如果不是登录页面，执行
   const { location } = history;
@@ -63,11 +71,12 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     },
     footerRender: () => <Footer />,
     onPageChange: () => {
-      const { location } = history;
-      // 如果没有登录，重定向到 login
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
-      }
+      // TODO: 暂时禁用登录验证，等登录功能完成后再启用
+      // const { location } = history;
+      // // 如果没有登录，重定向到 login
+      // if (!initialState?.currentUser && location.pathname !== loginPath) {
+      //   history.push(loginPath);
+      // }
     },
     bgLayoutImgList: [
       {
@@ -132,6 +141,6 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: 'https://proapi.azurewebsites.net',
+  baseURL: 'http://nas.yumi.chat:19999',
   ...errorConfig,
 };

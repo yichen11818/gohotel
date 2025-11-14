@@ -144,15 +144,15 @@ export default defineConfig({
   openAPI: [
     {
       requestLibPath: "import { request } from '@umijs/max'",
-      // 或者使用在线的版本
-      // schemaPath: "https://gw.alipayobjects.com/os/antfincdn/M%24jrzTTYJN/oneapi.json"
-      schemaPath: join(__dirname, 'oneapi.json'),
+      // 使用 Golang 后端的 Swagger JSON 文件
+      // 方式1: 使用本地文件（推荐，开发时更快）
+      // 注意：__dirname 指向 frontend/config，需要向上两级到项目根目录
+      schemaPath: join(__dirname, '../../backend/docs/swagger.json'),
+      // 方式2: 使用后端 Swagger 端点（如果后端提供了 /swagger/doc.json 端点）
+      // schemaPath: 'http://nas.yumi.chat:19999/swagger/doc.json',
       mock: false,
-    },
-    {
-      requestLibPath: "import { request } from '@umijs/max'",
-      schemaPath: 'https://gw.alipayobjects.com/os/antfincdn/CA1dOm%2631B/openapi.json',
-      projectName: 'swagger',
+      // 项目名称，用于生成文件路径，生成的 API 文件会在 src/services/{projectName} 目录下
+      projectName: 'api',
     },
   ],
   mock: {

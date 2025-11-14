@@ -88,9 +88,23 @@ export const errorConfig: RequestConfig = {
   // 请求拦截器
   requestInterceptors: [
     (config: RequestOptions) => {
-      // 拦截请求配置，进行个性化处理。
-      const url = config?.url?.concat('?token=123');
-      return { ...config, url };
+      // 从 localStorage 获取 token
+      let token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      // 开发环境：如果没有 token，使用临时 token（仅用于测试，生产环境应删除）
+      if (!token && process.env.NODE_ENV === 'development') {
+        token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFsaWNlIiwiaXNzIjoiZ29ob3RlbCIsImV4cCI6MTc2MzIzMzM4MSwiaWF0IjoxNzYzMTQ2OTgxfQ.ULazHgQK2eLo00SPR3X0pmEYCc1I6osHSBhXoSWWz8c';
+      }
+          
+      // 如果有 token，添加到 Authorization header
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+        };
+      }
+      
+      return config;
     },
   ],
 
