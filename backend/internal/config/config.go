@@ -16,6 +16,15 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Redis    RedisConfig
+	COS      COSConfig
+}
+
+// COSConfig 腾讯云对象存储配置
+type COSConfig struct {
+	SecretID   string // 密钥ID
+	SecretKey  string // 密钥
+	BaseURL    string // 访问域名
+	BucketName string // 存储桶名称
 }
 
 // ServerConfig 服务器配置
@@ -89,6 +98,12 @@ func Load() error {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
+		COS: COSConfig{
+			SecretID:   getEnv("SECRETID", ""),
+			SecretKey:  getEnv("SECRETKEY", ""),
+			BaseURL:    getEnv("COS_BASE_URL", ""),
+			BucketName: getEnv("COS_BUCKET_NAME", ""),
+		},
 	}
 
 	return nil
@@ -144,20 +159,3 @@ func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 	}
 	return value
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

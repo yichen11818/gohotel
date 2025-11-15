@@ -10,8 +10,12 @@
 └── 系统设置
 
 2025-11-15
-1. 筛选查询 后端 
-2. cos桶链接 上传图片下载图片 鉴权 
+1. 筛选查询 后端 √
+2. cos桶链接 上传图片下载图片 鉴权 :
+   POST /api/upload
+   GET /api/files
+   POST /api/deleteFiles/:filename
+
 3. 注册登录 验证码
 4. 新增用户 删除用户 
 5. 实现真正的角色检查

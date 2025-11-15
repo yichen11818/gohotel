@@ -929,3 +929,96 @@ curl -X POST http://localhost:8080/api/auth/login \
 3. **错误处理**：显式检查，不用异常
 4. **接口和组合**：Go 的"面向对象"
 
+--- ---
+### 1. Go 常用标准库 API
+
+Go 语言拥有一个强大且设计精良的标准库，以下是一些你几乎每天都会用到的包和函数：
+
+*   **`fmt`**: 用于格式化输入和输出。
+    *   `fmt.Println()`: 打印并换行。
+    *   `fmt.Printf()`: 根据格式说明符进行格式化输出。
+    *   `fmt.Sprintf()`: 格式化成字符串并返回，而不是打印出来。
+    *   `fmt.Errorf()`: 创建一个格式化的错误信息。
+
+*   **`net/http`**: 用于构建 HTTP 服务和客户端。
+    *   `http.ListenAndServe()`: 启动一个 HTTP 服务器。
+    *   `http.HandleFunc()`: 注册一个处理特定路径请求的函数。
+    *   `http.Get()`, `http.Post()`: 作为客户端发送 HTTP 请求。
+    *   `http.ResponseWriter`: 在服务器端用来构建 HTTP 响应。
+    *   `*http.Request`: 包含了客户端的所有请求信息。
+
+*   **`encoding/json`**: 用于处理 JSON 数据。
+    *   `json.Marshal()`: 将 Go 的结构体（struct）或其他数据类型编码成 JSON 字节流。
+    *   `json.Unmarshal()`: 将 JSON 字节流解码到 Go 的结构体中。
+
+*   **`os`**: 提供与操作系统交互的功能。
+    *   `os.Getenv()`: 获取环境变量。
+    *   `os.ReadFile()`: 读取文件全部内容。
+    *   `os.WriteFile()`: 将数据写入文件。
+    *   `os.Args`: 获取命令行参数。
+
+*   **`io`**: 提供 I/O 操作的基本接口。
+    *   `io.Reader`: 所有可读取对象的抽象接口（如文件、HTTP 请求体）。
+    *   `io.Writer`: 所有可写入对象的抽象接口（如文件、HTTP 响应体）。
+    *   `io.Copy()`: 将数据从 `Reader` 复制到 `Writer`。
+
+*   **`sync`**: 用于并发编程中的同步。
+    *   `sync.Mutex`: 互斥锁，用于保护共享资源。
+    *   `sync.WaitGroup`: 用于等待一组 goroutine 完成执行。
+
+### 2. Gin 框架常用 API
+
+Gin 是一个非常流行的高性能 Go Web 框架，它的 API 设计简洁。
+
+*   **路由 (Routing)**:
+    *   `gin.Default()`: 创建一个带有默认中间件（Logger 和 Recovery）的 Gin 引擎。
+    *   `router.GET()`, `router.POST()`, `router.PUT()`, `router.DELETE()`: 定义不同 HTTP 方法的路由。
+    *   `router.Group()`: 为一组路由创建一个共享相同前缀或中间件的路由组。
+
+*   **请求处理 (Request Handling)**: `c` 通常是 `*gin.Context` 的实例。
+    *   `c.Param("id")`: 获取 URL 路径参数，例如 `/users/:id` 中的 `id`。
+    *   `c.Query("name")`: 获取 URL 查询参数，例如 `/search?name=John` 中的 `name`。
+    *   `c.PostForm("message")`: 获取表单数据。
+    *   `c.ShouldBindJSON(&yourStruct)`: 将请求体中的 JSON 数据绑定到一个 Go 结构体上，这是处理 API 请求最常用的方法。
+
+*   **响应处理 (Response Handling)**:
+    *   `c.JSON(http.StatusOK, gin.H{"message": "success"})`: 返回 JSON 响应。`gin.H` 是 `map[string]interface{}` 的快捷方式。
+    *   `c.String(http.StatusOK, "hello world")`: 返回纯文本响应。
+    *   `c.HTML()`: 渲染 HTML 模板并返回。
+    *   `c.Redirect()`: 重定向到另一个 URL。
+
+*   **中间件 (Middleware)**:
+    *   `router.Use(yourMiddleware())`: 将中间件应用到所有路由。中间件是处理请求前或响应后的函数，常用于日志、认证、CORS 等。
+
+### 3. 前端常用 Web API
+
+这些 API 由浏览器提供，是现代前端开发的核心。
+
+*   **DOM 操作 (DOM Manipulation)**: 用于与页面元素交互。
+    *   `document.getElementById()`: 通过 ID 获取元素。
+    *   `document.querySelector()`: 使用 CSS 选择器获取第一个匹配的元素。
+    *   `document.querySelectorAll()`: 获取所有匹配的元素。
+    *   `element.addEventListener()`: 为元素添加事件监听器（如 `click`, `submit`）。
+
+*   **网络请求 (Networking)**:
+    *   **Fetch API**: 现代的网络请求标准。
+        *   `fetch('/api/data')`: 发送一个 GET 请求。
+        *   `.then(response => response.json())`: 将响应体解析为 JSON。
+        *   `fetch('/api/submit', { method: 'POST', body: JSON.stringify(data) })`: 发送 POST 请求。
+    *   **XMLHttpRequest (XHR)**: 较老的 API，但在一些旧代码或特定场景中仍会见到。
+
+*   **存储 (Storage)**: 在用户浏览器中存储数据。
+    *   `localStorage`: 持久化存储，关闭浏览器后数据依然存在。
+        *   `localStorage.setItem('key', 'value')`
+        *   `localStorage.getItem('key')`
+    *   `sessionStorage`: 会话级别存储，关闭浏览器标签页后数据被清除。
+
+*   **定时器 (Timers)**:
+    *   `setTimeout(callback, delay)`: 在指定的延迟后执行一次函数。
+    *   `setInterval(callback, interval)`: 每隔指定的时间重复执行函数。
+
+*   **URL 和历史记录 (URL and History)**:
+    *   `window.location`: 获取或设置当前页面的 URL。
+    *   `history.pushState()`: 在不刷新页面的情况下改变 URL，是单页应用（SPA）路由的基础。
+
+这些是你在开发过程中最常接触到的 API。建议你可以在实际编码中多多实践，加深理解。如果你对其中任何一部分想了解更多细节，随时可以问我！
