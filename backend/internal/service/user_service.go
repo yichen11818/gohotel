@@ -28,12 +28,13 @@ type RegisterRequest struct {
 	RealName string `json:"real_name"`
 }
 
-// AddAdminRequest 添加管理员请求结构
-type AddAdminRequest struct {
+// AddUserRequest 添加用户请求结构
+type AddUserRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=20"`
 	Email    string `json:"email" binding:"required,email"`
 	Phone    string `json:"phone"`
 	RealName string `json:"real_name"`
+	IsAdmin  bool   `json:"is_admin"`
 }
 
 // LoginRequest 登录请求结构
@@ -245,8 +246,8 @@ func (s *UserService) GetUser(page, pageSize int, username, email, phone, realNa
 	return users, total, nil
 }
 
-// AddAdmin 添加管理员
-func (s *UserService) AddAdmin(req *AddAdminRequest) (*models.User, error) {
+// AddUser 添加用户
+func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 	// 1. 检查用户名是否已存在
 	exists, err := s.userRepo.ExistsByUsername(req.Username)
 	if err != nil {
@@ -274,19 +275,27 @@ func (s *UserService) AddAdmin(req *AddAdminRequest) (*models.User, error) {
 	// 4. 生成雪花 ID
 	userID := utils.GenID()
 
-	// 5. 创建管理员对象
+	// 5. 创建用户对象
 	user := &models.User{
 		ID:         userID,
 		Username:   req.Username,
 		Email:      req.Email,
 		Password:   hashedPassword,
-		Phone:      req.Phone,
 		RealName:   req.RealName,
-		Role:       "admin",
+		Role:       "user", // 默认角色为 user
 		Status:     "active",
 		FirstLogin: true,
 	}
 
+	// 根据 IsAdmin 参数设置角色
+	if req.IsAdmin {
+		user.Role = "admin"
+	}
+	// 处理 Phone 字段，将 string 转换为 *string
+	if req.Phone != "" {
+		phone := req.Phone
+		user.Phone = &phone
+	}
 	// 6. 保存到数据库
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, errors.NewDatabaseError("create admin user", err)

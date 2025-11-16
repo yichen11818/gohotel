@@ -264,24 +264,24 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 409 {object} errors.ErrorResponse
-// @Router /api/admin/users/admin [post]
-func (h *UserHandler) AddAdmin(c *gin.Context) {
+// @Router /api/admin/users/user [post]
+func (h *UserHandler) AddUser(c *gin.Context) {
 	// 1. 绑定并验证请求参数
-	var req service.AddAdminRequest
+	var req service.AddUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, err)
 		return
 	}
 
 	// 2. 调用 Service 层
-	user, err := h.userService.AddAdmin(&req)
+	user, err := h.userService.AddUser(&req)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
 	}
 
 	// 3. 返回成功响应
-	utils.SuccessWithMessage(c, "管理员添加成功", gin.H{
+	utils.SuccessWithMessage(c, "用户添加成功", gin.H{
 		"user": user,
 	})
 }
