@@ -166,10 +166,12 @@ definitions:
         description: 用户名（唯一）
         type: string
     type: object
-  service.AddAdminRequest:
+  service.AddUserRequest:
     properties:
       email:
         type: string
+      is_admin:
+        type: boolean
       phone:
         type: string
       real_name:
@@ -456,18 +458,18 @@ paths:
       summary: 获取用户详情（管理员）
       tags:
       - 管理员
-  /api/admin/users/admin:
+  /api/admin/users/user:
     post:
       consumes:
       - application/json
-      description: 管理员添加新的管理员账户，默认密码为yumi123456
+      description: 管理员添加新的用户账户，默认密码为yumi123456
       parameters:
       - description: 管理员信息
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/service.AddAdminRequest'
+          $ref: '#/definitions/service.AddUserRequest'
       produces:
       - application/json
       responses:
@@ -493,7 +495,7 @@ paths:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
       - Bearer: []
-      summary: 添加管理员
+      summary: 添加用户
       tags:
       - 管理员
   /api/auth/login:

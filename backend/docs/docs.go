@@ -183,14 +183,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/users/admin": {
+        "/api/admin/users/user": {
             "post": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "description": "管理员添加新的管理员账户，默认密码为yumi123456",
+                "description": "管理员添加新的用户账户，默认密码为yumi123456",
                 "consumes": [
                     "application/json"
                 ],
@@ -200,7 +200,7 @@ const docTemplate = `{
                 "tags": [
                     "管理员"
                 ],
-                "summary": "添加管理员",
+                "summary": "添加用户",
                 "parameters": [
                     {
                         "description": "管理员信息",
@@ -208,7 +208,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/service.AddAdminRequest"
+                            "$ref": "#/definitions/service.AddUserRequest"
                         }
                     }
                 ],
@@ -1642,7 +1642,7 @@ const docTemplate = `{
                 }
             }
         },
-        "service.AddAdminRequest": {
+        "service.AddUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1651,6 +1651,9 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string"
+                },
+                "is_admin": {
+                    "type": "boolean"
                 },
                 "phone": {
                     "type": "string"
