@@ -1,5 +1,5 @@
 import { Footer } from '@/components';
-import { login } from '@/services/ant-design-pro/api';
+import { postAuthLogin } from '@/services/api/renzheng';
 import { getFakeCaptcha } from '@/services/ant-design-pro/login';
 import {
   AlipayCircleOutlined,
@@ -104,25 +104,50 @@ const Login: React.FC = () => {
   const handleSubmit = async (values: API.LoginParams) => {
     try {
       // 登录
-      const msg = await login({
-        ...values,
-        type,
+      const msg = await postAuthLogin({
+        username: values.username || '',
+        password: values.password || '' ,
       });
-      if (msg.status === 'ok') {
-        const defaultLoginSuccessMessage = '登录成功！';
-        message.success(defaultLoginSuccessMessage);
-        await fetchUserInfo();
+      if (msg.success && msg.data) {
+        const { token, user } = msg.data;
+        
+        // 保存 token 到 localStorage
+        if (token) {
+          localStorage.setItem('token', token);
+        }
+        
+        // 保存用户信息到 localStorage（用于刷新页面后恢复状态）
+        if (user) {
+          localStorage.setItem('userInfo', JSON.stringify(user));
+        }
+        
+        // 保存用户信息到全局状态
+        flushSync(() => {
+          setInitialState((s) => ({
+            ...s,
+            currentUser: {
+              name: user?.username || user?.real_name || '用户',
+              avatar: user?.avatar || 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
+              userid: user?.id?.toString() || '',
+              email: user?.email,
+              phone: user?.phone,
+              role: user?.role,
+            },
+          }));
+        });
+        
+        message.success(msg.message || '登录成功！');
+        
+        // 跳转到首页
         const urlParams = new URL(window.location.href).searchParams;
         window.location.href = urlParams.get('redirect') || '/';
         return;
+      } else {
+        message.error(msg.message || '登录失败，请重试！');
       }
-      console.log(msg);
-      // 如果失败去设置用户错误信息
-      setUserLoginState(msg);
     } catch (error) {
-      const defaultLoginFailureMessage = '登录失败，请重试！';
       console.log(error);
-      message.error(defaultLoginFailureMessage);
+      message.error('登录失败，请重试！');
     }
   };
   const { status, type: loginType } = userLoginState;

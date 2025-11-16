@@ -165,8 +165,12 @@ declare namespace API {
   };
 
   type LoginResponse = {
-    token?: string;
-    user?: User;
+    success?: boolean;
+    data?: {
+      token?: string;
+      user?: User;
+    };
+    message?: string;
   };
 
   type postBookingsIdCancelParams = {

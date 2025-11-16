@@ -49,7 +49,14 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
    * 退出登录，并且将当前的 url 保存
    */
   const loginOut = async () => {
-    await outLogin();
+    // 清除本地存储的 token 和用户信息
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    sessionStorage.removeItem('token');
+    
+    // TODO: 等后端提供退出登录接口后，调用后端接口
+    // await outLogin();
+    
     const { search, pathname } = window.location;
     const urlParams = new URL(window.location.href).searchParams;
     const searchParams = new URLSearchParams({

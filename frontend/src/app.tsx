@@ -21,28 +21,48 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    // TODO: 暂时禁用登录验证，等登录功能完成后再启用
-    // try {
-    //   const msg = await queryCurrentUser({
-    //     skipErrorHandler: true,
-    //   });
-    //   return msg.data;
-    // } catch (_error) {
-    //   history.push(loginPath);
-    // }
-    // return undefined;
+    // 从 localStorage 获取 token
+    const token = localStorage.getItem('token');
     
-    // 暂时返回一个模拟用户，避免登录验证
-    return {
-      name: '管理员',
-      avatar: 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
-      userid: '1',
-    } as API.CurrentUser;
+    if (!token) {
+      return undefined;
+    }
+    
+    // TODO: 等后端提供 /api/auth/me 接口后，改用真实接口获取用户信息
+    // 目前从 localStorage 读取登录时保存的用户信息
+    const userInfoStr = localStorage.getItem('userInfo');
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr);
+        return {
+          name: userInfo.username || userInfo.real_name || '用户',
+          avatar: userInfo.avatar || 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
+          userid: userInfo.id?.toString() || '',
+          email: userInfo.email,
+          phone: userInfo.phone,
+          role: userInfo.role,
+        } as API.CurrentUser;
+      } catch (error) {
+        console.error('解析用户信息失败:', error);
+        return undefined;
+      }
+    }
+    
+    return undefined;
   };
+  
   // 如果不是登录页面，执行
   const { location } = history;
   if (![loginPath, '/user/register', '/user/register-result'].includes(location.pathname)) {
     const currentUser = await fetchUserInfo();
+    
+    // 如果没有用户信息且有 token，说明 token 可能过期，跳转登录页
+    if (!currentUser && localStorage.getItem('token')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+      history.push(loginPath);
+    }
+    
     return {
       fetchUserInfo,
       currentUser,
@@ -71,12 +91,11 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     },
     footerRender: () => <Footer />,
     onPageChange: () => {
-      // TODO: 暂时禁用登录验证，等登录功能完成后再启用
-      // const { location } = history;
-      // // 如果没有登录，重定向到 login
-      // if (!initialState?.currentUser && location.pathname !== loginPath) {
-      //   history.push(loginPath);
-      // }
+      const { location } = history;
+      // 如果没有登录，重定向到 login
+      if (!initialState?.currentUser && location.pathname !== loginPath) {
+        history.push(loginPath);
+      }
     },
     bgLayoutImgList: [
       {
