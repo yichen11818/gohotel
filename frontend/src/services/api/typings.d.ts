@@ -1,4 +1,11 @@
 declare namespace API {
+  type AddAdminRequest = {
+    email: string;
+    phone?: string;
+    real_name?: string;
+    username: string;
+  };
+
   type Booking = {
     /** 预订单号（唯一） */
     booking_number?: string;
@@ -165,12 +172,8 @@ declare namespace API {
   };
 
   type LoginResponse = {
-    success?: boolean;
-    data?: {
-      token?: string;
-      user?: User;
-    };
-    message?: string;
+    token?: string;
+    user?: User;
   };
 
   type postBookingsIdCancelParams = {
@@ -265,7 +268,9 @@ declare namespace API {
     created_at?: string;
     /** 邮箱（唯一） */
     email?: string;
-    /** 主键 */
+    /** 是否首次登录 */
+    first_login?: boolean;
+    /** 主键（使用雪花算法生成） */
     id?: number;
     /** 手机号 */
     phone?: string;
@@ -273,7 +278,6 @@ declare namespace API {
     real_name?: string;
     /** 角色：user, admin */
     role?: string;
-    /** 状态：active, blocked */
     status?: string;
     /** 更新时间 */
     updated_at?: string;

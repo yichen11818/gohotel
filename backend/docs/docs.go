@@ -183,6 +183,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/users/admin": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员添加新的管理员账户，默认密码为yumi123456",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "添加管理员",
+                "parameters": [
+                    {
+                        "description": "管理员信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.AddAdminRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/users/{id}": {
             "get": {
                 "security": [
@@ -1546,8 +1609,12 @@ const docTemplate = `{
                     "description": "邮箱（唯一）",
                     "type": "string"
                 },
+                "first_login": {
+                    "description": "是否首次登录",
+                    "type": "boolean"
+                },
                 "id": {
-                    "description": "主键",
+                    "description": "主键（使用雪花算法生成）",
                     "type": "integer"
                 },
                 "phone": {
@@ -1563,7 +1630,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "状态：active, blocked",
                     "type": "string"
                 },
                 "updated_at": {
@@ -1573,6 +1639,29 @@ const docTemplate = `{
                 "username": {
                     "description": "用户名（唯一）",
                     "type": "string"
+                }
+            }
+        },
+        "service.AddAdminRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "real_name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 3
                 }
             }
         },

@@ -142,8 +142,11 @@ definitions:
       email:
         description: 邮箱（唯一）
         type: string
+      first_login:
+        description: 是否首次登录
+        type: boolean
       id:
-        description: 主键
+        description: 主键（使用雪花算法生成）
         type: integer
       phone:
         description: 手机号
@@ -155,7 +158,6 @@ definitions:
         description: 角色：user, admin
         type: string
       status:
-        description: 状态：active, blocked
         type: string
       updated_at:
         description: 更新时间
@@ -163,6 +165,22 @@ definitions:
       username:
         description: 用户名（唯一）
         type: string
+    type: object
+  service.AddAdminRequest:
+    properties:
+      email:
+        type: string
+      phone:
+        type: string
+      real_name:
+        type: string
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - email
+    - username
     type: object
   service.CreateBookingRequest:
     properties:
@@ -436,6 +454,46 @@ paths:
       security:
       - Bearer: []
       summary: 获取用户详情（管理员）
+      tags:
+      - 管理员
+  /api/admin/users/admin:
+    post:
+      consumes:
+      - application/json
+      description: 管理员添加新的管理员账户，默认密码为yumi123456
+      parameters:
+      - description: 管理员信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.AddAdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 添加管理员
       tags:
       - 管理员
   /api/auth/login:

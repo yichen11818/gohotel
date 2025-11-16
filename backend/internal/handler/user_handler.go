@@ -250,3 +250,38 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 	utils.SuccessWithPage(c, users, page, pageSize, total)
 }
+
+// AddAdmin 添加管理员
+// @Summary 添加管理员
+// @Description 管理员添加新的管理员账户，默认密码为yumi123456
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body service.AddAdminRequest true "管理员信息"
+// @Success 200 {object} models.User
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 409 {object} errors.ErrorResponse
+// @Router /api/admin/users/admin [post]
+func (h *UserHandler) AddAdmin(c *gin.Context) {
+	// 1. 绑定并验证请求参数
+	var req service.AddAdminRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 2. 调用 Service 层
+	user, err := h.userService.AddAdmin(&req)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 3. 返回成功响应
+	utils.SuccessWithMessage(c, "管理员添加成功", gin.H{
+		"user": user,
+	})
+}

@@ -28,6 +28,14 @@ type RegisterRequest struct {
 	RealName string `json:"real_name"`
 }
 
+// AddAdminRequest 添加管理员请求结构
+type AddAdminRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=20"`
+	Email    string `json:"email" binding:"required,email"`
+	Phone    string `json:"phone"`
+	RealName string `json:"real_name"`
+}
+
 // LoginRequest 登录请求结构
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -203,4 +211,54 @@ func (s *UserService) GetUser(page, pageSize int, username, email, phone, realNa
 		return nil, 0, errors.NewDatabaseError("list users filter", err)
 	}
 	return users, total, nil
+}
+
+// AddAdmin 添加管理员
+func (s *UserService) AddAdmin(req *AddAdminRequest) (*models.User, error) {
+	// 1. 检查用户名是否已存在
+	exists, err := s.userRepo.ExistsByUsername(req.Username)
+	if err != nil {
+		return nil, errors.NewDatabaseError("check username", err)
+	}
+	if exists {
+		return nil, errors.NewConflictError("用户名已存在")
+	}
+
+	// 2. 检查邮箱是否已存在
+	exists, err = s.userRepo.ExistsByEmail(req.Email)
+	if err != nil {
+		return nil, errors.NewDatabaseError("check email", err)
+	}
+	if exists {
+		return nil, errors.NewConflictError("邮箱已被使用")
+	}
+
+	// 3. 加密默认密码
+	hashedPassword, err := utils.HashPassword("yumi123456")
+	if err != nil {
+		return nil, errors.NewInternalServerError("密码加密失败")
+	}
+
+	// 4. 生成雪花 ID
+	userID := utils.GenID()
+
+	// 5. 创建管理员对象
+	user := &models.User{
+		ID:         userID,
+		Username:   req.Username,
+		Email:      req.Email,
+		Password:   hashedPassword,
+		Phone:      req.Phone,
+		RealName:   req.RealName,
+		Role:       "admin",
+		Status:     "active",
+		FirstLogin: true,
+	}
+
+	// 6. 保存到数据库
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, errors.NewDatabaseError("create admin user", err)
+	}
+
+	return user, nil
 }

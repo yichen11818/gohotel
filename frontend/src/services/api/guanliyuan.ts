@@ -55,6 +55,21 @@ export async function getAdminUsersId(
   });
 }
 
+/** 添加管理员 管理员添加新的管理员账户，默认密码为yumi123456 POST /api/admin/users/admin */
+export async function postAdminUsersAdmin(
+  body: API.AddAdminRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.User>("/api/admin/users/admin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** 办理入住（管理员） 管理员为已确认的预订办理入住 POST /api/bookings/${param0}/checkin */
 export async function postBookingsIdCheckin(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
