@@ -60,28 +60,43 @@ func (s *UserService) Register(req *RegisterRequest) (*models.User, error) {
 		return nil, errors.NewConflictError("邮箱已被使用")
 	}
 
-	// 3. 加密密码
+	// 3. 检查手机号是否已存在（如果提供了手机号）
+	if req.Phone != "" {
+		exists, err = s.userRepo.ExistsByPhone(req.Phone)
+		if err != nil {
+			return nil, errors.NewDatabaseError("check phone", err)
+		}
+		if exists {
+			return nil, errors.NewConflictError("手机号已被使用")
+		}
+	}
+
+	// 4. 加密密码
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, errors.NewInternalServerError("密码加密失败")
 	}
 
-	// 4. 生成雪花 ID
+	// 5. 生成雪花 ID
 	userID := utils.GenID()
 
-	// 5. 创建用户对象
+	// 6. 创建用户对象
+	var phonePtr *string
+	if req.Phone != "" {
+		phonePtr = &req.Phone
+	}
 	user := &models.User{
 		ID:       userID,
 		Username: req.Username,
 		Email:    req.Email,
 		Password: hashedPassword,
-		Phone:    req.Phone,
+		Phone:    phonePtr,
 		RealName: req.RealName,
 		Role:     "user",
 		Status:   "active",
 	}
 
-	// 6. 保存到数据库
+	// 7. 保存到数据库
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, errors.NewDatabaseError("create user", err)
 	}
@@ -133,9 +148,26 @@ func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar string
 		return nil, errors.NewDatabaseError("find user", err)
 	}
 
-	// 2. 更新字段
+	// 2. 检查手机号是否已被其他用户使用（如果要更新手机号）
 	if phone != "" {
-		user.Phone = phone
+		var currentPhone string
+		if user.Phone != nil {
+			currentPhone = *user.Phone
+		}
+		if phone != currentPhone {
+			exists, err := s.userRepo.ExistsByPhoneExcludingUser(phone, userID)
+			if err != nil {
+				return nil, errors.NewDatabaseError("check phone", err)
+			}
+			if exists {
+				return nil, errors.NewConflictError("手机号已被使用")
+			}
+			phonePtr := &phone
+			user.Phone = phonePtr
+		}
+	} else {
+		// 如果传入空字符串，清空手机号
+		user.Phone = nil
 	}
 	if realName != "" {
 		user.RealName = realName

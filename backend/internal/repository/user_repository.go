@@ -35,6 +35,26 @@ func (r *UserRepository) ExistsByEmail(email string) (bool, error) {
 	return count > 0, err
 }
 
+// ExistsByPhone 检查手机号是否已存在
+func (r *UserRepository) ExistsByPhone(phone string) (bool, error) {
+	if phone == "" {
+		return false, nil
+	}
+	var count int64
+	err := r.db.Model(&models.User{}).Where("phone = ?", phone).Count(&count).Error
+	return count > 0, err
+}
+
+// ExistsByPhoneExcludingUser 检查手机号是否已被其他用户使用
+func (r *UserRepository) ExistsByPhoneExcludingUser(phone string, excludeUserID int64) (bool, error) {
+	if phone == "" {
+		return false, nil
+	}
+	var count int64
+	err := r.db.Model(&models.User{}).Where("phone = ? AND id != ?", phone, excludeUserID).Count(&count).Error
+	return count > 0, err
+}
+
 // Update 更新用户信息
 func (r *UserRepository) Update(user *models.User) error {
 	return r.db.Save(user).Error
@@ -44,8 +64,6 @@ func (r *UserRepository) Update(user *models.User) error {
 func (r *UserRepository) Delete(id int64) error {
 	return r.db.Delete(&models.User{}, id).Error
 }
-
-
 
 // FindByID 根据 ID 查找用户
 func (r *UserRepository) FindByID(id int64) (*models.User, error) {
@@ -84,7 +102,6 @@ func (r *UserRepository) FindAll(page, pageSize int, username, email, phone, rea
 
 	// 构建查询条件
 	query := r.db.Model(&models.User{})
-
 
 	if username != "" {
 		query = query.Where("username LIKE ?", "%"+username+"%")

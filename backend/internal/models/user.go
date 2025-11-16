@@ -11,7 +11,7 @@ type User struct {
 	Username  string    `gorm:"unique;not null;size:50" json:"username"`  // 用户名（唯一）
 	Email     string    `gorm:"unique;not null;size:100" json:"email"`    // 邮箱（唯一）
 	Password  string    `gorm:"not null;size:255" json:"-"`               // 密码（不返回给前端）
-	Phone     string    `gorm:"size:20" json:"phone"`                     // 手机号
+	Phone     *string   `gorm:"unique;size:20" json:"phone"`              // 手机号（唯一，可为空）
 	RealName  string    `gorm:"size:50" json:"real_name"`                 // 真实姓名
 	Avatar    string    `gorm:"size:255" json:"avatar"`                   // 头像 URL
 	Role      string    `gorm:"default:'user';size:20" json:"role"`       // 角色：user, admin
