@@ -102,7 +102,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserByID(userID.(uint))
+	user, err := h.userService.GetUserByID(userID.(int64))
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -139,7 +139,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.UpdateProfile(userID.(uint), req.Phone, req.RealName, req.Avatar)
+	user, err := h.userService.UpdateProfile(userID.(int64), req.Phone, req.RealName, req.Avatar)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -173,7 +173,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	err := h.userService.ChangePassword(userID.(uint), req.OldPassword, req.NewPassword)
+	err := h.userService.ChangePassword(userID.(int64), req.OldPassword, req.NewPassword)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -197,13 +197,13 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Failure 404 {object} errors.ErrorResponse
 // @Router /api/admin/users/{id} [get]
 func (h *UserHandler) GetUserByID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的用户ID"))
 		return
 	}
 
-	user, err := h.userService.GetUserByID(uint(id))
+	user, err := h.userService.GetUserByID(id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return

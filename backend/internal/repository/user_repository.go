@@ -41,14 +41,14 @@ func (r *UserRepository) Update(user *models.User) error {
 }
 
 // Delete 删除用户
-func (r *UserRepository) Delete(id uint) error {
+func (r *UserRepository) Delete(id int64) error {
 	return r.db.Delete(&models.User{}, id).Error
 }
 
 
 
 // FindByID 根据 ID 查找用户
-func (r *UserRepository) FindByID(id uint) (*models.User, error) {
+func (r *UserRepository) FindByID(id int64) (*models.User, error) {
 	var user models.User
 	err := r.db.First(&user, id).Error
 	if err != nil {

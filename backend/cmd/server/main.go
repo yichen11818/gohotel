@@ -10,6 +10,7 @@ import (
 	"gohotel/internal/middleware"
 	"gohotel/internal/repository"
 	"gohotel/internal/service"
+	"gohotel/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -30,7 +31,7 @@ import (
 // @license.url   https://opensource.org/licenses/MIT
 
 // @host      nas.yumi.chat:19999
-// @BasePath  
+// @BasePath
 
 // @securityDefinitions.apikey Bearer
 // @in header
@@ -63,7 +64,16 @@ func main() {
 		log.Fatal("测试数据插入失败:", err)
 	}
 
-	// 5. 初始化依赖注入
+	// 5. 初始化雪花算法节点
+	fmt.Println("❄️  正在初始化雪花算法节点...")
+	// 节点ID可以从配置文件读取，这里暂时使用固定值 1
+	// 如果是分布式部署，需要确保每个实例使用不同的节点ID（0-1023）
+	if err := utils.InitSnowflake(1); err != nil {
+		log.Fatal("雪花算法初始化失败:", err)
+	}
+	fmt.Println("✅ 雪花算法初始化成功!")
+
+	// 6. 初始化依赖注入
 	// Repository 层
 	userRepo := repository.NewUserRepository(database.DB)
 	roomRepo := repository.NewRoomRepository(database.DB)
@@ -79,21 +89,21 @@ func main() {
 	roomHandler := handler.NewRoomHandler(roomService)
 	bookingHandler := handler.NewBookingHandler(bookingService)
 
-	// 6. 设置 Gin 模式
+	// 7. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
 
-	// 7. 创建 Gin 引擎
+	// 8. 创建 Gin 引擎
 	r := gin.New()
 
-	// 8. 使用中间件
+	// 9. 使用中间件
 	r.Use(gin.Recovery())                // 恢复中间件（处理 panic）
 	r.Use(middleware.CORSMiddleware())   // 跨域中间件
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
-	// 9. 设置路由
+	// 10. 设置路由
 	setupRoutes(r, userHandler, roomHandler, bookingHandler)
 
-	// 10. 启动服务器
+	// 11. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Println("🏨 酒店管理系统 API 服务器")
 	fmt.Println("═══════════════════════════════════════════════")

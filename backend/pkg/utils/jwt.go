@@ -9,7 +9,7 @@ import (
 
 // Claims JWT 声明结构
 type Claims struct {
-	UserID   uint   `json:"user_id"`
+	UserID   int64  `json:"user_id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
@@ -17,7 +17,7 @@ type Claims struct {
 // GenerateToken 生成 JWT 令牌
 // 参数：用户ID、用户名
 // 返回：令牌字符串、错误
-func GenerateToken(userID uint, username string) (string, error) {
+func GenerateToken(userID int64, username string) (string, error) {
 	// 设置过期时间
 	expirationTime := time.Now().Add(config.AppConfig.JWT.ExpireTime)
 

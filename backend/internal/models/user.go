@@ -7,17 +7,17 @@ import (
 // User 用户模型
 // 对应数据库中的 users 表
 type User struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`                    // 主键
-	Username  string    `gorm:"unique;not null;size:50" json:"username"` // 用户名（唯一）
-	Email     string    `gorm:"unique;not null;size:100" json:"email"`   // 邮箱（唯一）
-	Password  string    `gorm:"not null;size:255" json:"-"`              // 密码（不返回给前端）
-	Phone     string    `gorm:"size:20" json:"phone"`                    // 手机号
-	RealName  string    `gorm:"size:50" json:"real_name"`                // 真实姓名
-	Avatar    string    `gorm:"size:255" json:"avatar"`                  // 头像 URL
-	Role      string    `gorm:"default:'user';size:20" json:"role"`      // 角色：user, admin
-	Status    string    `gorm:"default:'active';size:20" json:"status"`  // 状态：active, blocked
-	CreatedAt time.Time `json:"created_at"`                              // 创建时间
-	UpdatedAt time.Time `json:"updated_at"`                              // 更新时间
+	ID        int64     `gorm:"primaryKey;autoIncrement:false" json:"id"` // 主键（使用雪花算法生成）
+	Username  string    `gorm:"unique;not null;size:50" json:"username"`  // 用户名（唯一）
+	Email     string    `gorm:"unique;not null;size:100" json:"email"`    // 邮箱（唯一）
+	Password  string    `gorm:"not null;size:255" json:"-"`               // 密码（不返回给前端）
+	Phone     string    `gorm:"size:20" json:"phone"`                     // 手机号
+	RealName  string    `gorm:"size:50" json:"real_name"`                 // 真实姓名
+	Avatar    string    `gorm:"size:255" json:"avatar"`                   // 头像 URL
+	Role      string    `gorm:"default:'user';size:20" json:"role"`       // 角色：user, admin
+	Status    string    `gorm:"default:'active';size:20" json:"status"`   // 状态：active, blocked
+	CreatedAt time.Time `json:"created_at"`                               // 创建时间
+	UpdatedAt time.Time `json:"updated_at"`                               // 更新时间
 }
 
 // TableName 指定表名
@@ -36,9 +36,3 @@ func (u *User) IsAdmin() bool {
 func (u *User) IsActive() bool {
 	return u.Status == "active"
 }
-
-
-
-
-
-

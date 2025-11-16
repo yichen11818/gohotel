@@ -66,8 +66,12 @@ func (s *UserService) Register(req *RegisterRequest) (*models.User, error) {
 		return nil, errors.NewInternalServerError("密码加密失败")
 	}
 
-	// 4. 创建用户对象
+	// 4. 生成雪花 ID
+	userID := utils.GenID()
+
+	// 5. 创建用户对象
 	user := &models.User{
+		ID:       userID,
 		Username: req.Username,
 		Email:    req.Email,
 		Password: hashedPassword,
@@ -77,7 +81,7 @@ func (s *UserService) Register(req *RegisterRequest) (*models.User, error) {
 		Status:   "active",
 	}
 
-	// 5. 保存到数据库
+	// 6. 保存到数据库
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, errors.NewDatabaseError("create user", err)
 	}
@@ -118,10 +122,8 @@ func (s *UserService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
-
-
 // UpdateProfile 更新用户资料
-func (s *UserService) UpdateProfile(userID uint, phone, realName, avatar string) (*models.User, error) {
+func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar string) (*models.User, error) {
 	// 1. 查找用户
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
@@ -151,7 +153,7 @@ func (s *UserService) UpdateProfile(userID uint, phone, realName, avatar string)
 }
 
 // ChangePassword 修改密码
-func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+func (s *UserService) ChangePassword(userID int64, oldPassword, newPassword string) error {
 	// 1. 查找用户
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
@@ -181,10 +183,8 @@ func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword strin
 	return nil
 }
 
-
-
 // GetUserByID 根据 ID 获取用户信息
-func (s *UserService) GetUserByID(id uint) (*models.User, error) {
+func (s *UserService) GetUserByID(id int64) (*models.User, error) {
 	user, err := s.userRepo.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -196,7 +196,7 @@ func (s *UserService) GetUserByID(id uint) (*models.User, error) {
 }
 
 // GetUser 根据条件查询用户
-func (s *UserService) GetUser(page, pageSize int, username, email, phone, realName , role , status  string) ([]models.User, int64, error) {
+func (s *UserService) GetUser(page, pageSize int, username, email, phone, realName, role, status string) ([]models.User, int64, error) {
 
 	users, total, err := s.userRepo.FindAll(page, pageSize, username, email, phone, realName, role, status)
 	if err != nil {
