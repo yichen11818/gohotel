@@ -9,8 +9,8 @@ import (
 type Booking struct {
 	ID             int64     `gorm:"primaryKey" json:"id"`             // 主键
 	BookingNumber  int64     `gorm:"unique;not null" json:"booking_number"`  			   // 预订单号（唯一）
-	UserID         uint      `gorm:"not null;index" json:"user_id"`                        // 用户 ID（有索引）
-	RoomID         uint      `gorm:"not null;index" json:"room_id"`                        // 房间 ID（有索引）
+	UserID         int64      `gorm:"not null;index" json:"user_id"`                        // 用户 ID（有索引）
+	RoomID         int64      `gorm:"not null;index" json:"room_id"`                        // 房间 ID（有索引）
 	CheckIn        time.Time `gorm:"not null;index" json:"check_in"`                       // 入住日期（有索引）
 	CheckOut       time.Time `gorm:"not null;index" json:"check_out"`                      // 退房日期（有索引）
 	TotalDays      int       `gorm:"not null" json:"total_days"`                           // 总天数
