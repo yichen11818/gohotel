@@ -90,13 +90,15 @@ func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) 
 	totalDays := int(checkOut.Sub(checkIn).Hours() / 24)
 	totalPrice := float64(totalDays) * room.Price
 
-	// 7. 生成订单号
+	// 7. 生成订单号和预订ID
 	bookingNumber := utils.GenID()
+	bookingID := utils.GenID()
 
 	// 8. 创建预订对象
 	booking := &models.Booking{
-		BookingNumber:  bookingNumber,
-		UserID:         userID,
+		ID:             utils.JSONInt64(bookingID),
+		BookingNumber:  utils.JSONInt64(bookingNumber),
+		UserID:         utils.JSONInt64(userID),
 		RoomID:         req.RoomID,
 		CheckIn:        checkIn,
 		CheckOut:       checkOut,
@@ -133,7 +135,7 @@ func (s *BookingService) GetBookingByID(id int64, userID int64) (*models.Booking
 
 	// 权限检查：只能查看自己的订单（管理员除外）
 	// 注意：这里简化处理，实际应该检查用户角色
-	if booking.UserID != userID {
+	if booking.UserID.Int64() != userID {
 		return nil, errors.NewForbiddenError("无权访问此预订")
 	}
 
@@ -169,7 +171,7 @@ func (s *BookingService) CancelBooking(id int64, userID int64, reason string) er
 	}
 
 	// 2. 权限检查
-	if booking.UserID != userID {
+	if booking.UserID.Int64() != userID {
 		return errors.NewForbiddenError("无权取消此预订")
 	}
 

@@ -1,30 +1,31 @@
 package models
 
 import (
+	"gohotel/pkg/utils"
 	"time"
 )
 
 // Booking 预订模型
 // 对应数据库中的 bookings 表
 type Booking struct {
-	ID             int64     `gorm:"primaryKey" json:"id"`             // 主键
-	BookingNumber  int64     `gorm:"unique;not null" json:"booking_number"`  			   // 预订单号（唯一）
-	UserID         int64      `gorm:"not null;index" json:"user_id"`                        // 用户 ID（有索引）
-	RoomID         int64      `gorm:"not null;index" json:"room_id"`                        // 房间 ID（有索引）
-	CheckIn        time.Time `gorm:"not null;index" json:"check_in"`                       // 入住日期（有索引）
-	CheckOut       time.Time `gorm:"not null;index" json:"check_out"`                      // 退房日期（有索引）
-	TotalDays      int       `gorm:"not null" json:"total_days"`                           // 总天数
-	TotalPrice     float64   `gorm:"not null;type:decimal(10,2)" json:"total_price"`       // 总价
-	GuestName      string    `gorm:"not null;size:50" json:"guest_name"`                   // 入住人姓名
-	GuestPhone     string    `gorm:"not null;size:20" json:"guest_phone"`                  // 入住人电话
-	GuestIDCard    string    `gorm:"size:50" json:"guest_id_card"`                         // 入住人身份证号
-	SpecialRequest string    `gorm:"type:text" json:"special_request"`                     // 特殊要求
-	Status         string    `gorm:"default:'pending';size:20;index" json:"status"`        // 状态：pending, confirmed, checkin, checkout, cancelled
-	PaymentStatus  string    `gorm:"default:'unpaid';size:20;index" json:"payment_status"` // 支付状态：unpaid, paid, refunded
-	PaymentMethod  string    `gorm:"size:50" json:"payment_method"`                        // 支付方式：wechat, alipay, card
-	CancelReason   string    `gorm:"type:text" json:"cancel_reason"`                       // 取消原因
-	CreatedAt      time.Time `json:"created_at"`                                           // 创建时间
-	UpdatedAt      time.Time `json:"updated_at"`                                           // 更新时间
+	ID             utils.JSONInt64 `gorm:"primaryKey" json:"id"`                                 // 主键（JSON序列化为字符串）
+	BookingNumber  utils.JSONInt64 `gorm:"unique;not null" json:"booking_number"`                // 预订单号（唯一，JSON序列化为字符串）
+	UserID         utils.JSONInt64 `gorm:"not null;index" json:"user_id"`                        // 用户 ID（有索引，JSON序列化为字符串）
+	RoomID         int64           `gorm:"not null;index" json:"room_id"`                        // 房间 ID（有索引）
+	CheckIn        time.Time       `gorm:"not null;index" json:"check_in"`                       // 入住日期（有索引）
+	CheckOut       time.Time       `gorm:"not null;index" json:"check_out"`                      // 退房日期（有索引）
+	TotalDays      int             `gorm:"not null" json:"total_days"`                           // 总天数
+	TotalPrice     float64         `gorm:"not null;type:decimal(10,2)" json:"total_price"`       // 总价
+	GuestName      string          `gorm:"not null;size:50" json:"guest_name"`                   // 入住人姓名
+	GuestPhone     string          `gorm:"not null;size:20" json:"guest_phone"`                  // 入住人电话
+	GuestIDCard    string          `gorm:"size:50" json:"guest_id_card"`                         // 入住人身份证号
+	SpecialRequest string          `gorm:"type:text" json:"special_request"`                     // 特殊要求
+	Status         string          `gorm:"default:'pending';size:20;index" json:"status"`        // 状态：pending, confirmed, checkin, checkout, cancelled
+	PaymentStatus  string          `gorm:"default:'unpaid';size:20;index" json:"payment_status"` // 支付状态：unpaid, paid, refunded
+	PaymentMethod  string          `gorm:"size:50" json:"payment_method"`                        // 支付方式：wechat, alipay, card
+	CancelReason   string          `gorm:"type:text" json:"cancel_reason"`                       // 取消原因
+	CreatedAt      time.Time       `json:"created_at"`                                           // 创建时间
+	UpdatedAt      time.Time       `json:"updated_at"`                                           // 更新时间
 
 	// 关联查询（可选）
 	// 当查询 Booking 时，可以同时加载 User 和 Room 的信息
