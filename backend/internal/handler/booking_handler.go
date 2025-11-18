@@ -33,7 +33,11 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 // @Router /api/bookings [post]
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	// 获取当前登录用户 ID
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, errors.NewUnauthorizedError("未登录"))
+		return
+	}
 
 	var req service.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
