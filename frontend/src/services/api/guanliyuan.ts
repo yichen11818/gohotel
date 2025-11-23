@@ -55,6 +55,21 @@ export async function getAdminUsersId(
   });
 }
 
+/** 批量删除用户 管理员批量删除用户账户 POST /api/admin/users/batch */
+export async function postAdminUsersBatch(
+  body: API.DeleteUsersRequest,
+  options?: { [key: string]: any }
+) {
+  return request<Record<string, any>>("/api/admin/users/batch", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** 添加用户 管理员添加新的用户账户，默认密码为yumi123456 POST /api/admin/users/user */
 export async function postAdminUsersUser(
   body: API.AddUserRequest,

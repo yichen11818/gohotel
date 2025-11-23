@@ -1,5 +1,3 @@
-// import { addRule } from '@/services/ant-design-pro/api';
-// TODO: 等待后端提供创建用户的 API
 import { PlusOutlined } from '@ant-design/icons';
 import {
   type ActionType,
@@ -10,6 +8,7 @@ import {
 import { useRequest } from '@umijs/max';
 import { Button, message } from 'antd';
 import type { FC } from 'react';
+import { postAdminUsersUser } from '@/services/api/guanliyuan';
 interface CreateFormProps {
   reload?: ActionType['reload'];
 }
@@ -21,12 +20,21 @@ const CreateForm: FC<CreateFormProps> = (props) => {
    * @zh-CN 国际化配置
    * */
 
-  // TODO: 等待后端提供创建用户的 API
-  const loading = false;
-  const run = async (data: any) => {
-    messageApi.warning('创建用户功能待实现');
-    return Promise.resolve();
-  };
+  const { run, loading } = useRequest(
+    async (data: { data: API.AddUserRequest }) => {
+      try {
+        await postAdminUsersUser(data.data);
+        messageApi.success('用户创建成功');
+        return true;
+      } catch (error) {
+        messageApi.error('用户创建失败，请重试');
+        throw error;
+      }
+    },
+    {
+      manual: true,
+    }
+  );
   return (
     <>
       {contextHolder}
@@ -44,11 +52,17 @@ const CreateForm: FC<CreateFormProps> = (props) => {
           },
         }}
         onFinish={async (value) => {
-          await run({
-            data: value as API.User,
-          });
-          reload?.();
-          return true;
+          try {
+            await run({
+              data: value as API.AddUserRequest,
+            });
+            if (reload) {
+              reload();
+            }
+            return true;
+          } catch (error) {
+            return false;
+          }
         }}
       >
         <ProFormText

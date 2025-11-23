@@ -285,3 +285,35 @@ func (h *UserHandler) AddUser(c *gin.Context) {
 		"user": user,
 	})
 }
+
+// DeleteUsers 批量删除用户
+// @Summary 批量删除用户
+// @Description 管理员批量删除用户账户
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body service.DeleteUsersRequest true "删除用户信息"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/admin/users/batch [post]
+func (h *UserHandler) DeleteUsers(c *gin.Context) {
+	// 1. 绑定并验证请求参数
+	var req service.DeleteUsersRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 2. 调用 Service 层
+	err := h.userService.DeleteUsers(&req)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 3. 返回成功响应
+	utils.SuccessWithMessage(c, "用户删除成功", nil)
+}

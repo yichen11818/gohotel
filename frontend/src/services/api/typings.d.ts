@@ -77,6 +77,10 @@ declare namespace API {
     room_type: string;
   };
 
+  type DeleteUsersRequest = {
+    user_ids: number[];
+  };
+
   type ErrorInfo = {
     code?: string;
     message?: string;
