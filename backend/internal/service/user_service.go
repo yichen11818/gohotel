@@ -100,7 +100,7 @@ func (s *UserService) Register(req *RegisterRequest) (*models.User, error) {
 		phonePtr = &req.Phone
 	}
 	user := &models.User{
-		ID:       userID,
+		ID:       utils.JSONInt64(userID),
 		Username: req.Username,
 		Email:    req.Email,
 		Password: hashedPassword,
@@ -140,7 +140,7 @@ func (s *UserService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}
 
 	// 4. 生成 JWT 令牌
-	token, err := utils.GenerateToken(user.ID, user.Username)
+	token, err := utils.GenerateToken(user.ID.Int64(), user.Username)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成令牌失败")
 	}
@@ -282,7 +282,7 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 
 	// 5. 创建用户对象
 	user := &models.User{
-		ID:         userID,
+		ID:         utils.JSONInt64(userID),
 		Username:   req.Username,
 		Email:      req.Email,
 		Password:   hashedPassword,

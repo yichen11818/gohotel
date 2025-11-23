@@ -143,7 +143,7 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
                 <ExpandOutlined /> {room.area} m²
               </div>
             )}
-            {room.bed_type && <div>[object Object]room.bed_type}</div>}
+            {room.bed_type && <div>{room.bed_type}</div>}
           </div>
 
           {room.description && (

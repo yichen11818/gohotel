@@ -33,7 +33,11 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 // @Router /api/bookings [post]
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	// 获取当前登录用户 ID
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, errors.NewUnauthorizedError("未登录"))
+		return
+	}
 
 	var req service.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,7 +45,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	booking, err := h.bookingService.CreateBooking(userID.(uint), &req)
+	booking, err := h.bookingService.CreateBooking(userID.(int64), &req)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -67,13 +71,13 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 func (h *BookingHandler) GetBookingByID(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
 		return
 	}
 
-	booking, err := h.bookingService.GetBookingByID(uint(id), userID.(uint))
+	booking, err := h.bookingService.GetBookingByID(id, userID.(int64))
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -101,7 +105,7 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
-	bookings, total, err := h.bookingService.GetMyBookings(userID.(uint), page, pageSize)
+	bookings, total, err := h.bookingService.GetMyBookings(userID.(int64), page, pageSize)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -127,7 +131,7 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
 		return
@@ -138,7 +142,7 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&req)
 
-	err = h.bookingService.CancelBooking(uint(id), userID.(uint), req.Reason)
+	err = h.bookingService.CancelBooking(id, userID.(int64), req.Reason)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -162,13 +166,13 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 // @Failure 404 {object} errors.ErrorResponse
 // @Router /api/bookings/{id}/confirm [post]
 func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
 		return
 	}
 
-	err = h.bookingService.ConfirmBooking(uint(id))
+	err = h.bookingService.ConfirmBooking(id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -192,13 +196,13 @@ func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 // @Failure 404 {object} errors.ErrorResponse
 // @Router /api/bookings/{id}/checkin [post]
 func (h *BookingHandler) CheckIn(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
 		return
 	}
 
-	err = h.bookingService.CheckIn(uint(id))
+	err = h.bookingService.CheckIn(id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -222,13 +226,13 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 // @Failure 404 {object} errors.ErrorResponse
 // @Router /api/bookings/{id}/checkout [post]
 func (h *BookingHandler) CheckOut(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
 		return
 	}
 
-	err = h.bookingService.CheckOut(uint(id))
+	err = h.bookingService.CheckOut(id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return

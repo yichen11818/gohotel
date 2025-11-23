@@ -4,8 +4,8 @@ import (
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/errors"
-	"time"
 	"gohotel/pkg/utils"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -32,17 +32,17 @@ func NewBookingService(
 
 // CreateBookingRequest 创建预订请求
 type CreateBookingRequest struct {
-	RoomID         uint   `json:"room_id" binding:"required"`
+	RoomID         int64  `json:"room_id" binding:"required"`
 	CheckIn        string `json:"check_in" binding:"required"`  // 格式: "2024-01-01"
 	CheckOut       string `json:"check_out" binding:"required"` // 格式: "2024-01-05"
 	GuestName      string `json:"guest_name" binding:"required"`
 	GuestPhone     string `json:"guest_phone" binding:"required"`
-	GuestIDCard    string `json:"guest_id_card"`
-	SpecialRequest string `json:"special_request"`
+	GuestIDCard    string `json:"guest_id_card"`   // 入住人身份证号，可选
+	SpecialRequest string `json:"special_request"` // 特殊要求，可选
 }
 
 // CreateBooking 创建预订
-func (s *BookingService) CreateBooking(userID uint, req *CreateBookingRequest) (*models.Booking, error) {
+func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) (*models.Booking, error) {
 	// 1. 验证日期格式
 	checkIn, err := time.Parse("2006-01-02", req.CheckIn)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *BookingService) CreateBooking(userID uint, req *CreateBookingRequest) (
 	}
 
 	// 3. 查询房间是否存在
-	room, err := s.roomRepo.FindByID(req.RoomID)
+	room, err := s.roomRepo.FindByID(uint(req.RoomID))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.NewNotFoundError("房间不存在")
@@ -90,13 +90,15 @@ func (s *BookingService) CreateBooking(userID uint, req *CreateBookingRequest) (
 	totalDays := int(checkOut.Sub(checkIn).Hours() / 24)
 	totalPrice := float64(totalDays) * room.Price
 
-	// 7. 生成订单号
-	bookingNumber :=  utils.GenID()
+	// 7. 生成订单号和预订ID
+	bookingNumber := utils.GenID()
+	bookingID := utils.GenID()
 
 	// 8. 创建预订对象
 	booking := &models.Booking{
-		BookingNumber:  bookingNumber,
-		UserID:         userID,
+		ID:             utils.JSONInt64(bookingID),
+		BookingNumber:  utils.JSONInt64(bookingNumber),
+		UserID:         utils.JSONInt64(userID),
 		RoomID:         req.RoomID,
 		CheckIn:        checkIn,
 		CheckOut:       checkOut,
@@ -122,7 +124,7 @@ func (s *BookingService) CreateBooking(userID uint, req *CreateBookingRequest) (
 }
 
 // GetBookingByID 根据 ID 获取预订详情
-func (s *BookingService) GetBookingByID(id uint, userID uint) (*models.Booking, error) {
+func (s *BookingService) GetBookingByID(id int64, userID int64) (*models.Booking, error) {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -133,7 +135,7 @@ func (s *BookingService) GetBookingByID(id uint, userID uint) (*models.Booking, 
 
 	// 权限检查：只能查看自己的订单（管理员除外）
 	// 注意：这里简化处理，实际应该检查用户角色
-	if booking.UserID != userID {
+	if booking.UserID.Int64() != userID {
 		return nil, errors.NewForbiddenError("无权访问此预订")
 	}
 
@@ -141,7 +143,7 @@ func (s *BookingService) GetBookingByID(id uint, userID uint) (*models.Booking, 
 }
 
 // GetMyBookings 获取我的预订列表
-func (s *BookingService) GetMyBookings(userID uint, page, pageSize int) ([]models.Booking, int64, error) {
+func (s *BookingService) GetMyBookings(userID int64, page, pageSize int) ([]models.Booking, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -158,7 +160,7 @@ func (s *BookingService) GetMyBookings(userID uint, page, pageSize int) ([]model
 }
 
 // CancelBooking 取消预订
-func (s *BookingService) CancelBooking(id uint, userID uint, reason string) error {
+func (s *BookingService) CancelBooking(id int64, userID int64, reason string) error {
 	// 1. 查找预订
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
@@ -169,7 +171,7 @@ func (s *BookingService) CancelBooking(id uint, userID uint, reason string) erro
 	}
 
 	// 2. 权限检查
-	if booking.UserID != userID {
+	if booking.UserID.Int64() != userID {
 		return errors.NewForbiddenError("无权取消此预订")
 	}
 
@@ -190,7 +192,7 @@ func (s *BookingService) CancelBooking(id uint, userID uint, reason string) erro
 }
 
 // ConfirmBooking 确认预订（管理员）
-func (s *BookingService) ConfirmBooking(id uint) error {
+func (s *BookingService) ConfirmBooking(id int64) error {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -211,7 +213,7 @@ func (s *BookingService) ConfirmBooking(id uint) error {
 }
 
 // CheckIn 办理入住（管理员）
-func (s *BookingService) CheckIn(id uint) error {
+func (s *BookingService) CheckIn(id int64) error {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -230,7 +232,7 @@ func (s *BookingService) CheckIn(id uint) error {
 	}
 
 	// 更新房间状态为已占用
-	if err := s.roomRepo.UpdateStatus(booking.RoomID, "occupied"); err != nil {
+	if err := s.roomRepo.UpdateStatus(uint(booking.RoomID), "occupied"); err != nil {
 		return errors.NewDatabaseError("update room status", err)
 	}
 
@@ -238,7 +240,7 @@ func (s *BookingService) CheckIn(id uint) error {
 }
 
 // CheckOut 办理退房（管理员）
-func (s *BookingService) CheckOut(id uint) error {
+func (s *BookingService) CheckOut(id int64) error {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -257,7 +259,7 @@ func (s *BookingService) CheckOut(id uint) error {
 	}
 
 	// 更新房间状态为可用
-	if err := s.roomRepo.UpdateStatus(booking.RoomID, "available"); err != nil {
+	if err := s.roomRepo.UpdateStatus(uint(booking.RoomID), "available"); err != nil {
 		return errors.NewDatabaseError("update room status", err)
 	}
 
@@ -280,4 +282,3 @@ func (s *BookingService) ListAllBookings(page, pageSize int) ([]models.Booking, 
 
 	return bookings, total, nil
 }
-

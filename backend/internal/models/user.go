@@ -1,13 +1,14 @@
 package models
 
 import (
+	"gohotel/pkg/utils"
 	"time"
 )
 
 // User 用户模型
 // 对应数据库中的 users 表
 type User struct {
-	ID         int64     `gorm:"primaryKey;autoIncrement:false" json:"id"` // 主键（使用雪花算法生成）
+	ID         utils.JSONInt64 `gorm:"primaryKey;autoIncrement:false" json:"id"` // 主键（使用雪花算法生成，JSON序列化为字符串）
 	Username   string    `gorm:"unique;not null;size:50" json:"username"`  // 用户名（唯一）
 	Email      string    `gorm:"unique;not null;size:100" json:"email"`    // 邮箱（唯一）
 	Password   string    `gorm:"not null;size:255" json:"-"`               // 密码（不返回给前端）

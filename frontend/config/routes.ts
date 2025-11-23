@@ -24,6 +24,7 @@ export default [
       { path: '/hotel', redirect: '/hotel/room-manage' },
       { name: '房间管理', icon: 'table', path: '/hotel/room-manage', component: './hotel/room-manage' },
       { name: '酒店前台', icon: 'table', path: '/hotel/hotel-front', component: './hotel/hotel-front' },
+      { name: '订单管理', icon: 'table', path: '/hotel/order-manage', component: './hotel/order-manage' },
       { name: '折扣管理', icon: 'table', path: '/hotel/discount-manage', component: './hotel/discount-manage' },
       { name: '活动管理', icon: 'table', path: '/hotel/activity-manage', component: './hotel/activity-manage' },
     ],
