@@ -21,8 +21,9 @@ export default [
     name: '房间管理',
     icon: 'dashboard',
     routes: [
-      { path: '/room-manage', redirect: '/room-manage' },
-      { name: '房间可视化管理', icon: 'table', path: '/room-manage/room-visualization', component: './room-manage/room-visualization' },
+      { path: '/room-manage', redirect: '/room-manage/list' },
+      { name: '房间列表', icon: 'table', path: '/room-manage/list', component: './room-manage' },
+      { name: '房间可视化管理', icon: 'appstore', path: '/room-manage/room-visualization', component: './room-manage/room-visualization' },
     ],
   },
   { name: '酒店前台', icon: 'table', path: '/hotel-front', component: './hotel-front' },
