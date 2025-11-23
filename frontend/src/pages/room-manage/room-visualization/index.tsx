@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { Card, Button, message, Spin } from 'antd';
+import { Card, Button, message, Spin, theme } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -15,14 +15,24 @@ interface RoomPosition {
 }
 
 const RoomManage: React.FC = () => {
+  const { token } = theme.useToken();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRoom, setEditingRoom] = useState<API.Room | null>(null);
   const [roomPositions, setRoomPositions] = useState<RoomPosition[]>([]);
+  const [selectedFloor, setSelectedFloor] = useState<number>(1);
 
   // 使用 useRequest 获取房间数据
   const { data: rooms, loading, run: reloadRooms } = useRequest(() => getRooms({ page_size: 100 }), {
     formatResult: (res) => (Array.isArray(res) ? res : res.data || []),
   });
+
+  // 提取楼层数据
+  const floors = rooms ? [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b) : [];
+
+  // 根据楼层筛选房间
+  const filteredRooms = rooms?.filter(
+    (room) => room.floor === selectedFloor,
+  );
 
   // 当房间数据加载完成后,初始化房间位置
   useEffect(() => {
@@ -138,6 +148,7 @@ const RoomManage: React.FC = () => {
 
   return (
     <PageContainer
+      title="房间可视化管理"
       extra={[
         <Button key="reset" onClick={handleResetLayout}>
           重置布局
@@ -148,7 +159,45 @@ const RoomManage: React.FC = () => {
       ]}
     >
       <DndProvider backend={HTML5Backend}>
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card bodyStyle={{ padding: 0, position: 'relative' }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: 24,
+              top: 24,
+              zIndex: 10,
+              backgroundColor: token.colorBgContainer,
+              padding: '12px 8px',
+              borderRadius: token.borderRadiusLG,
+              boxShadow: token.boxShadowSecondary,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              minWidth: 80,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: 12,
+                color: token.colorPrimary,
+              }}
+            >
+              楼层
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {floors.map((floor) => (
+                <Button
+                  key={floor}
+                  type={selectedFloor === floor ? 'primary' : 'default'}
+                  onClick={() => setSelectedFloor(floor)}
+                  style={{ width: '100%' }}
+                >
+                  {floor}楼
+                </Button>
+              ))}
+            </div>
+          </div>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '50px 0' }}>
               <Spin size="large" />
@@ -160,14 +209,14 @@ const RoomManage: React.FC = () => {
                 width: '100%',
                 minHeight: '800px',
                 height: 'calc(100vh - 200px)',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: token.colorBgLayout,
                 backgroundImage:
-                  'linear-gradient(#e0e0e0 1px, transparent 1px), linear-gradient(90deg, #e0e0e0 1px, transparent 1px)',
+                  `linear-gradient(${token.colorSplit} 1px, transparent 1px), linear-gradient(90deg, ${token.colorSplit} 1px, transparent 1px)`,
                 backgroundSize: '20px 20px',
                 overflow: 'auto',
               }}
             >
-              {rooms?.map((room) => {
+              {filteredRooms?.map((room) => {
                 const position = roomPositions.find((pos) => pos.id === room.id);
                 if (!position) return null;
 
