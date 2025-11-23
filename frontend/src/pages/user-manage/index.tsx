@@ -1,4 +1,4 @@
-import { getAdminUsers } from '@/services/api/guanliyuan';
+import { getAdminUsers, postAdminUsersBatch } from '@/services/api/guanliyuan';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -196,8 +196,33 @@ const TableList: React.FC = () => {
           }
         >
           <Button
-            onClick={() => {
-              messageApi.warning('删除功能待实现');
+            danger
+            onClick={async () => {
+              try {
+                // 获取选中用户的ID列表，并过滤掉可能的undefined值
+                const userIds = selectedRowsState
+                  .map(row => row.id)
+                  .filter((id): id is number => id !== undefined && id !== null);
+                
+                // 确保有有效ID再调用API
+                if (userIds.length === 0) {
+                  messageApi.warning('未找到有效的用户ID');
+                  return;
+                }
+                
+                // 调用删除API
+                await postAdminUsersBatch({ user_ids: userIds });
+                // 显示成功消息
+                messageApi.success('删除成功');
+                // 刷新表格数据
+                actionRef.current?.reload();
+                // 清空选中状态
+                setSelectedRows([]);
+              } catch (error) {
+                // 显示错误消息
+                messageApi.error('删除失败，请重试');
+                console.error('删除用户失败:', error);
+              }
             }}
           >
             批量删除

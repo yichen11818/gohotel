@@ -203,6 +203,7 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				admin.GET("/users", userHandler.ListUsers)
 				admin.GET("/users/:id", userHandler.GetUserByID)
 				admin.POST("/users/user", userHandler.AddUser)
+				admin.POST("/users/batch", userHandler.DeleteUsers)
 				// 预订管理
 				admin.GET("/bookings", bookingHandler.ListAllBookings)
 				admin.POST("/bookings/:id/confirm", bookingHandler.ConfirmBooking)

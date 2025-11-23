@@ -2,6 +2,7 @@ package repository
 
 import (
 	"gohotel/internal/models"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -63,6 +64,20 @@ func (r *UserRepository) Update(user *models.User) error {
 // Delete 删除用户
 func (r *UserRepository) Delete(id int64) error {
 	return r.db.Delete(&models.User{}, id).Error
+}
+
+// BatchDelete 批量删除用户
+func (r *UserRepository) BatchDelete(userIDs []string) error {
+	// 将字符串ID转换为int64
+	var ids []int64
+	for _, idStr := range userIDs {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		ids = append(ids, id)
+	}
+	return r.db.Delete(&models.User{}, ids).Error
 }
 
 // FindByID 根据 ID 查找用户

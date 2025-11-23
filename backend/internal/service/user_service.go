@@ -49,6 +49,11 @@ type LoginResponse struct {
 	Token string       `json:"token"`
 }
 
+// DeleteUsersRequest 批量删除用户请求结构
+type DeleteUsersRequest struct {
+	UserIDs []string `json:"user_ids" binding:"required,min=1"`
+}
+
 // Register 用户注册
 func (s *UserService) Register(req *RegisterRequest) (*models.User, error) {
 	// 1. 检查用户名是否已存在
@@ -297,4 +302,20 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+// DeleteUsers 批量删除用户
+func (s *UserService) DeleteUsers(req *DeleteUsersRequest) error {
+	// 检查用户ID列表是否为空
+	if len(req.UserIDs) == 0 {
+		return errors.NewBadRequestError("用户ID列表不能为空")
+	}
+
+	// 执行批量删除操作
+	err := s.userRepo.BatchDelete(req.UserIDs)
+	if err != nil {
+		return errors.NewDatabaseError("batch delete users", err)
+	}
+
+	return nil
 }
