@@ -19,7 +19,7 @@ definitions:
   models.Booking:
     properties:
       booking_number:
-        description: 预订单号（唯一）
+        description: 预订单号（唯一，JSON序列化为字符串）
         type: integer
       cancel_reason:
         description: 取消原因
@@ -43,7 +43,7 @@ definitions:
         description: 入住人电话
         type: string
       id:
-        description: 主键
+        description: 主键（JSON序列化为字符串）
         type: integer
       payment_method:
         description: 支付方式：wechat, alipay, card
@@ -80,7 +80,7 @@ definitions:
           关联查询（可选）
           当查询 Booking 时，可以同时加载 User 和 Room 的信息
       user_id:
-        description: 用户 ID（有索引）
+        description: 用户 ID（有索引，JSON序列化为字符串）
         type: integer
     type: object
   models.Room:
@@ -146,7 +146,7 @@ definitions:
         description: 是否首次登录
         type: boolean
       id:
-        description: 主键（使用雪花算法生成）
+        description: 主键（使用雪花算法生成，JSON序列化为字符串）
         type: integer
       phone:
         description: 手机号（唯一，可为空）
@@ -193,6 +193,7 @@ definitions:
         description: '格式: "2024-01-05"'
         type: string
       guest_id_card:
+        description: 入住人身份证号，可选
         type: string
       guest_name:
         type: string
@@ -201,6 +202,7 @@ definitions:
       room_id:
         type: integer
       special_request:
+        description: 特殊要求，可选
         type: string
     required:
     - check_in
@@ -239,6 +241,16 @@ definitions:
     - price
     - room_number
     - room_type
+    type: object
+  service.DeleteUsersRequest:
+    properties:
+      user_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - user_ids
     type: object
   service.LoginRequest:
     properties:
@@ -357,6 +369,77 @@ paths:
       summary: 获取所有预订（管理员）
       tags:
       - 管理员
+  /api/admin/bookings/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 管理员确认待处理的预订
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 确认预订（管理员）
+      tags:
+      - 管理员
+  /api/admin/bookings/search:
+    get:
+      consumes:
+      - application/json
+      description: 根据客人姓名和手机号搜索预订记录
+      parameters:
+      - description: 客人姓名
+        in: query
+        name: guest_name
+        type: string
+      - description: 客人手机号
+        in: query
+        name: guest_phone
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{\"data\": [...], \"count\": number}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: '{\"error\": string}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 通过客人信息搜索预订
+      tags:
+      - 管理员
   /api/admin/users:
     get:
       consumes:
@@ -456,6 +539,43 @@ paths:
       security:
       - Bearer: []
       summary: 获取用户详情（管理员）
+      tags:
+      - 管理员
+  /api/admin/users/batch:
+    post:
+      consumes:
+      - application/json
+      description: 管理员批量删除用户账户
+      parameters:
+      - description: 删除用户信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.DeleteUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 批量删除用户
       tags:
       - 管理员
   /api/admin/users/user:
@@ -749,46 +869,6 @@ paths:
       security:
       - Bearer: []
       summary: 办理退房（管理员）
-      tags:
-      - 管理员
-  /api/bookings/{id}/confirm:
-    post:
-      consumes:
-      - application/json
-      description: 管理员确认待处理的预订
-      parameters:
-      - description: 预订 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 确认预订（管理员）
       tags:
       - 管理员
   /api/bookings/my:

@@ -142,6 +142,20 @@ func (s *BookingService) GetBookingByID(id int64, userID int64) (*models.Booking
 	return booking, nil
 }
 
+// GetByGuestInfo 通过客人姓名和手机号查询预订
+func (s *BookingService) GetByGuestInfo(guestName, guestPhone string) ([]models.Booking, error) {
+	// 参数验证
+	if guestName == "" && guestPhone == "" {
+		return nil, errors.NewBadRequestError("客人姓名和手机号不能同时为空")
+	}
+
+	bookings, err := s.bookingRepo.FindByGuestInfo(guestName, guestPhone)
+	if err != nil {
+		return nil, errors.NewDatabaseError("find by guest info", err)
+	}
+	return bookings, nil
+}
+
 // GetMyBookings 获取我的预订列表
 func (s *BookingService) GetMyBookings(userID int64, page, pageSize int) ([]models.Booking, int64, error) {
 	if page < 1 {
@@ -191,7 +205,6 @@ func (s *BookingService) CancelBooking(id int64, userID int64, reason string) er
 	return nil
 }
 
-// ConfirmBooking 确认预订（管理员）
 func (s *BookingService) ConfirmBooking(id int64) error {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {

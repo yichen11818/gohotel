@@ -8,7 +8,7 @@ declare namespace API {
   };
 
   type Booking = {
-    /** 预订单号（唯一） */
+    /** 预订单号（唯一，JSON序列化为字符串） */
     booking_number?: number;
     /** 取消原因 */
     cancel_reason?: string;
@@ -24,7 +24,7 @@ declare namespace API {
     guest_name?: string;
     /** 入住人电话 */
     guest_phone?: string;
-    /** 主键 */
+    /** 主键（JSON序列化为字符串） */
     id?: number;
     /** 支付方式：wechat, alipay, card */
     payment_method?: string;
@@ -47,7 +47,7 @@ declare namespace API {
     /** 关联查询（可选）
 当查询 Booking 时，可以同时加载 User 和 Room 的信息 */
     user?: User;
-    /** 用户 ID（有索引） */
+    /** 用户 ID（有索引，JSON序列化为字符串） */
     user_id?: number;
   };
 
@@ -56,10 +56,12 @@ declare namespace API {
     check_in: string;
     /** 格式: "2024-01-05" */
     check_out: string;
+    /** 入住人身份证号，可选 */
     guest_id_card?: string;
     guest_name: string;
     guest_phone: string;
     room_id: number;
+    /** 特殊要求，可选 */
     special_request?: string;
   };
 
@@ -78,7 +80,7 @@ declare namespace API {
   };
 
   type DeleteUsersRequest = {
-    user_ids: number[];
+    user_ids: string[];
   };
 
   type ErrorInfo = {
@@ -96,6 +98,13 @@ declare namespace API {
     page?: number;
     /** 每页数量 */
     page_size?: number;
+  };
+
+  type getAdminBookingsSearchParams = {
+    /** 客人姓名 */
+    guest_name?: string;
+    /** 客人手机号 */
+    guest_phone?: string;
   };
 
   type getAdminUsersIdParams = {
@@ -181,6 +190,11 @@ declare namespace API {
     user?: User;
   };
 
+  type postAdminBookingsIdConfirmParams = {
+    /** 预订 ID */
+    id: string;
+  };
+
   type postBookingsIdCancelParams = {
     /** 预订 ID */
     id: number;
@@ -192,11 +206,6 @@ declare namespace API {
   };
 
   type postBookingsIdCheckoutParams = {
-    /** 预订 ID */
-    id: number;
-  };
-
-  type postBookingsIdConfirmParams = {
     /** 预订 ID */
     id: number;
   };
@@ -275,7 +284,7 @@ declare namespace API {
     email?: string;
     /** 是否首次登录 */
     first_login?: boolean;
-    /** 主键（使用雪花算法生成） */
+    /** 主键（使用雪花算法生成，JSON序列化为字符串） */
     id?: number;
     /** 手机号（唯一，可为空） */
     phone?: string;

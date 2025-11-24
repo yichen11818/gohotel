@@ -206,6 +206,7 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				admin.POST("/users/batch", userHandler.DeleteUsers)
 				// 预订管理
 				admin.GET("/bookings", bookingHandler.ListAllBookings)
+				admin.GET("/bookings/search", bookingHandler.SearchBookingsByGuestInfo) // 通过客人信息搜索预订
 				admin.POST("/bookings/:id/confirm", bookingHandler.ConfirmBooking)
 				admin.POST("/bookings/:id/checkin", bookingHandler.CheckIn)
 				admin.POST("/bookings/:id/checkout", bookingHandler.CheckOut)

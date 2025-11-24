@@ -1,4 +1,4 @@
-import { getAdminBookings } from '@/services/api/guanliyuan';
+import { getAdminBookings, postAdminBookingsIdConfirm } from '@/services/api/guanliyuan';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -8,6 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Drawer, message, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
+import { request } from '@umijs/max';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 
@@ -189,19 +190,32 @@ const TableList: React.FC = () => {
       hideInSearch: true,
       sorter: true,
     },
-    {
-      title: '操作',
+    { title: '操作',
       dataIndex: 'option',
       valueType: 'option',
       width: 100,
       fixed: 'right',
       render: (_, record) => [
-        <UpdateForm
-          trigger={<a>编辑</a>}
-          key="edit"
-          onOk={actionRef.current?.reload}
-          values={record}
-        />,
+        <Button
+          key="confirm"
+          type="primary"
+          disabled={record.status === 'confirmed'}
+          onClick={() => {
+            postAdminBookingsIdConfirm({
+              id: record.id,
+            })
+              .then(() => {
+                messageApi.success('订单确认成功');
+                actionRef.current?.reload();
+              })
+              .catch((error: Error) => {
+                console.error('订单确认失败:', error);
+                messageApi.error('订单确认失败');
+              });
+          }}
+        >
+          确认
+        </Button>,
       ],
     },
   ];

@@ -21,6 +21,35 @@ export async function getAdminBookings(
   });
 }
 
+/** 确认预订（管理员） 管理员确认待处理的预订 POST /api/admin/bookings/${param0}/confirm */
+export async function postAdminBookingsIdConfirm(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminBookingsIdConfirmParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<Record<string, any>>(`/api/admin/bookings/${param0}/confirm`, {
+    method: "POST",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 通过客人信息搜索预订 根据客人姓名和手机号搜索预订记录 GET /api/admin/bookings/search */
+export async function getAdminBookingsSearch(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminBookingsSearchParams,
+  options?: { [key: string]: any }
+) {
+  return request<Record<string, any>>("/api/admin/bookings/search", {
+    method: "GET",
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
 /** 获取用户列表（管理员） 管理员获取所有用户列表，支持分页 GET /api/admin/users */
 export async function getAdminUsers(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
@@ -107,20 +136,6 @@ export async function postBookingsIdCheckout(
 ) {
   const { id: param0, ...queryParams } = params;
   return request<Record<string, any>>(`/api/bookings/${param0}/checkout`, {
-    method: "POST",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
-}
-
-/** 确认预订（管理员） 管理员确认待处理的预订 POST /api/bookings/${param0}/confirm */
-export async function postBookingsIdConfirm(
-  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.postBookingsIdConfirmParams,
-  options?: { [key: string]: any }
-) {
-  const { id: param0, ...queryParams } = params;
-  return request<Record<string, any>>(`/api/bookings/${param0}/confirm`, {
     method: "POST",
     params: { ...queryParams },
     ...(options || {}),

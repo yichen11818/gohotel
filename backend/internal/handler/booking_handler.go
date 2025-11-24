@@ -4,6 +4,7 @@ import (
 	"gohotel/internal/service"
 	"gohotel/pkg/errors"
 	"gohotel/pkg/utils"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -158,17 +159,19 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path int true "预订 ID"
+// @Param id path string true "预订 ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/bookings/{id}/confirm [post]
+// @Router /api/admin/bookings/{id}/confirm [post]
 func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// 直接获取string类型的ID参数，然后转换为int64
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID，请确保传入有效的数字字符串"))
 		return
 	}
 
@@ -266,4 +269,31 @@ func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 	}
 
 	utils.SuccessWithPage(c, bookings, page, pageSize, total)
+}
+
+// SearchBookingsByGuestInfo 通过客人信息搜索预订
+// @Summary 通过客人信息搜索预订
+// @Description 根据客人姓名和手机号搜索预订记录
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Param guest_name query string false "客人姓名"
+// @Param guest_phone query string false "客人手机号"
+// @Success 200 {object} map[string]interface{} "{\"data\": [...], \"count\": number}"
+// @Failure 400 {object} map[string]string "{\"error\": string}"
+// @Router /api/admin/bookings/search [get]
+func (h *BookingHandler) SearchBookingsByGuestInfo(c *gin.Context) {
+	guestName := c.Query("guest_name")
+	guestPhone := c.Query("guest_phone")
+
+	bookings, err := h.bookingService.GetByGuestInfo(guestName, guestPhone)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  bookings,
+		"count": len(bookings),
+	})
 }

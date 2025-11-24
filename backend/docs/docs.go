@@ -88,6 +88,115 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/bookings/search": {
+            "get": {
+                "description": "根据客人姓名和手机号搜索预订记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "通过客人信息搜索预订",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "客人姓名",
+                        "name": "guest_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "客人手机号",
+                        "name": "guest_phone",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\\\"data\\\": [...], \\\"count\\\": number}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "{\\\"error\\\": string}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员确认待处理的预订",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "确认预订（管理员）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "预订 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/users": {
             "get": {
                 "security": [
@@ -166,6 +275,64 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/models.User"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/users/batch": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员批量删除用户账户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "批量删除用户",
+                "parameters": [
+                    {
+                        "description": "删除用户信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.DeleteUsersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "401": {
@@ -715,68 +882,6 @@ const docTemplate = `{
                     "管理员"
                 ],
                 "summary": "办理退房（管理员）",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "预订 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/bookings/{id}/confirm": {
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "管理员确认待处理的预订",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "管理员"
-                ],
-                "summary": "确认预订（管理员）",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1440,7 +1545,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "booking_number": {
-                    "description": "预订单号（唯一）",
+                    "description": "预订单号（唯一，JSON序列化为字符串）",
                     "type": "integer"
                 },
                 "cancel_reason": {
@@ -1472,7 +1577,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "description": "主键",
+                    "description": "主键（JSON序列化为字符串）",
                     "type": "integer"
                 },
                 "payment_method": {
@@ -1524,7 +1629,7 @@ const docTemplate = `{
                     ]
                 },
                 "user_id": {
-                    "description": "用户 ID（有索引）",
+                    "description": "用户 ID（有索引，JSON序列化为字符串）",
                     "type": "integer"
                 }
             }
@@ -1614,7 +1719,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "id": {
-                    "description": "主键（使用雪花算法生成）",
+                    "description": "主键（使用雪花算法生成，JSON序列化为字符串）",
                     "type": "integer"
                 },
                 "phone": {
@@ -1687,6 +1792,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "guest_id_card": {
+                    "description": "入住人身份证号，可选",
                     "type": "string"
                 },
                 "guest_name": {
@@ -1699,6 +1805,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "special_request": {
+                    "description": "特殊要求，可选",
                     "type": "string"
                 }
             }
@@ -1745,6 +1852,21 @@ const docTemplate = `{
                 },
                 "room_type": {
                     "type": "string"
+                }
+            }
+        },
+        "service.DeleteUsersRequest": {
+            "type": "object",
+            "required": [
+                "user_ids"
+            ],
+            "properties": {
+                "user_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

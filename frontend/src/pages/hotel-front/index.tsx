@@ -1,17 +1,17 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { Card } from 'antd';
 import React from 'react';
+import CheckInForm from './components/CheckInForm';
 
-const DiscountManage: React.FC = () => {
+const HotelFrontPage: React.FC = () => {
   return (
-    <PageContainer>
-      <Card>
-        <h2>酒店前台管理</h2>
-        <p>前台管理功能开发中...</p>
+    <PageContainer title="酒店前台管理">
+      <Card title="客人入住办理">
+        <CheckInForm />
       </Card>
     </PageContainer>
   );
 };
 
-export default DiscountManage;
+export default HotelFrontPage;
 
