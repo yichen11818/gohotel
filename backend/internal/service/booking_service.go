@@ -295,3 +295,13 @@ func (s *BookingService) ListAllBookings(page, pageSize int) ([]models.Booking, 
 
 	return bookings, total, nil
 }
+
+// GetBookingsByRoomNumberAndStatus 根据房间号和状态获取预订列表（管理员）
+func (s *BookingService) GetBookingsByRoomNumberAndStatus(roomNumber string, status string) ([]models.Booking, error) {
+	bookings, err := s.bookingRepo.FindByRoomNumberAndStatus(roomNumber, status)
+	if err != nil {
+		return nil, errors.NewDatabaseError("find bookings by room number and status", err)
+	}
+
+	return bookings, nil
+}

@@ -12,7 +12,7 @@ import {
 } from 'antd';
 import { SearchOutlined, CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
 import type { StepProps } from 'antd';
-import { getAdminBookingsSearch, postAdminBookingsIdCheckout } from '@/services/api/guanliyuan';
+import { getAdminBookingsRoom, postAdminBookingsIdCheckout } from '@/services/api/guanliyuan';
 
 const { Step } = Steps;
 
@@ -61,17 +61,9 @@ const CheckOutForm: React.FC = () => {
       setLoading(true);
       const values = form.getFieldsValue();
       
-      // 验证至少提供客人姓名或手机号中的一项
-      if (!values.guestName && !values.guestPhone) {
-        message.error('请至少输入客人姓名或手机号码中的一项');
-        setLoading(false);
-        return;
-      }
-      
-      // 调用真实的API接口，查询状态为已入住的预订
-      const response = await getAdminBookingsSearch({
-        guest_name: values.guestName,
-        guest_phone: values.guestPhone,
+      // 调用真实的API接口，通过房间号和状态查询预订，状态固定为checkin
+      const response = await getAdminBookingsRoom({
+        room_number: values.roomNumber,
         status: 'checkin',
       });
       
@@ -181,27 +173,11 @@ const CheckOutForm: React.FC = () => {
     <Card>
       <Form form={form} layout="vertical" className="search-form">
         <Form.Item
-          name="bookingCode"
-          label="预订号"
-          rules={[{ required: false }]}
+          name="roomNumber"
+          label="房间号"
+          rules={[{ required: true, message: '请输入房间号' }]}
         >
-          <Input prefix={<SearchOutlined />} placeholder="暂不支持通过预订号查询" disabled />
-        </Form.Item>
-        
-        <Form.Item
-          name="guestName"
-          label="客人姓名"
-          rules={[{ required: false, message: '请输入客人姓名' }]}
-        >
-          <Input prefix={<UserOutlined />} placeholder="请输入客人姓名（与手机号至少填一项）" />
-        </Form.Item>
-        
-        <Form.Item
-          name="guestPhone"
-          label="手机号码"
-          rules={[{ required: false, message: '请输入手机号码' }]}
-        >
-          <Input prefix={<UserOutlined />} placeholder="请输入手机号码（与姓名至少填一项）" />
+          <Input prefix={<SearchOutlined />} placeholder="请输入房间号" />
         </Form.Item>
         
         <Form.Item>

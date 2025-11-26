@@ -100,6 +100,13 @@ declare namespace API {
     page_size?: number;
   };
 
+  type getAdminBookingsRoomParams = {
+    /** 房间号 */
+    room_number: string;
+    /** 预订状态 */
+    status?: string;
+  };
+
   type getAdminBookingsSearchParams = {
     /** 客人姓名 */
     guest_name?: string;

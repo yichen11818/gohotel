@@ -303,3 +303,37 @@ func (h *BookingHandler) SearchBookingsByGuestInfo(c *gin.Context) {
 		"count": len(bookings),
 	})
 }
+
+// GetBookingsByRoomNumberAndStatus 根据房间号和状态获取预订列表
+// @Summary 根据房间号和状态获取预订列表
+// @Description 管理员根据房间号和状态获取预订列表
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param room_number query string true "房间号"
+// @Param status query string false "预订状态"
+// @Success 200 {object} map[string]interface{} "{\"data\": [...], \"count\": number}"
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/admin/bookings/room [get]
+func (h *BookingHandler) GetBookingsByRoomNumberAndStatus(c *gin.Context) {
+	roomNumber := c.Query("room_number")
+	if roomNumber == "" {
+		utils.ErrorResponse(c, errors.NewBadRequestError("房间号不能为空"))
+		return
+	}
+	status := c.Query("status")
+
+	bookings, err := h.bookingService.GetBookingsByRoomNumberAndStatus(roomNumber, status)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  bookings,
+		"count": len(bookings),
+	})
+}

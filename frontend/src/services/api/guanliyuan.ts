@@ -66,6 +66,21 @@ export async function postAdminBookingsIdConfirm(
   });
 }
 
+/** 根据房间号和状态获取预订列表 管理员根据房间号和状态获取预订列表 GET /api/admin/bookings/room */
+export async function getAdminBookingsRoom(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminBookingsRoomParams,
+  options?: { [key: string]: any }
+) {
+  return request<Record<string, any>>("/api/admin/bookings/room", {
+    method: "GET",
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
 /** 通过客人信息搜索预订 根据客人姓名、手机号和状态搜索预订记录 GET /api/admin/bookings/search */
 export async function getAdminBookingsSearch(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
