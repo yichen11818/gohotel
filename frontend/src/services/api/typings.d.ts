@@ -105,6 +105,8 @@ declare namespace API {
     guest_name?: string;
     /** 客人手机号 */
     guest_phone?: string;
+    /** 预订状态 */
+    status?: string;
   };
 
   type getAdminUsersIdParams = {
@@ -190,22 +192,22 @@ declare namespace API {
     user?: User;
   };
 
+  type postAdminBookingsIdCheckinParams = {
+    /** 预订 ID */
+    id: string;
+  };
+
+  type postAdminBookingsIdCheckoutParams = {
+    /** 预订 ID */
+    id: string;
+  };
+
   type postAdminBookingsIdConfirmParams = {
     /** 预订 ID */
     id: string;
   };
 
   type postBookingsIdCancelParams = {
-    /** 预订 ID */
-    id: number;
-  };
-
-  type postBookingsIdCheckinParams = {
-    /** 预订 ID */
-    id: number;
-  };
-
-  type postBookingsIdCheckoutParams = {
     /** 预订 ID */
     id: number;
   };

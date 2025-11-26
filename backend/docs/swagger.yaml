@@ -369,6 +369,86 @@ paths:
       summary: 获取所有预订（管理员）
       tags:
       - 管理员
+  /api/admin/bookings/{id}/checkin:
+    post:
+      consumes:
+      - application/json
+      description: 管理员为已确认的预订办理入住
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 办理入住（管理员）
+      tags:
+      - 管理员
+  /api/admin/bookings/{id}/checkout:
+    post:
+      consumes:
+      - application/json
+      description: 管理员为入住中的预订办理退房
+      parameters:
+      - description: 预订 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 办理退房（管理员）
+      tags:
+      - 管理员
   /api/admin/bookings/{id}/confirm:
     post:
       consumes:
@@ -413,7 +493,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 根据客人姓名和手机号搜索预订记录
+      description: 根据客人姓名、手机号和状态搜索预订记录
       parameters:
       - description: 客人姓名
         in: query
@@ -422,6 +502,10 @@ paths:
       - description: 客人手机号
         in: query
         name: guest_phone
+        type: string
+      - description: 预订状态
+        in: query
+        name: status
         type: string
       produces:
       - application/json
@@ -791,86 +875,6 @@ paths:
       summary: 取消预订
       tags:
       - 预订
-  /api/bookings/{id}/checkin:
-    post:
-      consumes:
-      - application/json
-      description: 管理员为已确认的预订办理入住
-      parameters:
-      - description: 预订 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 办理入住（管理员）
-      tags:
-      - 管理员
-  /api/bookings/{id}/checkout:
-    post:
-      consumes:
-      - application/json
-      description: 管理员为入住中的预订办理退房
-      parameters:
-      - description: 预订 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 办理退房（管理员）
-      tags:
-      - 管理员
   /api/bookings/my:
     get:
       consumes:

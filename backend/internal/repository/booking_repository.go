@@ -165,8 +165,8 @@ func (r *BookingRepository) FindByStatus(status string, page, pageSize int) ([]m
 	return bookings, total, err
 }
 
-// FindByGuestInfo 通过客人姓名、手机号或预订号查询预订
-func (r *BookingRepository) FindByGuestInfo(guestName, guestPhone string) ([]models.Booking, error) {
+// FindByGuestInfo 通过客人姓名、手机号和状态查询预订
+func (r *BookingRepository) FindByGuestInfo(guestName, guestPhone, status string) ([]models.Booking, error) {
 	var bookings []models.Booking
 	query := r.db.Model(&models.Booking{})
 
@@ -176,6 +176,11 @@ func (r *BookingRepository) FindByGuestInfo(guestName, guestPhone string) ([]mod
 
 	if guestPhone != "" {
 		query = query.Where("guest_phone LIKE ?", "%"+guestPhone+"%")
+	}
+
+	// 根据状态参数过滤，为空则不过滤
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	err := query.Preload("User").Preload("Room").
