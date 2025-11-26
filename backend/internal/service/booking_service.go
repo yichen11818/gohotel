@@ -142,14 +142,14 @@ func (s *BookingService) GetBookingByID(id int64, userID int64) (*models.Booking
 	return booking, nil
 }
 
-// GetByGuestInfo 通过客人姓名和手机号查询预订
-func (s *BookingService) GetByGuestInfo(guestName, guestPhone string) ([]models.Booking, error) {
+// GetByGuestInfo 通过客人姓名、手机号和状态查询预订
+func (s *BookingService) GetByGuestInfo(guestName, guestPhone, status string) ([]models.Booking, error) {
 	// 参数验证
 	if guestName == "" && guestPhone == "" {
 		return nil, errors.NewBadRequestError("客人姓名和手机号不能同时为空")
 	}
 
-	bookings, err := s.bookingRepo.FindByGuestInfo(guestName, guestPhone)
+	bookings, err := s.bookingRepo.FindByGuestInfo(guestName, guestPhone, status)
 	if err != nil {
 		return nil, errors.NewDatabaseError("find by guest info", err)
 	}
@@ -294,4 +294,14 @@ func (s *BookingService) ListAllBookings(page, pageSize int) ([]models.Booking, 
 	}
 
 	return bookings, total, nil
+}
+
+// GetBookingsByRoomNumberAndStatus 根据房间号和状态获取预订列表（管理员）
+func (s *BookingService) GetBookingsByRoomNumberAndStatus(roomNumber string, status string) ([]models.Booking, error) {
+	bookings, err := s.bookingRepo.FindByRoomNumberAndStatus(roomNumber, status)
+	if err != nil {
+		return nil, errors.NewDatabaseError("find bookings by room number and status", err)
+	}
+
+	return bookings, nil
 }

@@ -191,17 +191,19 @@ func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path int true "预订 ID"
+// @Param id path string true "预订 ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/bookings/{id}/checkin [post]
+// @Router /api/admin/bookings/{id}/checkin [post]
 func (h *BookingHandler) CheckIn(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// 直接获取string类型的ID参数，然后转换为int64
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID，请确保传入有效的数字字符串"))
 		return
 	}
 
@@ -221,17 +223,19 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path int true "预订 ID"
+// @Param id path string true "预订 ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/bookings/{id}/checkout [post]
+// @Router /api/admin/bookings/{id}/checkout [post]
 func (h *BookingHandler) CheckOut(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// 直接获取string类型的ID参数，然后转换为int64
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID"))
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的预订ID，请确保传入有效的数字字符串"))
 		return
 	}
 
@@ -273,22 +277,58 @@ func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 
 // SearchBookingsByGuestInfo 通过客人信息搜索预订
 // @Summary 通过客人信息搜索预订
-// @Description 根据客人姓名和手机号搜索预订记录
+// @Description 根据客人姓名、手机号和状态搜索预订记录
 // @Tags 管理员
 // @Accept json
 // @Produce json
 // @Param guest_name query string false "客人姓名"
 // @Param guest_phone query string false "客人手机号"
+// @Param status query string false "预订状态"
 // @Success 200 {object} map[string]interface{} "{\"data\": [...], \"count\": number}"
 // @Failure 400 {object} map[string]string "{\"error\": string}"
 // @Router /api/admin/bookings/search [get]
 func (h *BookingHandler) SearchBookingsByGuestInfo(c *gin.Context) {
 	guestName := c.Query("guest_name")
 	guestPhone := c.Query("guest_phone")
+	status := c.Query("status")
 
-	bookings, err := h.bookingService.GetByGuestInfo(guestName, guestPhone)
+	bookings, err := h.bookingService.GetByGuestInfo(guestName, guestPhone, status)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  bookings,
+		"count": len(bookings),
+	})
+}
+
+// GetBookingsByRoomNumberAndStatus 根据房间号和状态获取预订列表
+// @Summary 根据房间号和状态获取预订列表
+// @Description 管理员根据房间号和状态获取预订列表
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param room_number query string true "房间号"
+// @Param status query string false "预订状态"
+// @Success 200 {object} map[string]interface{} "{\"data\": [...], \"count\": number}"
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Router /api/admin/bookings/room [get]
+func (h *BookingHandler) GetBookingsByRoomNumberAndStatus(c *gin.Context) {
+	roomNumber := c.Query("room_number")
+	if roomNumber == "" {
+		utils.ErrorResponse(c, errors.NewBadRequestError("房间号不能为空"))
+		return
+	}
+	status := c.Query("status")
+
+	bookings, err := h.bookingService.GetBookingsByRoomNumberAndStatus(roomNumber, status)
+	if err != nil {
+		utils.ErrorResponse(c, err)
 		return
 	}
 

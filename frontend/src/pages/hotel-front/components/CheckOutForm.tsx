@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Steps,
   Form,
@@ -12,7 +12,7 @@ import {
 } from 'antd';
 import { SearchOutlined, CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
 import type { StepProps } from 'antd';
-import { getAdminBookingsSearch, postAdminBookingsIdCheckin } from '@/services/api/guanliyuan';
+import { getAdminBookingsRoom, postAdminBookingsIdCheckout } from '@/services/api/guanliyuan';
 
 const { Step } = Steps;
 
@@ -30,7 +30,7 @@ interface BookingInfo {
   totalAmount: number;
 }
 
-const CheckInForm: React.FC = () => {
+const CheckOutForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [form] = Form.useForm();
   const [bookingInfo, setBookingInfo] = useState<BookingInfo | null>(null);
@@ -47,8 +47,8 @@ const CheckInForm: React.FC = () => {
       description: '核对预订详情',
     },
     {
-      title: '办理入住',
-      description: '完成入住手续',
+      title: '办理退房',
+      description: '完成退房手续',
     },
   ];
 
@@ -61,18 +61,10 @@ const CheckInForm: React.FC = () => {
       setLoading(true);
       const values = form.getFieldsValue();
       
-      // 验证至少提供客人姓名或手机号中的一项
-      if (!values.guestName && !values.guestPhone) {
-        message.error('请至少输入客人姓名或手机号码中的一项');
-        setLoading(false);
-        return;
-      }
-      
-      // 调用真实的API接口
-      const response = await getAdminBookingsSearch({
-        guest_name: values.guestName,
-        guest_phone: values.guestPhone,
-        status: 'confirmed',
+      // 调用真实的API接口，通过房间号和状态查询预订，状态固定为checkin
+      const response = await getAdminBookingsRoom({
+        room_number: values.roomNumber,
+        status: 'checkin',
       });
       
       // 处理响应数据
@@ -109,15 +101,15 @@ const CheckInForm: React.FC = () => {
         setBookingInfo(formattedBooking);
         setCurrentStep(1);
         
-        // 如果预订状态不是已确认，给出提示
-        if (formattedBooking.status !== 'confirmed') {
+        // 如果预订状态不是已入住，给出提示
+        if (formattedBooking.status !== 'checkin') {
           message.warning(`该预订当前状态为${
-            formattedBooking.status === 'checkin' ? '已入住' : 
+            formattedBooking.status === 'confirmed' ? '已确认' : 
             formattedBooking.status === 'checkout' ? '已退房' : '未确认'
-          }，可能无法办理入住`);
+          }，可能无法办理退房`);
         }
       } else {
-        message.error('未找到匹配的预订信息');
+        message.error('未找到匹配的已入住预订信息');
       }
     } catch (error: any) {
       console.error('查询预订失败:', error);
@@ -136,25 +128,25 @@ const CheckInForm: React.FC = () => {
     }
   };
 
-  // 办理入住
-  const handleCheckIn = async () => {
+  // 办理退房
+  const handleCheckOut = async () => {
     if (!bookingInfo) return;
     
     try {
       setSubmitting(true);
       
-      // 调用办理入住接口
-      await postAdminBookingsIdCheckin({
+      // 调用办理退房接口
+      await postAdminBookingsIdCheckout({
         id: bookingInfo.id,
       });
       
-      message.success('入住办理成功！');
+      message.success('退房办理成功！');
       setCurrentStep(2);
     } catch (error: any) {
-      console.error('入住办理失败:', error);
+      console.error('退房办理失败:', error);
       // 处理不同类型的错误
       if (error.response?.status === 400) {
-        message.error(error.response?.data?.error || '办理入住参数无效');
+        message.error(error.response?.data?.error || '办理退房参数无效');
       } else if (error.response?.status === 401) {
         message.error('请先登录后再操作');
       } else if (error.response?.status === 403) {
@@ -162,7 +154,7 @@ const CheckInForm: React.FC = () => {
       } else if (error.response?.status === 404) {
         message.error('未找到该预订信息');
       } else {
-        message.error('入住办理失败，请稍后重试');
+        message.error('退房办理失败，请稍后重试');
       }
     } finally {
       setSubmitting(false);
@@ -181,27 +173,11 @@ const CheckInForm: React.FC = () => {
     <Card>
       <Form form={form} layout="vertical" className="search-form">
         <Form.Item
-          name="bookingCode"
-          label="预订号"
-          rules={[{ required: false }]}
+          name="roomNumber"
+          label="房间号"
+          rules={[{ required: true, message: '请输入房间号' }]}
         >
-          <Input prefix={<SearchOutlined />} placeholder="暂不支持通过预订号查询" disabled />
-        </Form.Item>
-        
-        <Form.Item
-          name="guestName"
-          label="客人姓名"
-          rules={[{ required: false, message: '请输入客人姓名' }]}
-        >
-          <Input prefix={<UserOutlined />} placeholder="请输入客人姓名（与手机号至少填一项）" />
-        </Form.Item>
-        
-        <Form.Item
-          name="guestPhone"
-          label="手机号码"
-          rules={[{ required: false, message: '请输入手机号码' }]}
-        >
-          <Input prefix={<UserOutlined />} placeholder="请输入手机号码（与姓名至少填一项）" />
+          <Input prefix={<SearchOutlined />} placeholder="请输入房间号" />
         </Form.Item>
         
         <Form.Item>
@@ -245,7 +221,7 @@ const CheckInForm: React.FC = () => {
             <Descriptions.Item label="入住日期">{bookingInfo.checkInDate || '-'}</Descriptions.Item>
             <Descriptions.Item label="退房日期">{bookingInfo.checkOutDate || '-'}</Descriptions.Item>
             <Descriptions.Item label="预订状态">
-              <Tag color={bookingInfo.status === 'confirmed' ? 'green' : 'blue'}>
+              <Tag color={bookingInfo.status === 'checkin' ? 'green' : 'blue'}>
                 {bookingInfo.status === 'confirmed' ? '已确认' : 
                  bookingInfo.status === 'checkin' ? '已入住' : 
                  bookingInfo.status === 'checkout' ? '已退房' : '未确认'}
@@ -263,11 +239,11 @@ const CheckInForm: React.FC = () => {
             </Button>
             <Button 
               type="primary" 
-              onClick={handleCheckIn}
+              onClick={handleCheckOut}
               loading={submitting}
-              disabled={bookingInfo.status !== 'confirmed' || bookingInfo.paymentStatus !== 'paid'}
+              disabled={bookingInfo.status !== 'checkin'}
             >
-              确认办理入住
+              确认办理退房
             </Button>
           </div>
         </>
@@ -280,11 +256,11 @@ const CheckInForm: React.FC = () => {
     <Card>
       <div style={{ textAlign: 'center', padding: 40 }}>
         <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a' }} />
-        <h2 style={{ marginTop: 16, color: '#52c41a' }}>入住办理成功！</h2>
-        <p style={{ marginTop: 8, color: '#666' }}>客人 {bookingInfo?.guestName || '未知'} 已成功办理入住</p>
+        <h2 style={{ marginTop: 16, color: '#52c41a' }}>退房办理成功！</h2>
+        <p style={{ marginTop: 8, color: '#666' }}>客人 {bookingInfo?.guestName || '未知'} 已成功办理退房</p>
         <p style={{ marginTop: 4, color: '#666' }}>房间号：{bookingInfo?.roomNumber || '未知'}</p>
         <Button type="primary" onClick={handleReset} style={{ marginTop: 24 }}>
-          开始新的入住办理
+          开始新的退房办理
         </Button>
       </div>
     </Card>
@@ -304,11 +280,11 @@ const CheckInForm: React.FC = () => {
   };
 
   return (
-    <div className="checkin-form">
+    <div className="checkout-form">
       <Steps current={currentStep} items={steps} style={{ marginBottom: 24 }} />
       {renderStepContent()}
     </div>
   );
 };
 
-export default CheckInForm;
+export default CheckOutForm;

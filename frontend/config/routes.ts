@@ -25,7 +25,16 @@ export default [
       { name: '房间可视化管理', icon: 'table', path: '/room-manage/room-visualization', component: './room-manage/room-visualization' },
     ],
   },
-  { name: '酒店前台', icon: 'table', path: '/hotel-front', component: './hotel-front' },
+  {
+    path: '/hotel-front',
+    name: '酒店前台',
+    icon: 'table',
+    routes: [
+      { path: '/hotel-front', redirect: '/hotel-front/check-in' },
+      { name: '办理入住', path: '/hotel-front/check-in', component: './hotel-front/check-in' },
+      { name: '办理退房', path: '/hotel-front/check-out', component: './hotel-front/check-out' },
+    ],
+  },
   { name: '订单管理', icon: 'table', path: '/order-manage', component: './order-manage' },
   { name: '折扣管理', icon: 'table', path: '/discount-manage', component: './discount-manage' },
   { name: '活动管理', icon: 'table', path: '/activity-manage', component: './activity-manage' },
