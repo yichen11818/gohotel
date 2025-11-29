@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, Button, Popconfirm } from 'antd';
-import { DeleteOutlined, ColumnWidthOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, RedoOutlined } from '@ant-design/icons';
 import { useDrag } from 'react-dnd';
 import Iconfont, { IconName } from '@/components/Iconfont';
 
@@ -125,35 +125,49 @@ export interface Facility {
   top: number;
   width: number;
   height: number;
-  rotation?: number; // 旋转角度
-  label?: string;    // 自定义标签
+  rotation?: number;
+  label?: string;
 }
 
 interface DraggableFacilityCardProps {
   facility: Facility;
   onDelete: (id: string) => void;
   onDrop: (id: string, left: number, top: number) => void;
-  onResize?: (id: string, width: number, height: number) => void;
+  onResizeComplete?: (id: string, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => void;
   onRotate?: (id: string) => void;
 }
 
 // 网格大小
 const GRID_SIZE = 20;
+const MIN_SIZE = 40;
+const MAX_SIZE = 400;
 
 // 对齐到网格
-const snapToGrid = (x: number, y: number): [number, number] => {
-  const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
-  const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
-  return [snappedX, snappedY];
+const snapToGrid = (value: number): number => {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE;
 };
 
 const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
   facility,
   onDelete,
   onDrop,
+  onResizeComplete,
   onRotate,
 }) => {
   const config = FacilityConfig[facility.type];
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeWidth, setResizeWidth] = useState(facility.width);
+  const [resizeHeight, setResizeHeight] = useState(facility.height);
+  const [isDraggingResize, setIsDraggingResize] = useState(false);
+  const startPosRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+  // 同步外部尺寸变化
+  useEffect(() => {
+    if (!isResizing) {
+      setResizeWidth(facility.width);
+      setResizeHeight(facility.height);
+    }
+  }, [facility.width, facility.height, isResizing]);
 
   const [{ isDragging }, drag, preview] = useDrag(
     () => ({
@@ -165,6 +179,7 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
         type: 'facility',
         facility,
       },
+      canDrag: !isResizing,
       collect: (monitor) => ({
         isDragging: monitor.isDragging(),
       }),
@@ -173,37 +188,103 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
         if (delta && item.id) {
           const newLeft = item.left + delta.x;
           const newTop = item.top + delta.y;
-          const [snappedLeft, snappedTop] = snapToGrid(newLeft, newTop);
+          const snappedLeft = snapToGrid(newLeft);
+          const snappedTop = snapToGrid(newTop);
           onDrop(item.id, snappedLeft, snappedTop);
         }
       },
     }),
-    [facility, onDrop],
+    [facility, onDrop, isResizing],
   );
 
   // 使用空图片作为拖动预览
-  React.useEffect(() => {
+  useEffect(() => {
     preview(new Image(), { captureDraggingState: true });
   }, [preview]);
 
+  // 开始调整大小拖拽
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsDraggingResize(true);
+    startPosRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: resizeWidth,
+      height: resizeHeight,
+    };
+  }, [resizeWidth, resizeHeight]);
+
+  // 处理拖拽移动和结束
+  useEffect(() => {
+    if (!isDraggingResize) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startPosRef.current.x;
+      const deltaY = e.clientY - startPosRef.current.y;
+      
+      let newWidth = startPosRef.current.width + deltaX;
+      let newHeight = startPosRef.current.height + deltaY;
+      
+      newWidth = Math.max(MIN_SIZE, Math.min(MAX_SIZE, snapToGrid(newWidth)));
+      newHeight = Math.max(MIN_SIZE, Math.min(MAX_SIZE, snapToGrid(newHeight)));
+      
+      setResizeWidth(newWidth);
+      setResizeHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingResize(false);
+      // 拖拽结束后，如果尺寸有变化，触发弹窗
+      const finalWidth = resizeWidth;
+      const finalHeight = resizeHeight;
+      
+      if (finalWidth !== facility.width || finalHeight !== facility.height) {
+        // 调用回调触发弹窗确认
+        if (onResizeComplete) {
+          onResizeComplete(facility.id, finalWidth, finalHeight, facility.type, facility.floor);
+        }
+      }
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingResize, resizeWidth, resizeHeight, facility.width, facility.height, facility.id, facility.type, facility.floor, onResizeComplete]);
+
+  // 进入调整大小模式
+  const handleEnterResizeMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeWidth(facility.width);
+    setResizeHeight(facility.height);
+  };
+
   // 计算图标大小
-  const iconSize = Math.min(facility.width, facility.height) > 80 ? 28 : 22;
+  const currentWidth = isResizing ? resizeWidth : facility.width;
+  const currentHeight = isResizing ? resizeHeight : facility.height;
+  const iconSize = Math.min(currentWidth, currentHeight) > 80 ? 28 : 22;
 
   return (
     <div
-      ref={drag as any}
+      ref={isResizing ? undefined : drag as any}
       style={{
         position: 'absolute',
         left: facility.left,
         top: facility.top,
-        width: facility.width,
-        height: facility.height,
+        width: currentWidth,
+        height: currentHeight,
         opacity: isDragging ? 0.3 : 1,
-        cursor: 'move',
+        cursor: isResizing ? 'default' : 'move',
       }}
     >
       <Card
-        hoverable
+        hoverable={!isResizing}
         size="small"
         bodyStyle={{
           padding: '4px',
@@ -216,9 +297,14 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
         }}
         style={{
           height: '100%',
-          border: `2px dashed ${config.color}`,
+          border: isResizing 
+            ? `2px solid ${config.color}` 
+            : `2px dashed ${config.color}`,
           backgroundColor: config.bgColor,
           borderRadius: 4,
+          boxShadow: isResizing 
+            ? `0 0 0 2px ${config.color}40, 0 8px 16px ${config.color}30` 
+            : undefined,
         }}
       >
         <div style={{ 
@@ -243,6 +329,17 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
           }}>
             {facility.label || config.name}
           </div>
+          {/* 调整大小模式下显示尺寸 */}
+          {isResizing && (
+            <div style={{ 
+              marginTop: 2, 
+              fontSize: '10px', 
+              color: config.color,
+              fontWeight: 'bold',
+            }}>
+              {currentWidth} × {currentHeight}
+            </div>
+          )}
         </div>
 
         {/* 悬浮操作按钮 */}
@@ -256,11 +353,21 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
             gap: 2,
           }}
         >
+          {onResizeComplete && (
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={handleEnterResizeMode}
+              style={{ fontSize: 10, padding: 2, minWidth: 20, height: 20 }}
+              title="调整大小"
+            />
+          )}
           {onRotate && (
             <Button
               type="text"
               size="small"
-              icon={<ColumnWidthOutlined />}
+              icon={<RedoOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 onRotate(facility.id);
@@ -285,6 +392,26 @@ const DraggableFacilityCard: React.FC<DraggableFacilityCardProps> = ({
             />
           </Popconfirm>
         </div>
+
+        {/* 调整大小模式下的拖拽手柄 */}
+        {isResizing && (
+          <div
+            onMouseDown={handleResizeMouseDown}
+            style={{
+              position: 'absolute',
+              right: -4,
+              bottom: -4,
+              width: 14,
+              height: 14,
+              cursor: 'se-resize',
+              background: config.color,
+              borderRadius: '50%',
+              border: '2px solid #fff',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              zIndex: 10,
+            }}
+          />
+        )}
       </Card>
 
       <style>{`

@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { Card, Button, message, Spin, theme, Space, Tag, Tooltip, Divider } from 'antd';
+import { Card, Button, message, Spin, theme, Space, Tag, Tooltip, Divider, Modal, Checkbox } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import React, { useState, useEffect } from 'react';
 import { DndProvider, useDragLayer } from 'react-dnd';
@@ -13,13 +13,28 @@ import DraggableFacilityCard, {
 } from './components/DraggableFacilityCard';
 import { useRequest } from '@umijs/max';
 import { getRooms } from '@/services/api/fangjian';
-import RoomFormModal from './components/RoomFormModal';
 import Iconfont from '@/components/Iconfont';
 
 interface RoomPosition {
   id: number;
   left: number;
   top: number;
+  width: number;
+  height: number;
+}
+
+// 默认房间大小
+const DEFAULT_ROOM_WIDTH = 120;
+const DEFAULT_ROOM_HEIGHT = 100;
+
+// 调整大小待确认信息
+interface ResizePending {
+  type: 'room' | 'facility';
+  id: number | string;
+  newWidth: number;
+  newHeight: number;
+  itemType?: string; // 房间类型或设施类型
+  floor: number;
 }
 
 // 自定义拖动层组件
@@ -64,6 +79,8 @@ const CustomDragLayer: React.FC = () => {
   // 渲染房间拖动预览
   if (itemType === ItemTypes.ROOM_CARD && item.room) {
     const room = item.room;
+    const roomWidth = item.width || DEFAULT_ROOM_WIDTH;
+    const roomHeight = item.height || DEFAULT_ROOM_HEIGHT;
     return (
       <div
         style={{
@@ -81,8 +98,8 @@ const CustomDragLayer: React.FC = () => {
             position: 'absolute',
             left: currentOffset.x,
             top: currentOffset.y,
-            width: 120,
-            height: 100,
+            width: roomWidth,
+            height: roomHeight,
             opacity: 0.8,
           }}
         >
@@ -197,11 +214,15 @@ const CustomDragLayer: React.FC = () => {
 
 const RoomManage: React.FC = () => {
   const { token } = theme.useToken();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<API.Room | null>(null);
   const [roomPositions, setRoomPositions] = useState<RoomPosition[]>([]);
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  
+  // 调整大小确认弹窗状态
+  const [resizeModalVisible, setResizeModalVisible] = useState(false);
+  const [resizePending, setResizePending] = useState<ResizePending | null>(null);
+  const [applySameFloorSameType, setApplySameFloorSameType] = useState(false);
+  const [applyAllFloorsSameType, setApplyAllFloorsSameType] = useState(false);
 
   // 使用 useRequest 获取房间数据
   const {
@@ -236,7 +257,12 @@ const RoomManage: React.FC = () => {
 
           rooms.forEach((room: API.Room, index: number) => {
             if (room.id && positionsMap.has(room.id)) {
-              newPositions.push(positionsMap.get(room.id) as RoomPosition);
+              const savedPos = positionsMap.get(room.id) as RoomPosition;
+              newPositions.push({
+                ...savedPos,
+                width: savedPos.width || DEFAULT_ROOM_WIDTH,
+                height: savedPos.height || DEFAULT_ROOM_HEIGHT,
+              });
             } else if (room.id) {
               newPositions.push(generateDefaultPosition(room.id, index));
             }
@@ -268,8 +294,8 @@ const RoomManage: React.FC = () => {
   // 生成默认位置(网格布局)
   const generateDefaultPosition = (id: number, index: number): RoomPosition => {
     const GRID_SIZE = 20;
-    const cardWidth = 120;
-    const cardHeight = 100;
+    const cardWidth = DEFAULT_ROOM_WIDTH;
+    const cardHeight = DEFAULT_ROOM_HEIGHT;
     const columns = 8;
 
     const row = Math.floor(index / columns);
@@ -282,6 +308,8 @@ const RoomManage: React.FC = () => {
       id,
       left: col * horizontalSpacing + GRID_SIZE,
       top: row * verticalSpacing + GRID_SIZE,
+      width: cardWidth,
+      height: cardHeight,
     };
   };
 
@@ -365,20 +393,115 @@ const RoomManage: React.FC = () => {
     });
   };
 
-  const handleOpenModal = (room: API.Room | null) => {
-    setEditingRoom(room);
-    setIsModalVisible(true);
+  // 房间调整大小完成回调 - 打开确认弹窗
+  const handleRoomResizeComplete = (id: number, newWidth: number, newHeight: number, roomType?: string) => {
+    const room = rooms?.find((r: API.Room) => r.id === id);
+    setResizePending({
+      type: 'room',
+      id,
+      newWidth,
+      newHeight,
+      itemType: roomType || room?.room_type,
+      floor: room?.floor || selectedFloor,
+    });
+    setApplySameFloorSameType(false);
+    setApplyAllFloorsSameType(false);
+    setResizeModalVisible(true);
   };
 
-  const handleCancelModal = () => {
-    setIsModalVisible(false);
-    setEditingRoom(null);
+  // 设施调整大小完成回调 - 打开确认弹窗
+  const handleFacilityResizeComplete = (id: string, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => {
+    setResizePending({
+      type: 'facility',
+      id,
+      newWidth,
+      newHeight,
+      itemType: facilityType,
+      floor,
+    });
+    setApplySameFloorSameType(false);
+    setApplyAllFloorsSameType(false);
+    setResizeModalVisible(true);
   };
 
-  const handleSuccess = () => {
-    setIsModalVisible(false);
-    setEditingRoom(null);
-    reloadRooms();
+  // 确认调整大小
+  const handleConfirmResize = () => {
+    if (!resizePending) return;
+
+    const { type, id, newWidth, newHeight, itemType, floor } = resizePending;
+
+    if (type === 'room') {
+      setRoomPositions((prev) => {
+        let newPositions = [...prev];
+        
+        if (applyAllFloorsSameType && itemType && rooms) {
+          // 修改全部楼层同类型房间
+          const sameTypeRoomIds = rooms
+            .filter((r: API.Room) => r.room_type === itemType)
+            .map((r: API.Room) => r.id);
+          newPositions = newPositions.map((p) =>
+            sameTypeRoomIds.includes(p.id) ? { ...p, width: newWidth, height: newHeight } : p
+          );
+          message.success(`已修改全部楼层 ${itemType} 类型房间的大小`);
+        } else if (applySameFloorSameType && itemType && rooms) {
+          // 修改同楼层同类型房间
+          const sameFloorSameTypeRoomIds = rooms
+            .filter((r: API.Room) => r.room_type === itemType && r.floor === floor)
+            .map((r: API.Room) => r.id);
+          newPositions = newPositions.map((p) =>
+            sameFloorSameTypeRoomIds.includes(p.id) ? { ...p, width: newWidth, height: newHeight } : p
+          );
+          message.success(`已修改 ${floor} 楼 ${itemType} 类型房间的大小`);
+        } else {
+          // 只修改当前房间
+          newPositions = newPositions.map((p) =>
+            p.id === id ? { ...p, width: newWidth, height: newHeight } : p
+          );
+          message.success('房间大小已调整');
+        }
+
+        localStorage.setItem('roomPositions', JSON.stringify(newPositions));
+        return newPositions;
+      });
+    } else if (type === 'facility') {
+      setFacilities((prev) => {
+        let newFacilities = [...prev];
+        
+        if (applyAllFloorsSameType && itemType) {
+          // 修改全部楼层同类型设施
+          newFacilities = newFacilities.map((f) =>
+            f.type === itemType ? { ...f, width: newWidth, height: newHeight } : f
+          );
+          const config = FacilityConfig[itemType as FacilityType];
+          message.success(`已修改全部楼层 ${config?.name || itemType} 的大小`);
+        } else if (applySameFloorSameType && itemType) {
+          // 修改同楼层同类型设施
+          newFacilities = newFacilities.map((f) =>
+            f.type === itemType && f.floor === floor ? { ...f, width: newWidth, height: newHeight } : f
+          );
+          const config = FacilityConfig[itemType as FacilityType];
+          message.success(`已修改 ${floor} 楼 ${config?.name || itemType} 的大小`);
+        } else {
+          // 只修改当前设施
+          newFacilities = newFacilities.map((f) =>
+            f.id === id ? { ...f, width: newWidth, height: newHeight } : f
+          );
+          message.success('设施大小已调整');
+        }
+
+        localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
+        return newFacilities;
+      });
+    }
+
+    setResizeModalVisible(false);
+    setResizePending(null);
+  };
+
+  // 取消调整大小
+  const handleCancelResize = () => {
+    setResizeModalVisible(false);
+    setResizePending(null);
   };
 
   const handleDelete = async (id: number) => {
@@ -401,7 +524,6 @@ const RoomManage: React.FC = () => {
   // 重置布局
   const handleResetLayout = () => {
     initializeDefaultPositions();
-    // 只清除当前楼层的设施
     setFacilities((prev) => {
       const newFacilities = prev.filter((f) => f.floor !== selectedFloor);
       localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
@@ -410,6 +532,44 @@ const RoomManage: React.FC = () => {
     localStorage.removeItem('roomPositions');
     message.success('当前楼层布局已重置');
   };
+
+  // 获取类型名称
+  const getTypeName = () => {
+    if (!resizePending) return '';
+    if (resizePending.type === 'room') {
+      return resizePending.itemType || '未知类型';
+    } else {
+      const config = FacilityConfig[resizePending.itemType as FacilityType];
+      return config?.name || resizePending.itemType || '未知类型';
+    }
+  };
+
+  // 计算同类型数量
+  const getSameTypeCount = () => {
+    if (!resizePending) return { sameFloor: 0, allFloors: 0 };
+    
+    if (resizePending.type === 'room' && rooms) {
+      const sameFloor = rooms.filter(
+        (r: API.Room) => r.room_type === resizePending.itemType && r.floor === resizePending.floor
+      ).length;
+      const allFloors = rooms.filter(
+        (r: API.Room) => r.room_type === resizePending.itemType
+      ).length;
+      return { sameFloor, allFloors };
+    } else if (resizePending.type === 'facility') {
+      const sameFloor = facilities.filter(
+        (f) => f.type === resizePending.itemType && f.floor === resizePending.floor
+      ).length;
+      const allFloors = facilities.filter(
+        (f) => f.type === resizePending.itemType
+      ).length;
+      return { sameFloor, allFloors };
+    }
+    
+    return { sameFloor: 0, allFloors: 0 };
+  };
+
+  const typeCount = getSameTypeCount();
 
   return (
     <PageContainer
@@ -454,7 +614,7 @@ const RoomManage: React.FC = () => {
           <Divider style={{ margin: '12px 0' }} />
           <Space size="middle">
             <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-              💡 提示：点击按钮添加设施到当前楼层，拖拽可调整位置，悬浮可删除/旋转
+              💡 提示：点击按钮添加设施到当前楼层，拖拽可调整位置，悬浮可删除/旋转/调整大小
             </span>
           </Space>
         </Card>
@@ -516,6 +676,7 @@ const RoomManage: React.FC = () => {
                   facility={facility}
                   onDelete={handleDeleteFacility}
                   onDrop={handleFacilityDrop}
+                  onResizeComplete={handleFacilityResizeComplete}
                   onRotate={handleRotateFacility}
                 />
               ))}
@@ -531,9 +692,11 @@ const RoomManage: React.FC = () => {
                     room={room}
                     left={position.left}
                     top={position.top}
-                    onEdit={() => handleOpenModal(room)}
+                    width={position.width}
+                    height={position.height}
                     onDelete={handleDelete}
                     onDrop={handleRoomDrop}
+                    onResizeComplete={handleRoomResizeComplete}
                   />
                 );
               })}
@@ -542,12 +705,85 @@ const RoomManage: React.FC = () => {
         </Card>
       </DndProvider>
 
-      <RoomFormModal
-        visible={isModalVisible}
-        room={editingRoom}
-        onCancel={handleCancelModal}
-        onSuccess={handleSuccess}
-      />
+      {/* 调整大小确认弹窗 */}
+      <Modal
+        title="确认调整大小"
+        open={resizeModalVisible}
+        onOk={handleConfirmResize}
+        onCancel={handleCancelResize}
+        okText="确认"
+        cancelText="取消"
+        width={420}
+      >
+        {resizePending && (
+          <div style={{ padding: '8px 0' }}>
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontWeight: 'bold' }}>
+                {resizePending.type === 'room' ? '房间' : '设施'}类型：
+              </span>
+              <Tag color="blue" style={{ marginLeft: 8 }}>
+                {getTypeName()}
+              </Tag>
+            </div>
+            
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontWeight: 'bold' }}>新尺寸：</span>
+              <span style={{ marginLeft: 8, color: token.colorPrimary }}>
+                {resizePending.newWidth} × {resizePending.newHeight} px
+              </span>
+            </div>
+
+            <Divider style={{ margin: '16px 0' }} />
+
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ fontWeight: 'bold', color: token.colorTextSecondary }}>
+                批量应用选项：
+              </span>
+            </div>
+
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Checkbox
+                checked={applySameFloorSameType}
+                onChange={(e) => {
+                  setApplySameFloorSameType(e.target.checked);
+                  if (e.target.checked) {
+                    setApplyAllFloorsSameType(false);
+                  }
+                }}
+              >
+                同时修改 <strong>{resizePending.floor} 楼</strong> 的同类型
+                {resizePending.type === 'room' ? '房间' : '设施'}
+                <span style={{ color: token.colorTextSecondary, marginLeft: 8 }}>
+                  （共 {typeCount.sameFloor} 个）
+                </span>
+              </Checkbox>
+              
+              <Checkbox
+                checked={applyAllFloorsSameType}
+                onChange={(e) => {
+                  setApplyAllFloorsSameType(e.target.checked);
+                  if (e.target.checked) {
+                    setApplySameFloorSameType(false);
+                  }
+                }}
+              >
+                同时修改 <strong>全部楼层</strong> 的同类型
+                {resizePending.type === 'room' ? '房间' : '设施'}
+                <span style={{ color: token.colorTextSecondary, marginLeft: 8 }}>
+                  （共 {typeCount.allFloors} 个）
+                </span>
+              </Checkbox>
+            </Space>
+
+            <div style={{ marginTop: 16, padding: '8px 12px', backgroundColor: token.colorBgLayout, borderRadius: 4 }}>
+              <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                💡 提示：不勾选任何选项则只修改当前
+                {resizePending.type === 'room' ? '房间' : '设施'}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </PageContainer>
   );
 };
