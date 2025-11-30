@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Card, Tag, Button, Space, Popconfirm } from 'antd';
+import { Card, Button, Space, Popconfirm } from 'antd';
 import { DeleteOutlined, GatewayOutlined, FormOutlined } from '@ant-design/icons';
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from './DraggableFacilityCard';
+import Iconfont from '@/components/Iconfont';
 
 interface DraggableRoomCardProps {
   room: API.Room;
@@ -141,38 +142,13 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
     setResizeHeight(height);
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'available':
-        return 'success';
-      case 'occupied':
-        return 'error';
-      case 'maintenance':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusText = (status?: string) => {
-    switch (status) {
-      case 'available':
-        return '可用';
-      case 'occupied':
-        return '占用';
-      case 'maintenance':
-        return '维护中';
-      default:
-        return '未知';
-    }
-  };
-
   const currentWidth = isResizing ? resizeWidth : width;
   const currentHeight = isResizing ? resizeHeight : height;
 
   return (
     <div
       ref={isResizing ? undefined : drag as any}
+      className="room-card-container"
       style={{
         position: 'absolute',
         left,
@@ -215,24 +191,29 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
         }}
       >
         <div style={{ textAlign: 'center', width: '100%' }}>
+          {/* 床位图标 */}
+          <Iconfont 
+            name="bed" 
+            size={26} 
+            color={
+              room.status === 'available' ? '#52c41a' :
+              room.status === 'occupied' ? '#ff4d4f' :
+              room.status === 'maintenance' ? '#faad14' : '#8c8c8c'
+            }
+          />
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: '18px', 
             fontWeight: 'bold',
-            marginBottom: 8,
+            marginTop: 6,
             color: '#000',
+            lineHeight: 1,
           }}>
             {room.room_number}
           </div>
-          <Tag 
-            color={getStatusColor(room.status)}
-            style={{ margin: 0, fontSize: '12px' }}
-          >
-            {getStatusText(room.status)}
-          </Tag>
           {/* 调整大小模式下显示尺寸 */}
           {isResizing && (
             <div style={{ 
-              marginTop: 4, 
+              marginTop: 6, 
               fontSize: '10px', 
               color: '#1890ff',
               fontWeight: 'bold',
@@ -240,57 +221,6 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
               {currentWidth} × {currentHeight}
             </div>
           )}
-        </div>
-        
-        {/* 悬浮时显示操作按钮 */}
-        <div
-          className="room-card-actions"
-          style={{
-            position: 'absolute',
-            top: 4,
-            right: 4,
-            display: 'none',
-          }}
-        >
-          <Space size={2}>
-            {onEdit && (
-              <Button 
-                type="text" 
-                size="small" 
-                icon={<FormOutlined />} 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(room);
-                }}
-                style={{ fontSize: 12, padding: 2 }}
-                title="编辑"
-              />
-            )}
-            {onResizeComplete && (
-              <Button 
-                type="text" 
-                size="small" 
-                icon={<GatewayOutlined />} 
-                onClick={handleEnterResizeMode}
-                style={{ fontSize: 12, padding: 2 }}
-                title="调整大小"
-              />
-            )}
-            <Popconfirm
-              title="确定要删除这个房间吗？"
-              onConfirm={() => room.id && onDelete(room.id)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button 
-                type="text" 
-                size="small" 
-                danger 
-                icon={<DeleteOutlined />}
-                style={{ fontSize: 12, padding: 2 }}
-              />
-            </Popconfirm>
-          </Space>
         </div>
 
         {/* 调整大小模式下的拖拽手柄 */}
@@ -314,9 +244,70 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
         )}
       </Card>
       
+      {/* 悬浮时显示操作按钮 - 根据位置在卡片上方或下方 */}
+      <div
+        className="room-card-actions"
+        style={{
+          position: 'absolute',
+          ...(top < 30 
+            ? { bottom: -26 }  // 靠近顶部时，工具栏显示在下方
+            : { top: -26 }     // 否则显示在上方
+          ),
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'none',
+          background: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 4,
+          padding: '2px 6px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 10,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Space size={0}>
+          {onEdit && (
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<FormOutlined />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(room);
+              }}
+              style={{ fontSize: 12, padding: '0 4px', height: 22 }}
+              title="编辑"
+            />
+          )}
+          {onResizeComplete && (
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<GatewayOutlined />} 
+              onClick={handleEnterResizeMode}
+              style={{ fontSize: 12, padding: '0 4px', height: 22 }}
+              title="调整大小"
+            />
+          )}
+          <Popconfirm
+            title="确定要删除这个房间吗？"
+            onConfirm={() => room.id && onDelete(room.id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button 
+              type="text" 
+              size="small" 
+              danger 
+              icon={<DeleteOutlined />}
+              style={{ fontSize: 12, padding: '0 4px', height: 22 }}
+            />
+          </Popconfirm>
+        </Space>
+      </div>
+      
       <style>{`
-        .ant-card:hover .room-card-actions {
-          display: block !important;
+        .room-card-container:hover .room-card-actions {
+          display: flex !important;
         }
       `}</style>
     </div>
