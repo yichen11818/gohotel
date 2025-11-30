@@ -18,7 +18,7 @@ import {
   getFacilities,
   postFacilities,
   deleteFacilitiesId,
-  putFacilitiesBatch,
+  postFacilitiesBatch,
 } from '@/services/api/sheshi';
 import Iconfont from '@/components/Iconfont';
 import UpdateForm from '../components/UpdateForm';
@@ -226,6 +226,10 @@ const RoomManage: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   
+  // 保存原始数据，用于比较变化
+  const [initialRoomPositions, setInitialRoomPositions] = useState<RoomPosition[]>([]);
+  const [initialFacilities, setInitialFacilities] = useState<Facility[]>([]);
+  
   // 调整大小确认弹窗状态
   const [resizeModalVisible, setResizeModalVisible] = useState(false);
   const [resizePending, setResizePending] = useState<ResizePending | null>(null);
@@ -265,6 +269,8 @@ const RoomManage: React.FC = () => {
         label: f.label,
       }));
       setFacilities(localFacilities);
+      // 保存原始数据用于后续比较
+      setInitialFacilities(JSON.parse(JSON.stringify(localFacilities)));
     },
   });
 
@@ -307,6 +313,8 @@ const RoomManage: React.FC = () => {
       });
 
       setRoomPositions(newPositions);
+      // 保存原始位置用于后续比较
+      setInitialRoomPositions(JSON.parse(JSON.stringify(newPositions)));
     }
   }, [rooms]);
 
@@ -449,6 +457,8 @@ const RoomManage: React.FC = () => {
           rotation: 0,
         };
         setFacilities((prev) => [...prev, newFacility]);
+        // 同时更新初始数据，避免新创建的设施被认为是"有变化的"
+        setInitialFacilities((prev) => [...prev, { ...newFacility }]);
         message.success(`已添加 ${config.name}`);
       } else {
         // 如果没有返回 id，重新加载设施列表
@@ -474,6 +484,8 @@ const RoomManage: React.FC = () => {
       // 调用 API 删除设施
       await deleteFacilitiesId({ id: Number(id) });
       setFacilities((prev) => prev.filter((f) => f.id !== id));
+      // 同时从初始数据中移除
+      setInitialFacilities((prev) => prev.filter((f) => f.id !== id));
       message.success('设施已删除');
     } catch (error) {
       console.error('删除设施失败:', error);
@@ -633,10 +645,42 @@ const RoomManage: React.FC = () => {
   // 保存布局状态
   const [saving, setSaving] = useState(false);
 
-  // 保存布局 - 调用API更新房间和设施位置到数据库
+  // 比较两个位置对象是否相同
+  const isPositionChanged = (current: RoomPosition, initial: RoomPosition | undefined): boolean => {
+    if (!initial) return true; // 新增的
+    return current.left !== initial.left ||
+           current.top !== initial.top ||
+           current.width !== initial.width ||
+           current.height !== initial.height;
+  };
+
+  // 比较两个设施对象是否相同
+  const isFacilityChanged = (current: Facility, initial: Facility | undefined): boolean => {
+    if (!initial) return true; // 新增的
+    return current.left !== initial.left ||
+           current.top !== initial.top ||
+           current.width !== initial.width ||
+           current.height !== initial.height ||
+           current.rotation !== initial.rotation;
+  };
+
+  // 保存布局 - 调用API更新房间和设施位置到数据库（只提交有变化的）
   const handleSaveLayout = async () => {
-    if (roomPositions.length === 0 && facilities.length === 0) {
-      message.warning('没有需要保存的布局');
+    // 找出有变化的房间
+    const changedRooms = roomPositions.filter((pos) => {
+      const initial = initialRoomPositions.find((p) => p.id === pos.id);
+      return isPositionChanged(pos, initial);
+    });
+
+    // 找出有变化的设施（只处理有数字 id 的，即已保存到后端的）
+    const changedFacilities = facilities.filter((f) => {
+      if (typeof f.id !== 'number') return false; // 临时 id 的设施已通过添加时创建
+      const initial = initialFacilities.find((i) => i.id === f.id);
+      return isFacilityChanged(f, initial);
+    });
+
+    if (changedRooms.length === 0 && changedFacilities.length === 0) {
+      message.info('没有需要保存的变更');
       return;
     }
 
@@ -646,9 +690,9 @@ const RoomManage: React.FC = () => {
     try {
       const promises: Promise<any>[] = [];
 
-      // 批量更新所有房间的位置信息
-      if (roomPositions.length > 0) {
-        const roomUpdatePromises = roomPositions.map((pos) =>
+      // 只更新有变化的房间
+      if (changedRooms.length > 0) {
+        const roomUpdatePromises = changedRooms.map((pos) =>
           postRoomsId(
             { id: pos.id },
             {
@@ -662,11 +706,10 @@ const RoomManage: React.FC = () => {
         promises.push(...roomUpdatePromises);
       }
 
-      // 批量更新设施位置（只更新有数字 id 的设施，即已保存到后端的）
-      const savedFacilities = facilities.filter((f) => typeof f.id === 'number');
-      if (savedFacilities.length > 0) {
-        const facilityBatchUpdate = putFacilitiesBatch({
-          items: savedFacilities.map((f) => ({
+      // 只更新有变化的设施
+      if (changedFacilities.length > 0) {
+        const facilityBatchUpdate = postFacilitiesBatch({
+          items: changedFacilities.map((f) => ({
             id: f.id as number,
             left: f.left,
             top: f.top,
@@ -680,8 +723,12 @@ const RoomManage: React.FC = () => {
 
       await Promise.all(promises);
       
+      // 更新原始数据为当前数据（保存成功后）
+      setInitialRoomPositions(JSON.parse(JSON.stringify(roomPositions)));
+      setInitialFacilities(JSON.parse(JSON.stringify(facilities)));
+      
       hideLoading();
-      message.success(`布局已保存，共更新 ${roomPositions.length} 个房间和 ${savedFacilities.length} 个设施`);
+      message.success(`布局已保存，更新了 ${changedRooms.length} 个房间和 ${changedFacilities.length} 个设施`);
     } catch (error) {
       hideLoading();
       console.error('保存布局失败:', error);
