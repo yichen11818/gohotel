@@ -21,6 +21,7 @@ func AutoMigrate() error {
 		&models.User{},
 		&models.Room{},
 		&models.Booking{},
+		&models.Facility{},
 	)
 
 	if err != nil {

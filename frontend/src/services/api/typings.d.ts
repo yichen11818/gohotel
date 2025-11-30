@@ -22,6 +22,19 @@ declare namespace API {
     success_count?: number;
   };
 
+  type BatchUpdateFacilitiesRequest = {
+    items: BatchUpdateFacilityItem[];
+  };
+
+  type BatchUpdateFacilityItem = {
+    height?: number;
+    id: number;
+    left?: number;
+    rotation?: number;
+    top?: number;
+    width?: number;
+  };
+
   type Booking = {
     /** 预订单号（唯一，JSON序列化为字符串） */
     booking_number?: number;
@@ -80,6 +93,17 @@ declare namespace API {
     special_request?: string;
   };
 
+  type CreateFacilityRequest = {
+    floor: number;
+    height: number;
+    label?: string;
+    left: number;
+    rotation?: number;
+    top: number;
+    type: string;
+    width: number;
+  };
+
   type CreateRoomRequest = {
     area?: number;
     bed_type?: string;
@@ -98,6 +122,11 @@ declare namespace API {
     width?: number;
   };
 
+  type deleteFacilitiesIdParams = {
+    /** 设施 ID */
+    id: number;
+  };
+
   type DeleteUsersRequest = {
     user_ids: string[];
   };
@@ -110,6 +139,30 @@ declare namespace API {
   type ErrorResponse = {
     error?: ErrorInfo;
     success?: boolean;
+  };
+
+  type Facility = {
+    /** 创建时间 */
+    created_at?: string;
+    /** 楼层 */
+    floor?: number;
+    /** 高度 */
+    height?: number;
+    id?: number;
+    /** 设施标签（可选） */
+    label?: string;
+    /** X 坐标（左边距） */
+    left?: number;
+    /** 旋转角度 */
+    rotation?: number;
+    /** Y 坐标（上边距） */
+    top?: number;
+    /** 设施类型：elevator, corridor, storage 等 */
+    type?: string;
+    /** 更新时间 */
+    updated_at?: string;
+    /** 宽度 */
+    width?: number;
   };
 
   type FailedRoom = {
@@ -177,6 +230,23 @@ declare namespace API {
   };
 
   type getBookingsMyParams = {
+    /** 页码 */
+    page?: number;
+    /** 每页数量 */
+    page_size?: number;
+  };
+
+  type getFacilitiesFloorFloorParams = {
+    /** 楼层 */
+    floor: number;
+  };
+
+  type getFacilitiesIdParams = {
+    /** 设施 ID */
+    id: number;
+  };
+
+  type getFacilitiesParams = {
     /** 页码 */
     page?: number;
     /** 每页数量 */
@@ -269,6 +339,11 @@ declare namespace API {
     id: number;
   };
 
+  type putFacilitiesIdParams = {
+    /** 设施 ID */
+    id: number;
+  };
+
   type RegisterRequest = {
     email: string;
     password: string;
@@ -315,6 +390,17 @@ declare namespace API {
     /** 更新时间 */
     updated_at?: string;
     /** 宽度 */
+    width?: number;
+  };
+
+  type UpdateFacilityRequest = {
+    floor?: number;
+    height?: number;
+    label?: string;
+    left?: number;
+    rotation?: number;
+    top?: number;
+    type?: string;
     width?: number;
   };
 

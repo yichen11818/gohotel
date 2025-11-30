@@ -96,18 +96,21 @@ func main() {
 	roomRepo := repository.NewRoomRepository(database.DB)
 	bookingRepo := repository.NewBookingRepository(database.DB)
 	logRepo := repository.NewLogRepository(database.DB)
+	facilityRepo := repository.NewFacilityRepository(database.DB)
 
 	// Service 层
 	userService := service.NewUserService(userRepo)
 	roomService := service.NewRoomService(roomRepo)
 	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
 	logService := service.NewLogService(logRepo)
+	facilityService := service.NewFacilityService(facilityRepo)
 
 	// Handler 层
 	userHandler := handler.NewUserHandler(userService)
 	roomHandler := handler.NewRoomHandler(roomService)
 	bookingHandler := handler.NewBookingHandler(bookingService)
 	logHandler := handler.NewLogHandler(logService)
+	facilityHandler := handler.NewFacilityHandler(facilityService)
 
 	// 8. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
@@ -121,7 +124,7 @@ func main() {
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 11. 设置路由
-	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler)
+	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler)
 
 	// 12. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
@@ -131,14 +134,6 @@ func main() {
 	fmt.Printf("📝 运行模式: %s\n", config.AppConfig.Server.Mode)
 	fmt.Printf("📚 Swagger 文档: http://%s/swagger/index.html\n", config.AppConfig.Server.Port)
 	fmt.Println("═══════════════════════════════════════════════")
-	fmt.Println("API 文档:")
-	fmt.Println("  POST   /api/auth/register      - 用户注册")
-	fmt.Println("  POST   /api/auth/login         - 用户登录")
-	fmt.Println("  GET    /api/rooms              - 获取房间列表")
-	fmt.Println("  GET    /api/rooms/:id          - 获取房间详情")
-	fmt.Println("  POST   /api/bookings           - 创建预订（需登录）")
-	fmt.Println("  GET    /api/bookings/my        - 我的预订（需登录）")
-	fmt.Println("═══════════════════════════════════════════════")
 
 	if err := r.Run(config.AppConfig.Server.Port); err != nil {
 		log.Fatal("服务器启动失败:", err)
@@ -146,7 +141,7 @@ func main() {
 }
 
 // setupRoutes 设置所有路由
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler) {
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler) {
 	// Swagger 文档路由
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -198,7 +193,25 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 		logs := api.Group("/logs")
 		{
 			logs.POST("/report", logHandler.Report) // 上报日志
-			logs.GET("", logHandler.GetLogs)       // 获取日志列表
+			logs.GET("", logHandler.GetLogs)        // 获取日志列表
+		}
+
+		// 设施路由（公开查询）
+		facilities := api.Group("/facilities")
+		{
+			facilities.GET("", facilityHandler.FindAllFacilities)                  // 获取所有设施（分页）
+			facilities.GET("/:id", facilityHandler.FindFacilityByID)               // 获取设施详情
+			facilities.GET("/floor/:floor", facilityHandler.FindFacilitiesByFloor) // 按楼层查询设施
+
+			// 需要认证的设施管理路由（管理员）
+			facilitiesAuth := facilities.Group("")
+			facilitiesAuth.Use(middleware.AuthMiddleware())
+			{
+				facilitiesAuth.POST("", facilityHandler.CreateFacility)             // 创建设施
+				facilitiesAuth.PUT("/:id", facilityHandler.UpdateFacility)          // 更新设施
+				facilitiesAuth.DELETE("/:id", facilityHandler.DeleteFacility)       // 删除设施
+				facilitiesAuth.PUT("/batch", facilityHandler.BatchUpdateFacilities) // 批量更新设施位置
+			}
 		}
 
 		// 需要认证的路由

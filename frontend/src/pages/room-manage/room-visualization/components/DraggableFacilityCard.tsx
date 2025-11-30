@@ -118,7 +118,7 @@ export const ItemTypes = {
 
 // 设施数据接口
 export interface Facility {
-  id: string;
+  id: string | number;  // 支持临时字符串 id（新建未保存）和数字 id（已保存）
   type: FacilityType;
   floor: number;
   left: number;
@@ -131,10 +131,10 @@ export interface Facility {
 
 interface DraggableFacilityCardProps {
   facility: Facility;
-  onDelete: (id: string) => void;
-  onDrop: (id: string, left: number, top: number) => void;
-  onResizeComplete?: (id: string, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => void;
-  onRotate?: (id: string) => void;
+  onDelete: (id: string | number) => void;
+  onDrop: (id: string | number, left: number, top: number) => void;
+  onResizeComplete?: (id: string | number, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => void;
+  onRotate?: (id: string | number) => void;
 }
 
 // 网格大小

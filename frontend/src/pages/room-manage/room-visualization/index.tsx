@@ -1,7 +1,7 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { Card, Button, message, Spin, theme, Space, Tag, Tooltip, Divider, Modal, Checkbox } from 'antd';
 import { PlusOutlined, SaveOutlined } from '@ant-design/icons';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DndProvider, useDragLayer } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DraggableRoomCard from './components/DraggableRoomCard';
@@ -14,6 +14,12 @@ import DraggableFacilityCard, {
 import { useRequest } from '@umijs/max';
 import { getRooms } from '@/services/api/fangjian';
 import { postRoomsIdOpenApiDelete, postRoomsId } from '@/services/api/guanliyuan';
+import {
+  getFacilities,
+  postFacilities,
+  deleteFacilitiesId,
+  putFacilitiesBatch,
+} from '@/services/api/sheshi';
 import Iconfont from '@/components/Iconfont';
 import UpdateForm from '../components/UpdateForm';
 
@@ -232,11 +238,37 @@ const RoomManage: React.FC = () => {
   // 使用 useRequest 获取房间数据
   const {
     data: rooms,
-    loading,
+    loading: roomsLoading,
     run: reloadRooms,
   } = useRequest<API.Room[]>(() => getRooms({ page_size: 100 }), {
     formatResult: (res: any): API.Room[] => (Array.isArray(res) ? res : res.data || []),
   });
+
+  // 使用 useRequest 获取设施数据
+  const {
+    data: facilitiesData,
+    loading: facilitiesLoading,
+    run: reloadFacilities,
+  } = useRequest<API.Facility[]>(() => getFacilities({ page_size: 500 }), {
+    formatResult: (res: any): API.Facility[] => (Array.isArray(res) ? res : res.data || []),
+    onSuccess: (data) => {
+      // 将 API 数据转换为本地 Facility 格式
+      const localFacilities: Facility[] = data.map((f: API.Facility) => ({
+        id: f.id!,
+        type: f.type as FacilityType,
+        floor: f.floor || 1,
+        left: f.left || 0,
+        top: f.top || 0,
+        width: f.width || 80,
+        height: f.height || 80,
+        rotation: f.rotation || 0,
+        label: f.label,
+      }));
+      setFacilities(localFacilities);
+    },
+  });
+
+  const loading = roomsLoading || facilitiesLoading;
 
   // 提取楼层数据
   const floors: number[] = rooms 
@@ -278,17 +310,7 @@ const RoomManage: React.FC = () => {
     }
   }, [rooms]);
 
-  // 加载保存的设施数据
-  useEffect(() => {
-    const savedFacilities = localStorage.getItem('floorFacilities');
-    if (savedFacilities) {
-      try {
-        setFacilities(JSON.parse(savedFacilities));
-      } catch (error) {
-        console.error('Failed to parse saved facilities:', error);
-      }
-    }
-  }, []);
+  // 设施数据已通过 useRequest 从 API 加载，不再需要 localStorage
 
   // 生成默认位置(网格布局)
   const generateDefaultPosition = (id: number, index: number): RoomPosition => {
@@ -331,13 +353,9 @@ const RoomManage: React.FC = () => {
     });
   };
 
-  // 处理设施拖拽结束
-  const handleFacilityDrop = (id: string, left: number, top: number) => {
-    setFacilities((prev) => {
-      const newFacilities = prev.map((f) => (f.id === id ? { ...f, left, top } : f));
-      localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
-      return newFacilities;
-    });
+  // 处理设施拖拽结束（仅更新本地状态，保存时批量提交到后端）
+  const handleFacilityDrop = (id: string | number, left: number, top: number) => {
+    setFacilities((prev) => prev.map((f) => (f.id === id ? { ...f, left, top } : f)));
   };
 
   // 查找空闲位置（避免与现有元素重叠）
@@ -393,7 +411,7 @@ const RoomManage: React.FC = () => {
   };
 
   // 添加设施
-  const handleAddFacility = (type: FacilityType) => {
+  const handleAddFacility = async (type: FacilityType) => {
     const config = FacilityConfig[type];
     
     // 查找空闲位置
@@ -404,39 +422,69 @@ const RoomManage: React.FC = () => {
       roomPositions
     );
 
-    const newFacility: Facility = {
-      id: `facility_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      floor: selectedFloor,
-      left: position.left,
-      top: position.top,
-      width: config.defaultWidth,
-      height: config.defaultHeight,
-    };
+    try {
+      // 调用 API 创建设施
+      const result = await postFacilities({
+        type,
+        floor: selectedFloor,
+        left: position.left,
+        top: position.top,
+        width: config.defaultWidth,
+        height: config.defaultHeight,
+        rotation: 0,
+      });
 
-    setFacilities((prev) => {
-      const newFacilities = [...prev, newFacility];
-      localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
-      return newFacilities;
-    });
-
-    message.success(`已添加 ${config.name}`);
+      // 获取创建的设施数据（可能在 result 或 result.data 中）
+      const createdFacility = (result as any)?.data || result;
+      
+      if (createdFacility?.id) {
+        const newFacility: Facility = {
+          id: createdFacility.id,
+          type,
+          floor: selectedFloor,
+          left: position.left,
+          top: position.top,
+          width: config.defaultWidth,
+          height: config.defaultHeight,
+          rotation: 0,
+        };
+        setFacilities((prev) => [...prev, newFacility]);
+        message.success(`已添加 ${config.name}`);
+      } else {
+        // 如果没有返回 id，重新加载设施列表
+        reloadFacilities();
+        message.success(`已添加 ${config.name}`);
+      }
+    } catch (error) {
+      console.error('添加设施失败:', error);
+      message.error('添加设施失败，请重试');
+    }
   };
 
   // 删除设施
-  const handleDeleteFacility = (id: string) => {
-    setFacilities((prev) => {
-      const newFacilities = prev.filter((f) => f.id !== id);
-      localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
-      return newFacilities;
-    });
-    message.success('设施已删除');
+  const handleDeleteFacility = async (id: string | number) => {
+    // 如果是临时 id（字符串且非数字），只从本地删除
+    if (typeof id === 'string' && isNaN(Number(id))) {
+      setFacilities((prev) => prev.filter((f) => f.id !== id));
+      message.success('设施已删除');
+      return;
+    }
+
+    try {
+      // 调用 API 删除设施
+      await deleteFacilitiesId({ id: Number(id) });
+      setFacilities((prev) => prev.filter((f) => f.id !== id));
+      message.success('设施已删除');
+    } catch (error) {
+      console.error('删除设施失败:', error);
+      message.error('删除设施失败，请重试');
+    }
   };
 
-  // 旋转设施（交换宽高）
-  const handleRotateFacility = (id: string) => {
-    setFacilities((prev) => {
-      const newFacilities = prev.map((f) => {
+  // 旋转设施（交换宽高，仅更新本地状态，保存时批量提交到后端）
+  const handleRotateFacility = (id: string | number) => {
+    setFacilities((prev) =>
+      prev.map((f) => {
         if (f.id === id) {
           return {
             ...f,
@@ -446,10 +494,8 @@ const RoomManage: React.FC = () => {
           };
         }
         return f;
-      });
-      localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
-      return newFacilities;
-    });
+      })
+    );
   };
 
   // 房间调整大小完成回调 - 打开确认弹窗
@@ -469,7 +515,7 @@ const RoomManage: React.FC = () => {
   };
 
   // 设施调整大小完成回调 - 打开确认弹窗
-  const handleFacilityResizeComplete = (id: string, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => {
+  const handleFacilityResizeComplete = (id: string | number, newWidth: number, newHeight: number, facilityType: FacilityType, floor: number) => {
     setResizePending({
       type: 'facility',
       id,
@@ -531,23 +577,22 @@ const RoomManage: React.FC = () => {
             f.type === itemType ? { ...f, width: newWidth, height: newHeight } : f
           );
           const config = FacilityConfig[itemType as FacilityType];
-          message.success(`已修改全部楼层 ${config?.name || itemType} 的大小`);
+          message.success(`已修改全部楼层 ${config?.name || itemType} 的大小，请点击保存布局`);
         } else if (applySameFloorSameType && itemType) {
           // 修改同楼层同类型设施
           newFacilities = newFacilities.map((f) =>
             f.type === itemType && f.floor === floor ? { ...f, width: newWidth, height: newHeight } : f
           );
           const config = FacilityConfig[itemType as FacilityType];
-          message.success(`已修改 ${floor} 楼 ${config?.name || itemType} 的大小`);
+          message.success(`已修改 ${floor} 楼 ${config?.name || itemType} 的大小，请点击保存布局`);
         } else {
           // 只修改当前设施
           newFacilities = newFacilities.map((f) =>
             f.id === id ? { ...f, width: newWidth, height: newHeight } : f
           );
-          message.success('设施大小已调整');
+          message.success('设施大小已调整，请点击保存布局');
         }
 
-        localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
         return newFacilities;
       });
     }
@@ -588,37 +633,55 @@ const RoomManage: React.FC = () => {
   // 保存布局状态
   const [saving, setSaving] = useState(false);
 
-  // 保存布局 - 调用API更新房间位置到数据库
+  // 保存布局 - 调用API更新房间和设施位置到数据库
   const handleSaveLayout = async () => {
-    if (roomPositions.length === 0) {
-      message.warning('没有需要保存的房间布局');
+    if (roomPositions.length === 0 && facilities.length === 0) {
+      message.warning('没有需要保存的布局');
       return;
     }
 
     setSaving(true);
-    const hideLoading = message.loading('正在保存房间布局...', 0);
+    const hideLoading = message.loading('正在保存布局...', 0);
 
     try {
-      // 批量更新所有房间的位置信息
-      const updatePromises = roomPositions.map((pos) =>
-        postRoomsId(
-          { id: pos.id },
-          {
-            left: pos.left,
-            top: pos.top,
-            width: pos.width,
-            height: pos.height,
-          }
-        )
-      );
+      const promises: Promise<any>[] = [];
 
-      await Promise.all(updatePromises);
-      
-      // 设施仍然保存到 localStorage（后续会改为单独的表）
-      localStorage.setItem('floorFacilities', JSON.stringify(facilities));
+      // 批量更新所有房间的位置信息
+      if (roomPositions.length > 0) {
+        const roomUpdatePromises = roomPositions.map((pos) =>
+          postRoomsId(
+            { id: pos.id },
+            {
+              left: pos.left,
+              top: pos.top,
+              width: pos.width,
+              height: pos.height,
+            }
+          )
+        );
+        promises.push(...roomUpdatePromises);
+      }
+
+      // 批量更新设施位置（只更新有数字 id 的设施，即已保存到后端的）
+      const savedFacilities = facilities.filter((f) => typeof f.id === 'number');
+      if (savedFacilities.length > 0) {
+        const facilityBatchUpdate = putFacilitiesBatch({
+          items: savedFacilities.map((f) => ({
+            id: f.id as number,
+            left: f.left,
+            top: f.top,
+            width: f.width,
+            height: f.height,
+            rotation: f.rotation || 0,
+          })),
+        });
+        promises.push(facilityBatchUpdate);
+      }
+
+      await Promise.all(promises);
       
       hideLoading();
-      message.success(`布局已保存，共更新 ${roomPositions.length} 个房间`);
+      message.success(`布局已保存，共更新 ${roomPositions.length} 个房间和 ${savedFacilities.length} 个设施`);
     } catch (error) {
       hideLoading();
       console.error('保存布局失败:', error);
@@ -638,12 +701,23 @@ const RoomManage: React.FC = () => {
       setRoomPositions(positions);
     }
     
-    // 只清除当前楼层的设施
-    setFacilities((prev) => {
-      const newFacilities = prev.filter((f) => f.floor !== selectedFloor);
-      localStorage.setItem('floorFacilities', JSON.stringify(newFacilities));
-      return newFacilities;
-    });
+    // 只重置当前楼层设施的位置（不删除，恢复到默认位置）
+    setFacilities((prev) =>
+      prev.map((f, index) => {
+        if (f.floor === selectedFloor) {
+          const config = FacilityConfig[f.type];
+          return {
+            ...f,
+            left: 20 + (index % 5) * 100,
+            top: 20 + Math.floor(index / 5) * 100,
+            width: config?.defaultWidth || f.width,
+            height: config?.defaultHeight || f.height,
+            rotation: 0,
+          };
+        }
+        return f;
+      })
+    );
     
     message.success('当前楼层布局已重置（请点击保存布局以同步到服务器）');
   };
