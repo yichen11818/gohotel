@@ -760,6 +760,260 @@ paths:
       summary: 通过客人信息搜索预订
       tags:
       - 管理员
+  /api/admin/facilities:
+    get:
+      consumes:
+      - application/json
+      description: 管理员查询所有设施（分页）
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Facility'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 查询所有设施（管理员）
+      tags:
+      - 管理员
+    post:
+      consumes:
+      - application/json
+      description: 管理员创建设施
+      parameters:
+      - description: 设施信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateFacilityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Facility'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 创建设施（管理员）
+      tags:
+      - 管理员
+  /api/admin/facilities/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 管理员根据 ID 查找设施
+      parameters:
+      - description: 设施 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Facility'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 根据 ID 查找设施（管理员）
+      tags:
+      - 管理员
+    post:
+      consumes:
+      - application/json
+      description: 管理员更新设施
+      parameters:
+      - description: 设施 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 设施信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateFacilityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Facility'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新设施（管理员）
+      tags:
+      - 管理员
+  /api/admin/facilities/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 管理员删除设施
+      parameters:
+      - description: 设施 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 删除设施（管理员）
+      tags:
+      - 管理员
+  /api/admin/facilities/batch:
+    post:
+      consumes:
+      - application/json
+      description: 管理员批量更新设施的位置和尺寸信息
+      parameters:
+      - description: 设施位置信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.BatchUpdateFacilitiesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 批量更新设施位置（管理员）
+      tags:
+      - 管理员
+  /api/admin/facilities/floor/{floor}:
+    get:
+      consumes:
+      - application/json
+      description: 管理员获取指定楼层的所有设施
+      parameters:
+      - description: 楼层
+        in: path
+        name: floor
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Facility'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 按楼层查询设施（管理员）
+      tags:
+      - 管理员
   /api/admin/logs:
     get:
       consumes:
@@ -1182,253 +1436,6 @@ paths:
       summary: 获取我的预订列表
       tags:
       - 预订
-  /api/facilities:
-    get:
-      consumes:
-      - application/json
-      description: 查询所有设施（分页）
-      parameters:
-      - default: 1
-        description: 页码
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: 每页数量
-        in: query
-        name: page_size
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Facility'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      summary: 查询所有设施
-      tags:
-      - 设施
-    post:
-      consumes:
-      - application/json
-      description: 创建设施
-      parameters:
-      - description: 设施信息
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.CreateFacilityRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Facility'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 创建设施
-      tags:
-      - 设施
-  /api/facilities/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除设施
-      parameters:
-      - description: 设施 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 删除设施
-      tags:
-      - 设施
-    get:
-      consumes:
-      - application/json
-      description: 根据 ID 查找设施
-      parameters:
-      - description: 设施 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Facility'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      summary: 根据 ID 查找设施
-      tags:
-      - 设施
-    post:
-      consumes:
-      - application/json
-      description: 更新设施
-      parameters:
-      - description: 设施 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 设施信息
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.UpdateFacilityRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Facility'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 更新设施
-      tags:
-      - 设施
-  /api/facilities/batch:
-    post:
-      consumes:
-      - application/json
-      description: 批量更新设施的位置和尺寸信息
-      parameters:
-      - description: 设施位置信息
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.BatchUpdateFacilitiesRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      security:
-      - Bearer: []
-      summary: 批量更新设施位置
-      tags:
-      - 设施
-  /api/facilities/floor/{floor}:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定楼层的所有设施
-      parameters:
-      - description: 楼层
-        in: path
-        name: floor
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Facility'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errors.ErrorResponse'
-      summary: 按楼层查询设施
-      tags:
-      - 设施
   /api/logs/report:
     post:
       consumes:
