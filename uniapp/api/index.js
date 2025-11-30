@@ -22,3 +22,4 @@ export { hotel, booking, user }
 
 
 
+
