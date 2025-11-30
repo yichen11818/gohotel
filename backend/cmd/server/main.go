@@ -196,24 +196,6 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 			logs.GET("", logHandler.GetLogs)        // 获取日志列表
 		}
 
-		// 设施路由（公开查询）
-		facilities := api.Group("/facilities")
-		{
-			facilities.GET("", facilityHandler.FindAllFacilities)                  // 获取所有设施（分页）
-			facilities.GET("/:id", facilityHandler.FindFacilityByID)               // 获取设施详情
-			facilities.GET("/floor/:floor", facilityHandler.FindFacilitiesByFloor) // 按楼层查询设施
-
-			// 需要认证的设施管理路由（管理员）
-			facilitiesAuth := facilities.Group("")
-			facilitiesAuth.Use(middleware.AuthMiddleware())
-			{
-				facilitiesAuth.POST("", facilityHandler.CreateFacility)             // 创建设施
-				facilitiesAuth.POST("/:id", facilityHandler.UpdateFacility)          // 更新设施
-				facilitiesAuth.DELETE("/:id", facilityHandler.DeleteFacility)       // 删除设施
-				facilitiesAuth.POST("/batch", facilityHandler.BatchUpdateFacilities) // 批量更新设施位置
-			}
-		}
-
 		// 需要认证的路由
 		authorized := api.Group("")
 		authorized.Use(middleware.AuthMiddleware())
@@ -253,6 +235,14 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				admin.GET("/bookings/room", bookingHandler.GetBookingsByRoomNumberAndStatus) // 根据房间号和状态获取预订列表
 				// 日志管理
 				admin.GET("/logs", logHandler.GetLogs) // 获取日志列表
+				// 设施管理
+				admin.GET("/facilities", facilityHandler.FindAllFacilities)                  // 查询所有设施
+				admin.POST("/facilities", facilityHandler.CreateFacility)                    // 创建设施
+				admin.POST("/facilities/batch", facilityHandler.BatchUpdateFacilities)       // 批量更新设施位置
+				admin.GET("/facilities/floor/:floor", facilityHandler.FindFacilitiesByFloor) // 按楼层查询设施
+				admin.GET("/facilities/:id", facilityHandler.FindFacilityByID)               // 根据ID查找设施
+				admin.POST("/facilities/:id", facilityHandler.UpdateFacility)                // 更新设施
+				admin.POST("/facilities/:id/delete", facilityHandler.DeleteFacility)         // 删除设施
 			}
 		}
 	}

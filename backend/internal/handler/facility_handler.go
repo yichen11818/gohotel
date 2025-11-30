@@ -20,9 +20,9 @@ func NewFacilityHandler(facilityService *service.FacilityService) *FacilityHandl
 }
 
 // CreateFacility 创建设施
-// @Summary 创建设施
-// @Description 创建设施
-// @Tags 设施
+// @Summary 创建设施（管理员）
+// @Description 管理员创建设施
+// @Tags 管理员
 // @Accept json
 // @Produce json
 // @Security Bearer
@@ -32,7 +32,7 @@ func NewFacilityHandler(facilityService *service.FacilityService) *FacilityHandl
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 409 {object} errors.ErrorResponse
-// @Router /api/facilities [post]
+// @Router /api/admin/facilities [post]
 func (h *FacilityHandler) CreateFacility(c *gin.Context) {
 	var req service.CreateFacilityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,9 +48,9 @@ func (h *FacilityHandler) CreateFacility(c *gin.Context) {
 }
 
 // UpdateFacility 更新设施
-// @Summary 更新设施
-// @Description 更新设施
-// @Tags 设施
+// @Summary 更新设施（管理员）
+// @Description 管理员更新设施
+// @Tags 管理员
 // @Accept json
 // @Produce json
 // @Security Bearer
@@ -61,7 +61,7 @@ func (h *FacilityHandler) CreateFacility(c *gin.Context) {
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/facilities/{id} [post]
+// @Router /api/admin/facilities/{id} [post]
 func (h *FacilityHandler) UpdateFacility(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -85,9 +85,9 @@ func (h *FacilityHandler) UpdateFacility(c *gin.Context) {
 }
 
 // DeleteFacility 删除设施
-// @Summary 删除设施
-// @Description 删除设施
-// @Tags 设施
+// @Summary 删除设施（管理员）
+// @Description 管理员删除设施
+// @Tags 管理员
 // @Accept json
 // @Produce json
 // @Security Bearer
@@ -97,7 +97,7 @@ func (h *FacilityHandler) UpdateFacility(c *gin.Context) {
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/facilities/{id} [delete]
+// @Router /api/admin/facilities/{id}/delete [post]
 func (h *FacilityHandler) DeleteFacility(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -113,16 +113,17 @@ func (h *FacilityHandler) DeleteFacility(c *gin.Context) {
 }
 
 // FindFacilityByID 根据 ID 查找设施
-// @Summary 根据 ID 查找设施
-// @Description 根据 ID 查找设施
-// @Tags 设施
+// @Summary 根据 ID 查找设施（管理员）
+// @Description 管理员根据 ID 查找设施
+// @Tags 管理员
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param id path int true "设施 ID"
 // @Success 200 {object} models.Facility
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
-// @Router /api/facilities/{id} [get]
+// @Router /api/admin/facilities/{id} [get]
 func (h *FacilityHandler) FindFacilityByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -138,16 +139,17 @@ func (h *FacilityHandler) FindFacilityByID(c *gin.Context) {
 }
 
 // FindAllFacilities 查询所有设施
-// @Summary 查询所有设施
-// @Description 查询所有设施（分页）
-// @Tags 设施
+// @Summary 查询所有设施（管理员）
+// @Description 管理员查询所有设施（分页）
+// @Tags 管理员
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
 // @Success 200 {array} models.Facility
 // @Failure 400 {object} errors.ErrorResponse
-// @Router /api/facilities [get]
+// @Router /api/admin/facilities [get]
 func (h *FacilityHandler) FindAllFacilities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -160,15 +162,16 @@ func (h *FacilityHandler) FindAllFacilities(c *gin.Context) {
 }
 
 // FindFacilitiesByFloor 按楼层查询设施
-// @Summary 按楼层查询设施
-// @Description 获取指定楼层的所有设施
-// @Tags 设施
+// @Summary 按楼层查询设施（管理员）
+// @Description 管理员获取指定楼层的所有设施
+// @Tags 管理员
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param floor path int true "楼层"
 // @Success 200 {array} models.Facility
 // @Failure 400 {object} errors.ErrorResponse
-// @Router /api/facilities/floor/{floor} [get]
+// @Router /api/admin/facilities/floor/{floor} [get]
 func (h *FacilityHandler) FindFacilitiesByFloor(c *gin.Context) {
 	floor, err := strconv.Atoi(c.Param("floor"))
 	if err != nil {
@@ -184,9 +187,9 @@ func (h *FacilityHandler) FindFacilitiesByFloor(c *gin.Context) {
 }
 
 // BatchUpdateFacilities 批量更新设施位置
-// @Summary 批量更新设施位置
-// @Description 批量更新设施的位置和尺寸信息
-// @Tags 设施
+// @Summary 批量更新设施位置（管理员）
+// @Description 管理员批量更新设施的位置和尺寸信息
+// @Tags 管理员
 // @Accept json
 // @Produce json
 // @Security Bearer
@@ -195,7 +198,7 @@ func (h *FacilityHandler) FindFacilitiesByFloor(c *gin.Context) {
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
-// @Router /api/facilities/batch [post]
+// @Router /api/admin/facilities/batch [post]
 func (h *FacilityHandler) BatchUpdateFacilities(c *gin.Context) {
 	var req service.BatchUpdateFacilitiesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
