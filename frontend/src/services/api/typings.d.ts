@@ -122,11 +122,6 @@ declare namespace API {
     width?: number;
   };
 
-  type deleteFacilitiesIdParams = {
-    /** 设施 ID */
-    id: number;
-  };
-
   type DeleteUsersRequest = {
     user_ids: string[];
   };
@@ -193,6 +188,23 @@ declare namespace API {
     status?: string;
   };
 
+  type getAdminFacilitiesFloorFloorParams = {
+    /** 楼层 */
+    floor: number;
+  };
+
+  type getAdminFacilitiesIdParams = {
+    /** 设施 ID */
+    id: number;
+  };
+
+  type getAdminFacilitiesParams = {
+    /** 页码 */
+    page?: number;
+    /** 每页数量 */
+    page_size?: number;
+  };
+
   type getAdminLogsParams = {
     /** 页码 */
     page?: number;
@@ -230,23 +242,6 @@ declare namespace API {
   };
 
   type getBookingsMyParams = {
-    /** 页码 */
-    page?: number;
-    /** 每页数量 */
-    page_size?: number;
-  };
-
-  type getFacilitiesFloorFloorParams = {
-    /** 楼层 */
-    floor: number;
-  };
-
-  type getFacilitiesIdParams = {
-    /** 设施 ID */
-    id: number;
-  };
-
-  type getFacilitiesParams = {
     /** 页码 */
     page?: number;
     /** 每页数量 */
@@ -324,13 +319,18 @@ declare namespace API {
     id: string;
   };
 
-  type postBookingsIdCancelParams = {
-    /** 预订 ID */
+  type postAdminFacilitiesId_openAPI_deleteParams = {
+    /** 设施 ID */
     id: number;
   };
 
-  type postFacilitiesIdParams = {
+  type postAdminFacilitiesIdParams = {
     /** 设施 ID */
+    id: number;
+  };
+
+  type postBookingsIdCancelParams = {
+    /** 预订 ID */
     id: number;
   };
 

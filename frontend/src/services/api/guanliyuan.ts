@@ -96,6 +96,119 @@ export async function getAdminBookingsSearch(
   });
 }
 
+/** 查询所有设施（管理员） 管理员查询所有设施（分页） GET /api/admin/facilities */
+export async function getAdminFacilities(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminFacilitiesParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.Facility[]>("/api/admin/facilities", {
+    method: "GET",
+    params: {
+      // page has a default value: 1
+      page: "1",
+      // page_size has a default value: 10
+      page_size: "10",
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
+/** 创建设施（管理员） 管理员创建设施 POST /api/admin/facilities */
+export async function postAdminFacilities(
+  body: API.CreateFacilityRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.Facility>("/api/admin/facilities", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 根据 ID 查找设施（管理员） 管理员根据 ID 查找设施 GET /api/admin/facilities/${param0} */
+export async function getAdminFacilitiesId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminFacilitiesIdParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<API.Facility>(`/api/admin/facilities/${param0}`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 更新设施（管理员） 管理员更新设施 POST /api/admin/facilities/${param0} */
+export async function postAdminFacilitiesId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminFacilitiesIdParams,
+  body: API.UpdateFacilityRequest,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<API.Facility>(`/api/admin/facilities/${param0}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    params: { ...queryParams },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 删除设施（管理员） 管理员删除设施 POST /api/admin/facilities/${param0}/delete */
+export async function postAdminFacilitiesIdOpenApiDelete(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminFacilitiesId_openAPI_deleteParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<Record<string, any>>(
+    `/api/admin/facilities/${param0}/delete`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
+/** 批量更新设施位置（管理员） 管理员批量更新设施的位置和尺寸信息 POST /api/admin/facilities/batch */
+export async function postAdminFacilitiesBatch(
+  body: API.BatchUpdateFacilitiesRequest,
+  options?: { [key: string]: any }
+) {
+  return request<Record<string, any>>("/api/admin/facilities/batch", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 按楼层查询设施（管理员） 管理员获取指定楼层的所有设施 GET /api/admin/facilities/floor/${param0} */
+export async function getAdminFacilitiesFloorFloor(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminFacilitiesFloorFloorParams,
+  options?: { [key: string]: any }
+) {
+  const { floor: param0, ...queryParams } = params;
+  return request<API.Facility[]>(`/api/admin/facilities/floor/${param0}`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 获取用户列表（管理员） 管理员获取所有用户列表，支持分页 GET /api/admin/users */
 export async function getAdminUsers(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
