@@ -90,6 +90,18 @@ func main() {
 	}
 	fmt.Println("✅ 雪花算法初始化成功!")
 
+	// 6.1 初始化COS服务
+	fmt.Println("☁️  正在初始化COS服务...")
+	var cosService *service.CosService
+	var cosErr error
+	cosService, cosErr = service.NewCosService(&config.AppConfig.COS)
+	if cosErr != nil {
+		log.Printf("⚠️  COS服务初始化失败: %v，将无法使用图片上传功能", cosErr)
+		cosService = nil
+	} else {
+		fmt.Println("✅ COS服务初始化成功!")
+	}
+
 	// 7. 初始化依赖注入
 	// Repository 层
 	userRepo := repository.NewUserRepository(database.DB)
@@ -97,6 +109,7 @@ func main() {
 	bookingRepo := repository.NewBookingRepository(database.DB)
 	logRepo := repository.NewLogRepository(database.DB)
 	facilityRepo := repository.NewFacilityRepository(database.DB)
+	bannerRepo := repository.NewBannerRepository(database.DB)
 
 	// Service 层
 	userService := service.NewUserService(userRepo)
@@ -104,6 +117,7 @@ func main() {
 	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
 	logService := service.NewLogService(logRepo)
 	facilityService := service.NewFacilityService(facilityRepo)
+	bannerService := service.NewBannerService(bannerRepo, cosService)
 
 	// Handler 层
 	userHandler := handler.NewUserHandler(userService)
@@ -111,6 +125,8 @@ func main() {
 	bookingHandler := handler.NewBookingHandler(bookingService)
 	logHandler := handler.NewLogHandler(logService)
 	facilityHandler := handler.NewFacilityHandler(facilityService)
+	bannerHandler := handler.NewBannerHandler(bannerService, cosService)
+	cosHandler := handler.NewCosHandler(cosService)
 
 	// 8. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
@@ -123,8 +139,8 @@ func main() {
 	r.Use(middleware.CORSMiddleware())   // 跨域中间件
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
-	// 11. 设置路由
-	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler)
+	// 设置路由
+	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, cosHandler)
 
 	// 12. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
@@ -141,7 +157,7 @@ func main() {
 }
 
 // setupRoutes 设置所有路由
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler) {
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, cosHandler *handler.CosHandler) {
 	// Swagger 文档路由
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -189,11 +205,23 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				roomsAuth.POST("/:id/delete", roomHandler.DeleteRoom)  // 删除房间
 			}
 		}
+		// 活动横幅路由（公开查询）
+		banners := api.Group("/banners")
+		{
+			banners.GET("/active", bannerHandler.GetActiveBanners) // 获取激活的活动横幅（前端展示用）
+		}
 		// 日志路由
 		logs := api.Group("/logs")
 		{
 			logs.POST("/report", logHandler.Report) // 上报日志
 			logs.GET("", logHandler.GetLogs)        // 获取日志列表
+		}
+
+		// 文件上传路由（需要认证，但不需要管理员权限）
+		upload := api.Group("/upload")
+		upload.Use(middleware.AuthMiddleware())
+		{
+			upload.POST("/image", cosHandler.UploadImage) // 通用图片上传接口
 		}
 
 		// 需要认证的路由
@@ -243,6 +271,14 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				admin.GET("/facilities/:id", facilityHandler.FindFacilityByID)               // 根据ID查找设施
 				admin.POST("/facilities/:id", facilityHandler.UpdateFacility)                // 更新设施
 				admin.POST("/facilities/:id/delete", facilityHandler.DeleteFacility)         // 删除设施
+
+				// 活动横幅管理
+				admin.GET("/banners", bannerHandler.GetAllBanners)                  // 获取所有活动横幅
+				admin.POST("/banners", bannerHandler.CreateBanner)                  // 创建活动横幅
+				admin.GET("/banners/:id", bannerHandler.GetBannerByID)              // 获取活动横幅详情
+				admin.POST("/banners/:id", bannerHandler.UpdateBanner)              // 更新活动横幅
+				admin.POST("/banners/:id/status", bannerHandler.UpdateBannerStatus) // 更新活动横幅状态
+				admin.POST("/banners/:id/delete", bannerHandler.DeleteBanner)       // 删除活动横幅
 			}
 		}
 	}

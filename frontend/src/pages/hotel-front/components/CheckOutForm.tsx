@@ -40,7 +40,7 @@ const CheckOutForm: React.FC = () => {
   const steps: StepProps[] = [
     {
       title: '查询预订',
-      description: '输入预订号或客人信息',
+      description: '输入房间号',
     },
     {
       title: '确认信息',

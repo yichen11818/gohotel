@@ -23,6 +23,7 @@ func AutoMigrate() error {
 		&models.Booking{},
 		&models.Facility{},
 		&models.Log{},
+		&models.Banner{},
 	)
 
 	if err != nil {

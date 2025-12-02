@@ -199,7 +199,7 @@ const TableList: React.FC = () => {
         <Button
           key="confirm"
           type="primary"
-          disabled={record.status === 'confirmed'}
+          disabled={record.status !== 'pending'}
           onClick={() => {
             postAdminBookingsIdConfirm({
               id: record.id,

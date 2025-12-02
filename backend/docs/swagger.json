@@ -14,8 +14,459 @@
         },
         "version": "1.0"
     },
-    "host": "nas.yumi.chat:19999",
+    "host": "localhost:19999",
     "paths": {
+        "/api/admin/banners": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "获取所有活动横幅，支持分页",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "获取所有活动横幅",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，默认10",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "创建新的活动横幅，使用临时图片URL",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "创建活动横幅",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "活动横幅标题",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动横幅副标题",
+                        "name": "subtitle",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "临时图片URL（通过通用上传接口获取）",
+                        "name": "temp_url",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "点击跳转链接",
+                        "name": "link_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态：active/inactive",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "展示顺序",
+                        "name": "sort",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动开始时间",
+                        "name": "start_time",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动结束时间",
+                        "name": "end_time",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banner"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/banners/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "根据ID获取活动横幅详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "根据ID获取活动横幅",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "活动横幅ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banner"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新活动横幅信息，使用临时图片URL",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "更新活动横幅",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "活动横幅ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动横幅标题",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动横幅副标题",
+                        "name": "subtitle",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "临时图片URL（通过通用上传接口获取）",
+                        "name": "temp_url",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "点击跳转链接",
+                        "name": "link_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态：active/inactive",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "展示顺序",
+                        "name": "sort",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动开始时间",
+                        "name": "start_time",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "活动结束时间",
+                        "name": "end_time",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banner"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/banners/{id}/delete": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "删除指定ID的活动横幅",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "删除活动横幅",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "活动横幅ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/banners/{id}/status": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新活动横幅的启用/禁用状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "更新活动横幅状态",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "活动横幅ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态信息，包含status字段",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/bookings": {
             "get": {
                 "security": [
@@ -1199,6 +1650,41 @@
                 }
             }
         },
+        "/api/banners/active": {
+            "get": {
+                "description": "获取激活状态的活动横幅，用于前端展示",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "获取激活的活动横幅",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Banner"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/bookings": {
             "post": {
                 "security": [
@@ -1974,6 +2460,71 @@
                 }
             }
         },
+        "/api/upload/image": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "上传图片到腾讯云对象存储，返回临时URL",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件上传"
+                ],
+                "summary": "通用图片上传",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "图片文件",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "资源类型：banner/room/user等",
+                        "name": "type",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\\\"temp_url\\\": \\\"临时图片URL\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "{\\\"error\\\": \\\"错误信息\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "{\\\"error\\\": \\\"错误信息\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/password": {
             "post": {
                 "security": [
@@ -2145,6 +2696,55 @@
                 "success": {
                     "type": "boolean",
                     "example": false
+                }
+            }
+        },
+        "models.Banner": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "end_time": {
+                    "description": "活动结束时间（可为空）",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键（使用雪花算法生成，JSON序列化为字符串）",
+                    "type": "integer"
+                },
+                "image_url": {
+                    "description": "图片URL",
+                    "type": "string"
+                },
+                "link_url": {
+                    "description": "跳转链接（可为空）",
+                    "type": "string"
+                },
+                "sort": {
+                    "description": "排序，数字越小越靠前",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "活动开始时间（可为空）",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态：active, inactive",
+                    "type": "string"
+                },
+                "subtitle": {
+                    "description": "副标题（可为空）",
+                    "type": "string"
+                },
+                "title": {
+                    "description": "标题",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "更新时间",
+                    "type": "string"
                 }
             }
         },

@@ -16,6 +16,42 @@ definitions:
         example: false
         type: boolean
     type: object
+  models.Banner:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      end_time:
+        description: 活动结束时间（可为空）
+        type: string
+      id:
+        description: 主键（使用雪花算法生成，JSON序列化为字符串）
+        type: integer
+      image_url:
+        description: 图片URL
+        type: string
+      link_url:
+        description: 跳转链接（可为空）
+        type: string
+      sort:
+        description: 排序，数字越小越靠前
+        type: integer
+      start_time:
+        description: 活动开始时间（可为空）
+        type: string
+      status:
+        description: 状态：active, inactive
+        type: string
+      subtitle:
+        description: 副标题（可为空）
+        type: string
+      title:
+        description: 标题
+        type: string
+      updated_at:
+        description: 更新时间
+        type: string
+    type: object
   models.Booking:
     properties:
       booking_number:
@@ -510,7 +546,7 @@ definitions:
       width:
         type: integer
     type: object
-host: nas.yumi.chat:19999
+host: localhost:19999
 info:
   contact:
     email: support@gohotel.com
@@ -523,6 +559,298 @@ info:
   title: 酒店管理系统 API
   version: "1.0"
 paths:
+  /api/admin/banners:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有活动横幅，支持分页
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 获取所有活动横幅
+      tags:
+      - 活动管理
+    post:
+      consumes:
+      - multipart/form-data
+      description: 创建新的活动横幅，使用临时图片URL
+      parameters:
+      - description: 活动横幅标题
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: 活动横幅副标题
+        in: formData
+        name: subtitle
+        type: string
+      - description: 临时图片URL（通过通用上传接口获取）
+        in: formData
+        name: temp_url
+        required: true
+        type: string
+      - description: 点击跳转链接
+        in: formData
+        name: link_url
+        type: string
+      - description: 状态：active/inactive
+        in: formData
+        name: status
+        type: string
+      - description: 展示顺序
+        in: formData
+        name: sort
+        type: integer
+      - description: 活动开始时间
+        in: formData
+        name: start_time
+        type: string
+      - description: 活动结束时间
+        in: formData
+        name: end_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Banner'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建活动横幅
+      tags:
+      - 活动管理
+  /api/admin/banners/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取活动横幅详情
+      parameters:
+      - description: 活动横幅ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Banner'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 根据ID获取活动横幅
+      tags:
+      - 活动管理
+    post:
+      consumes:
+      - multipart/form-data
+      description: 更新活动横幅信息，使用临时图片URL
+      parameters:
+      - description: 活动横幅ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 活动横幅标题
+        in: formData
+        name: title
+        type: string
+      - description: 活动横幅副标题
+        in: formData
+        name: subtitle
+        type: string
+      - description: 临时图片URL（通过通用上传接口获取）
+        in: formData
+        name: temp_url
+        required: true
+        type: string
+      - description: 点击跳转链接
+        in: formData
+        name: link_url
+        type: string
+      - description: 状态：active/inactive
+        in: formData
+        name: status
+        type: string
+      - description: 展示顺序
+        in: formData
+        name: sort
+        type: integer
+      - description: 活动开始时间
+        in: formData
+        name: start_time
+        type: string
+      - description: 活动结束时间
+        in: formData
+        name: end_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Banner'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 更新活动横幅
+      tags:
+      - 活动管理
+  /api/admin/banners/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除指定ID的活动横幅
+      parameters:
+      - description: 活动横幅ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除活动横幅
+      tags:
+      - 活动管理
+  /api/admin/banners/{id}/status:
+    post:
+      consumes:
+      - application/json
+      description: 更新活动横幅的启用/禁用状态
+      parameters:
+      - description: 活动横幅ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 状态信息，包含status字段
+        in: body
+        name: status
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 更新活动横幅状态
+      tags:
+      - 活动管理
   /api/admin/bookings:
     get:
       consumes:
@@ -1285,6 +1613,29 @@ paths:
       summary: 用户注册
       tags:
       - 认证
+  /api/banners/active:
+    get:
+      consumes:
+      - application/json
+      description: 获取激活状态的活动横幅，用于前端展示
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Banner'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取激活的活动横幅
+      tags:
+      - 活动管理
   /api/bookings:
     post:
       consumes:
@@ -1789,6 +2140,48 @@ paths:
       summary: 按房型搜索房间
       tags:
       - 房间
+  /api/upload/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传图片到腾讯云对象存储，返回临时URL
+      parameters:
+      - description: 图片文件
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: 资源类型：banner/room/user等
+        in: formData
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{\"temp_url\": \"临时图片URL\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: '{\"error\": \"错误信息\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: '{\"error\": \"错误信息\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: 通用图片上传
+      tags:
+      - 文件上传
   /api/users/password:
     post:
       consumes:
