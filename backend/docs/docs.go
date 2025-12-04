@@ -119,12 +119,6 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "string",
-                        "description": "状态：active/inactive",
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
                         "type": "integer",
                         "description": "展示顺序",
                         "name": "sort",
@@ -285,12 +279,6 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "string",
-                        "description": "状态：active/inactive",
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
                         "type": "integer",
                         "description": "展示顺序",
                         "name": "sort",
@@ -371,76 +359,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/banners/{id}/status": {
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "更新活动横幅的启用/禁用状态",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "活动管理"
-                ],
-                "summary": "更新活动横幅状态",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "活动横幅ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "状态信息，包含status字段",
-                        "name": "status",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
                     }
                 ],
                 "responses": {
@@ -3474,7 +3392,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:19999",
+	Host:             "nas.yumi.chat:19999",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "酒店管理系统 API",

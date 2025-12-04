@@ -102,6 +102,18 @@ func main() {
 		fmt.Println("✅ COS服务初始化成功!")
 	}
 
+	// 6.2 初始化时间轮
+	fmt.Println("⏰ 正在初始化时间轮...")
+	timeWheel := utils.NewMultiTimeWheel() // 使用多层时间轮（秒、分、时、天四层）
+
+	// 设置持久化存储，将任务保存到data目录
+	persistStore := utils.NewFilePersistStore("./data/timewheel_tasks.json")
+	timeWheel.SetPersistStore(persistStore)
+
+	timeWheel.Start()
+	defer timeWheel.Stop()
+	fmt.Println("✅ 时间轮初始化成功!")
+
 	// 7. 初始化依赖注入
 	// Repository 层
 	userRepo := repository.NewUserRepository(database.DB)
@@ -117,7 +129,15 @@ func main() {
 	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
 	logService := service.NewLogService(logRepo)
 	facilityService := service.NewFacilityService(facilityRepo)
-	bannerService := service.NewBannerService(bannerRepo, cosService)
+	bannerService := service.NewBannerService(bannerRepo, cosService, timeWheel)
+
+	// 加载持久化的时间轮任务
+	fmt.Println("📂 正在加载时间轮任务...")
+	if err := timeWheel.LoadTasks(); err != nil {
+		log.Printf("⚠️  时间轮任务加载失败: %v", err)
+	} else {
+		fmt.Println("✅ 时间轮任务加载成功!")
+	}
 
 	// Handler 层
 	userHandler := handler.NewUserHandler(userService)
@@ -273,12 +293,11 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				admin.POST("/facilities/:id/delete", facilityHandler.DeleteFacility)         // 删除设施
 
 				// 活动横幅管理
-				admin.GET("/banners", bannerHandler.GetAllBanners)                  // 获取所有活动横幅
-				admin.POST("/banners", bannerHandler.CreateBanner)                  // 创建活动横幅
-				admin.GET("/banners/:id", bannerHandler.GetBannerByID)              // 获取活动横幅详情
-				admin.POST("/banners/:id", bannerHandler.UpdateBanner)              // 更新活动横幅
-				admin.POST("/banners/:id/status", bannerHandler.UpdateBannerStatus) // 更新活动横幅状态
-				admin.POST("/banners/:id/delete", bannerHandler.DeleteBanner)       // 删除活动横幅
+				admin.GET("/banners", bannerHandler.GetAllBanners)            // 获取所有活动横幅
+				admin.POST("/banners", bannerHandler.CreateBanner)            // 创建活动横幅
+				admin.GET("/banners/:id", bannerHandler.GetBannerByID)        // 获取活动横幅详情
+				admin.POST("/banners/:id", bannerHandler.UpdateBanner)        // 更新活动横幅
+				admin.POST("/banners/:id/delete", bannerHandler.DeleteBanner) // 删除活动横幅
 			}
 		}
 	}

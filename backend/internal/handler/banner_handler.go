@@ -33,7 +33,6 @@ func NewBannerHandler(bannerService *service.BannerService, cosService *service.
 // @Param subtitle formData string false "活动横幅副标题"
 // @Param temp_url formData string true "临时图片URL（通过通用上传接口获取）"
 // @Param link_url formData string false "点击跳转链接"
-// @Param status formData string false "状态：active/inactive"
 // @Param sort formData int false "展示顺序"
 // @Param start_time formData string false "活动开始时间"
 // @Param end_time formData string false "活动结束时间"
@@ -47,7 +46,6 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 	subtitle := c.PostForm("subtitle")
 	tempURL := c.PostForm("temp_url")
 	linkURL := c.PostForm("link_url")
-	status := c.PostForm("status")
 	sortStr := c.PostForm("sort")
 	startTime := c.PostForm("start_time")
 	endTime := c.PostForm("end_time")
@@ -83,7 +81,6 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		Subtitle:  &subtitle,
 		ImageURL:  imageURL,
 		LinkURL:   &linkURL,
-		Status:    status,
 		Sort:      sort,
 		StartTime: &startTime,
 		EndTime:   &endTime,
@@ -190,7 +187,6 @@ func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 // @Param subtitle formData string false "活动横幅副标题"
 // @Param temp_url formData string true "临时图片URL（通过通用上传接口获取）"
 // @Param link_url formData string false "点击跳转链接"
-// @Param status formData string false "状态：active/inactive"
 // @Param sort formData int false "展示顺序"
 // @Param start_time formData string false "活动开始时间"
 // @Param end_time formData string false "活动结束时间"
@@ -220,7 +216,6 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	subtitle := c.PostForm("subtitle")
 	tempURL := c.PostForm("temp_url")
 	linkURL := c.PostForm("link_url")
-	status := c.PostForm("status")
 	sortStr := c.PostForm("sort")
 	startTime := c.PostForm("start_time")
 	endTime := c.PostForm("end_time")
@@ -252,7 +247,6 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 		Subtitle:  &subtitle,
 		ImageURL:  imageURL,
 		LinkURL:   &linkURL,
-		Status:    status,
 		Sort:      sort,
 		StartTime: &startTime,
 		EndTime:   &endTime,
@@ -266,44 +260,6 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, banner)
-}
-
-// UpdateBannerStatus 更新活动横幅状态
-// @Summary 更新活动横幅状态
-// @Description 更新活动横幅的启用/禁用状态
-// @Tags 活动管理
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param id path string true "活动横幅ID"
-// @Param status body map[string]string true "状态信息，包含status字段"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /api/admin/banners/{id}/status [post]
-func (h *BannerHandler) UpdateBannerStatus(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的ID"})
-		return
-	}
-
-	var req struct {
-		Status string `json:"status" binding:"required,oneof=active inactive"`
-	}
-
-	if err = c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误: " + err.Error()})
-		return
-	}
-
-	if err = h.bannerService.UpdateBannerStatus(int64(id), req.Status); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "状态更新成功"})
 }
 
 // DeleteBanner 删除活动横幅

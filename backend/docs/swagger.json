@@ -14,7 +14,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:19999",
+    "host": "nas.yumi.chat:19999",
     "paths": {
         "/api/admin/banners": {
             "get": {
@@ -109,12 +109,6 @@
                         "type": "string",
                         "description": "点击跳转链接",
                         "name": "link_url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "状态：active/inactive",
-                        "name": "status",
                         "in": "formData"
                     },
                     {
@@ -278,12 +272,6 @@
                         "in": "formData"
                     },
                     {
-                        "type": "string",
-                        "description": "状态：active/inactive",
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
                         "type": "integer",
                         "description": "展示顺序",
                         "name": "sort",
@@ -364,76 +352,6 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/banners/{id}/status": {
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "更新活动横幅的启用/禁用状态",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "活动管理"
-                ],
-                "summary": "更新活动横幅状态",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "活动横幅ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "状态信息，包含status字段",
-                        "name": "status",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
                     }
                 ],
                 "responses": {

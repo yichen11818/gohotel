@@ -546,7 +546,7 @@ definitions:
       width:
         type: integer
     type: object
-host: localhost:19999
+host: nas.yumi.chat:19999
 info:
   contact:
     email: support@gohotel.com
@@ -614,10 +614,6 @@ paths:
       - description: 点击跳转链接
         in: formData
         name: link_url
-        type: string
-      - description: 状态：active/inactive
-        in: formData
-        name: status
         type: string
       - description: 展示顺序
         in: formData
@@ -723,10 +719,6 @@ paths:
         in: formData
         name: link_url
         type: string
-      - description: 状态：active/inactive
-        in: formData
-        name: status
-        type: string
       - description: 展示顺序
         in: formData
         name: sort
@@ -804,51 +796,6 @@ paths:
       security:
       - Bearer: []
       summary: 删除活动横幅
-      tags:
-      - 活动管理
-  /api/admin/banners/{id}/status:
-    post:
-      consumes:
-      - application/json
-      description: 更新活动横幅的启用/禁用状态
-      parameters:
-      - description: 活动横幅ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 状态信息，包含status字段
-        in: body
-        name: status
-        required: true
-        schema:
-          additionalProperties:
-            type: string
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - Bearer: []
-      summary: 更新活动横幅状态
       tags:
       - 活动管理
   /api/admin/bookings:

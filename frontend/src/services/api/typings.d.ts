@@ -7,6 +7,31 @@ declare namespace API {
     username: string;
   };
 
+  type Banner = {
+    /** 创建时间 */
+    created_at?: string;
+    /** 活动结束时间（可为空） */
+    end_time?: string;
+    /** 主键（使用雪花算法生成，JSON序列化为字符串） */
+    id?: number;
+    /** 图片URL */
+    image_url?: string;
+    /** 跳转链接（可为空） */
+    link_url?: string;
+    /** 排序，数字越小越靠前 */
+    sort?: number;
+    /** 活动开始时间（可为空） */
+    start_time?: string;
+    /** 状态：active, inactive */
+    status?: string;
+    /** 副标题（可为空） */
+    subtitle?: string;
+    /** 标题 */
+    title?: string;
+    /** 更新时间 */
+    updated_at?: string;
+  };
+
   type BatchCreateRoomRequest = {
     rooms: CreateRoomRequest[];
   };
@@ -165,6 +190,18 @@ declare namespace API {
     room_number?: string;
   };
 
+  type getAdminBannersIdParams = {
+    /** 活动横幅ID */
+    id: string;
+  };
+
+  type getAdminBannersParams = {
+    /** 页码，默认1 */
+    page?: number;
+    /** 每页条数，默认10 */
+    pageSize?: number;
+  };
+
   type getAdminBookingsParams = {
     /** 页码 */
     page?: number;
@@ -302,6 +339,16 @@ declare namespace API {
 
   type LogReportRequest = {
     logs: LogEntry[];
+  };
+
+  type postAdminBannersId_openAPI_deleteParams = {
+    /** 活动横幅ID */
+    id: string;
+  };
+
+  type postAdminBannersIdParams = {
+    /** 活动横幅ID */
+    id: string;
   };
 
   type postAdminBookingsIdCheckinParams = {
