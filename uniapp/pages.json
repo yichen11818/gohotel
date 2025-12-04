@@ -67,7 +67,8 @@
   "easycom": {
     "autoscan": true,
     "custom": {
-      "^tn-(.*)": "tuniao-ui/components/tn-$1/tn-$1.vue"
+      "^tn-(.*)-(item|group)$": "@/uni_modules/tuniaoui-vue3/components/$1/src/$1-$2.vue",
+      "^tn-(.*)": "@/uni_modules/tuniaoui-vue3/components/$1/src/$1.vue"
     }
   }
 }

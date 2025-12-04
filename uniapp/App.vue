@@ -16,7 +16,7 @@ onHide(() => {
 
 <style lang="scss">
 @import '@/uni.scss';
-
+@import '@/uni_modules/tuniaoui-vue3/index.css';
 
 page {
   background-color: #f8f8f8;
