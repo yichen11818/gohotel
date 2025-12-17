@@ -90,7 +90,7 @@ export async function postAdminBannersId(
     /** 活动横幅副标题 */
     subtitle?: string;
     /** 临时图片URL（通过通用上传接口获取） */
-    temp_url: string;
+    temp_url?: string;
     /** 点击跳转链接 */
     link_url?: string;
     /** 展示顺序 */

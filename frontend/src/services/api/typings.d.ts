@@ -12,7 +12,7 @@ declare namespace API {
     created_at?: string;
     /** 活动结束时间（可为空） */
     end_time?: string;
-    /** 主键（使用雪花算法生成，JSON序列化为字符串） */
+    /** 主键（自增ID） */
     id?: number;
     /** 图片URL */
     image_url?: string;

@@ -185,7 +185,7 @@ func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 // @Param id path string true "活动横幅ID"
 // @Param title formData string false "活动横幅标题"
 // @Param subtitle formData string false "活动横幅副标题"
-// @Param temp_url formData string true "临时图片URL（通过通用上传接口获取）"
+// @Param temp_url formData string false "临时图片URL（通过通用上传接口获取）"
 // @Param link_url formData string false "点击跳转链接"
 // @Param sort formData int false "展示顺序"
 // @Param start_time formData string false "活动开始时间"
@@ -220,19 +220,6 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	startTime := c.PostForm("start_time")
 	endTime := c.PostForm("end_time")
 
-	// 验证必要字段
-	if tempURL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "临时图片URL不能为空"})
-		return
-	}
-
-	// 确认上传，获取正式URL
-	imageURL, err := h.cosService.ConfirmUpload(tempURL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "确认图片上传失败: " + err.Error()})
-		return
-	}
-
 	// 解析sort字段
 	sort := 0
 	if sortStr != "" {
@@ -245,11 +232,22 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	req := &service.UpdateBannerRequest{
 		Title:     title,
 		Subtitle:  &subtitle,
-		ImageURL:  imageURL,
 		LinkURL:   &linkURL,
 		Sort:      sort,
 		StartTime: &startTime,
 		EndTime:   &endTime,
+	}
+
+	// 如果提供了临时图片URL，则处理图片上传
+	if tempURL != "" {
+		// 确认上传，获取正式URL
+		var imageURL string
+		imageURL, err = h.cosService.ConfirmUpload(tempURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "确认图片上传失败: " + err.Error()})
+			return
+		}
+		req.ImageURL = imageURL
 	}
 
 	// 调用服务层更新Banner
