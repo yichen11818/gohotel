@@ -2,12 +2,36 @@ import { getAdminBanners, postAdminBannersIdOpenApiDelete } from '@/services/api
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { message, Popconfirm } from 'antd';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import CreateActivityForm from './components/CreateActivityForm';
+import EditActivityForm from './components/EditActivityForm';
 
 const ActivityManage: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  
+  // 编辑功能状态管理
+  const [editVisible, setEditVisible] = useState<boolean>(false);
+  const [currentActivity, setCurrentActivity] = useState<API.Banner | null>(null);
+  
+  // 打开编辑模态框
+  const handleEdit = (record: API.Banner) => {
+    setCurrentActivity(record);
+    setEditVisible(true);
+  };
+  
+  // 关闭编辑模态框
+  const handleEditCancel = () => {
+    setEditVisible(false);
+    setCurrentActivity(null);
+  };
+  
+  // 编辑成功回调
+  const handleEditSuccess = () => {
+    setEditVisible(false);
+    setCurrentActivity(null);
+    actionRef.current?.reload();
+  };
 
   // 表格列配置
   const columns: ProColumns<API.Banner>[] = [
@@ -101,7 +125,7 @@ const ActivityManage: React.FC = () => {
       valueType: 'option',
       width: 150,
       render: (_, record) => [
-        <a key="edit" style={{ marginRight: 8 }}>
+        <a key="edit" style={{ marginRight: 8 }} onClick={() => handleEdit(record)}>
           编辑
         </a>,
         <Popconfirm
@@ -185,6 +209,15 @@ const ActivityManage: React.FC = () => {
           pageSize: 10,
         }}
       />
+      {/* 编辑活动表单 */}
+      {currentActivity && (
+        <EditActivityForm
+          visible={editVisible}
+          onCancel={handleEditCancel}
+          onSuccess={handleEditSuccess}
+          activityData={currentActivity}
+        />
+      )}
     </PageContainer>
   );
 };

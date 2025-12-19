@@ -269,8 +269,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "临时图片URL（通过通用上传接口获取）",
                         "name": "temp_url",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
@@ -2636,7 +2635,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "description": "主键（使用雪花算法生成，JSON序列化为字符串）",
+                    "description": "主键（自增ID）",
                     "type": "integer"
                 },
                 "image_url": {

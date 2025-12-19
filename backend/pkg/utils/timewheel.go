@@ -6,6 +6,10 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"gohotel/pkg/logger"
+
+	"go.uber.org/zap"
 )
 
 // Task 表示一个时间轮任务
@@ -103,11 +107,18 @@ func NewTimeWheel(interval time.Duration, slots int) *TimeWheel {
 		slots = 60
 	}
 
+	// 基于实际时间计算初始CurrentSlot，确保与实际时间同步
+	currentTime := time.Now()
+	currentUnix := currentTime.Unix()
+	intervalSec := int64(interval.Seconds())
+	// 计算初始槽位
+	initialSlot := int(currentUnix/intervalSec) % slots
+
 	tw := &TimeWheel{
 		Interval:    interval,
 		Slots:       slots,
 		SlotArray:   make([]*TimeSlot, slots),
-		CurrentSlot: 0,
+		CurrentSlot: initialSlot,
 		StopCh:      make(chan struct{}),
 		TaskIDMap:   make(map[string]bool),
 		ExecutorMap: make(map[string]TaskExecutor),
@@ -213,14 +224,21 @@ func (mtw *MultiTimeWheel) AddTask(execTime time.Time, callback func(), meta map
 	delay := execTime.Sub(currentTime)
 	if delay < 0 {
 		// 如果任务已经过期，立即执行
-		go callback()
+		go func() {
+			callback()
+			logger.Info("任务已过期，立即执行完成",
+				zap.String("task_id", taskID),
+				zap.Time("exec_time", execTime),
+				zap.Any("meta", meta),
+			)
+		}()
 		return taskID
 	}
 
 	// 根据延迟时间选择合适的层级
 	var targetWheel *TimeWheel
 	switch {
-	case delay < 60*time.Second:
+	case delay <= 60*time.Second:
 		targetWheel = mtw.SecondWheel
 	case delay < 60*time.Minute:
 		targetWheel = mtw.MinuteWheel
@@ -230,10 +248,13 @@ func (mtw *MultiTimeWheel) AddTask(execTime time.Time, callback func(), meta map
 		targetWheel = mtw.DayWheel
 	}
 
-	// 计算目标层级的时间槽索引
+	// 计算目标层级的精确时间槽索引
 	targetWheel.Mutex.RLock()
-	totalSlots := int(delay / targetWheel.Interval)
-	index := (targetWheel.CurrentSlot + totalSlots) % targetWheel.Slots
+	// 直接计算任务执行时间对应的槽位，简化计算逻辑
+	taskUnix := execTime.Unix()
+	intervalSec := int64(targetWheel.Interval.Seconds())
+	// 任务执行时间在目标时间轮上的槽位
+	index := int(taskUnix/intervalSec) % targetWheel.Slots
 	targetWheel.Mutex.RUnlock()
 
 	// 添加任务到对应时间槽
@@ -330,7 +351,15 @@ func (mtw *MultiTimeWheel) LoadTasks() error {
 			if ok {
 				executor := mtw.GetExecutor(executorType)
 				if executor != nil {
-					go executor.Execute(task)
+					go func() {
+						executor.Execute(task)
+						logger.Info("加载的任务已过期，通过执行器执行完成",
+							zap.String("task_id", task.ID),
+							zap.Time("exec_time", task.ExecTime),
+							zap.String("executor_type", executorType),
+							zap.Any("meta", task.Meta),
+						)
+					}()
 					restoredCount++
 					continue
 				}
@@ -365,6 +394,12 @@ func (mtw *MultiTimeWheel) LoadTasks() error {
 						Meta:     taskMeta,
 					}
 					executor.Execute(currentTask)
+					logger.Info("恢复的任务通过执行器执行完成",
+						zap.String("task_id", taskID),
+						zap.Time("exec_time", taskExecTime),
+						zap.String("executor_type", executorType),
+						zap.Any("meta", taskMeta),
+					)
 				}
 			}
 		}
@@ -375,7 +410,7 @@ func (mtw *MultiTimeWheel) LoadTasks() error {
 		// 根据延迟时间选择合适的层级
 		var targetWheel *TimeWheel
 		switch {
-		case delay < 60*time.Second:
+		case delay <= 60*time.Second:
 			targetWheel = mtw.SecondWheel
 		case delay < 60*time.Minute:
 			targetWheel = mtw.MinuteWheel
@@ -385,10 +420,13 @@ func (mtw *MultiTimeWheel) LoadTasks() error {
 			targetWheel = mtw.DayWheel
 		}
 
-		// 计算目标层级的时间槽索引
+		// 计算目标层级的精确时间槽索引
 		targetWheel.Mutex.RLock()
-		totalSlots := int(delay / targetWheel.Interval)
-		index := (targetWheel.CurrentSlot + totalSlots) % targetWheel.Slots
+		// 直接计算任务执行时间对应的槽位，简化计算逻辑
+		taskUnix := pt.ExecTime.Unix()
+		intervalSec := int64(targetWheel.Interval.Seconds())
+		// 任务执行时间在目标时间轮上的槽位
+		index := int(taskUnix/intervalSec) % targetWheel.Slots
 		targetWheel.Mutex.RUnlock()
 
 		// 添加任务到对应时间槽
@@ -419,17 +457,55 @@ func (mtw *MultiTimeWheel) Start() {
 
 	// 启动各层级的时间轮
 	for _, wheel := range []*TimeWheel{mtw.SecondWheel, mtw.MinuteWheel, mtw.HourWheel, mtw.DayWheel} {
-		wheel.Timer = time.NewTicker(wheel.Interval)
-
-		// 启动当前层级的时间轮goroutine
+		// 所有层级都使用基于绝对时间的定时器
 		go func(wheel *TimeWheel) {
 			defer mtw.wg.Done()
 			for {
+				// 计算距离下一个触发点的时间
+				now := time.Now()
+				var next time.Time
+
+				switch wheel.Level {
+				case 1: // 秒轮：每秒0毫秒触发
+					// 计算下一个整秒
+					next = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second()+1, 0, now.Location())
+				case 2: // 分轮：每分钟0秒触发
+					next = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()+1, 0, 0, now.Location())
+				case 3: // 时轮：每小时0分0秒触发
+					next = time.Date(now.Year(), now.Month(), now.Day(), now.Hour()+1, 0, 0, 0, now.Location())
+				case 4: // 天轮：每天0时0分0秒触发
+					next = time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+				default:
+					// 意外情况，使用普通定时器
+					timer := time.NewTicker(wheel.Interval)
+					select {
+					case <-timer.C:
+						timer.Stop()
+						wheel.advance()
+					case <-mtw.StopCh:
+						timer.Stop()
+						return
+					}
+					continue
+				}
+
+				// 计算距离下一个触发点的时间
+				duration := next.Sub(now)
+				if duration < 0 {
+					// 理论上不会发生，但为了安全
+					duration = wheel.Interval
+				}
+
+				// 创建定时器
+				timer := time.NewTimer(duration)
+
 				select {
-				case <-wheel.Timer.C:
+				case <-timer.C:
+					// 定时器触发，执行任务
 					wheel.advance()
 				case <-mtw.StopCh:
-					wheel.Timer.Stop()
+					// 停止信号，退出
+					timer.Stop()
 					return
 				}
 			}
@@ -470,9 +546,15 @@ func (mtw *MultiTimeWheel) Stop() {
 // advance 推动时间轮前进一个槽
 func (tw *TimeWheel) advance() {
 	tw.Mutex.Lock()
-	// 移动当前指针
-	tw.CurrentSlot = (tw.CurrentSlot + 1) % tw.Slots
-	currentSlot := tw.CurrentSlot
+	// 基于实际时间计算当前应该在哪个槽位，确保CurrentSlot与实际时间同步
+	currentTime := time.Now()
+	currentUnix := currentTime.Unix()
+	intervalSec := int64(tw.Interval.Seconds())
+	// 计算当前时间应该在哪个槽位
+	actualSlot := int(currentUnix/intervalSec) % tw.Slots
+
+	// 直接使用实际槽位，不移动指针，确保执行的是当前时间对应的任务
+	currentSlot := actualSlot
 	tw.Mutex.Unlock()
 
 	// 执行当前槽的所有任务
@@ -513,19 +595,56 @@ func (tw *TimeWheel) advance() {
 			}
 
 			// 执行所有任务
+			currentTime := time.Now()
 			for _, task := range tasks {
 				if !task.Cancelled {
+					// 检查任务是否到了执行时间
+					if currentTime.Before(task.ExecTime) {
+						// 任务还没到执行时间，重新添加到正确的时间槽
+						// 直接计算任务执行时间对应的槽位，简化计算逻辑
+						taskUnix := task.ExecTime.Unix()
+						intervalSec := int64(tw.Interval.Seconds())
+						// 任务执行时间在目标时间轮上的槽位
+						index := int(taskUnix/intervalSec) % tw.Slots
+						// 重新添加到时间槽
+						tw.SlotArray[index].Mutex.Lock()
+						tw.SlotArray[index].Tasks[task.ID] = task
+						tw.SlotArray[index].Mutex.Unlock()
+						// 恢复任务ID
+						tw.TaskIDMutex.Lock()
+						tw.TaskIDMap[task.ID] = true
+						tw.TaskIDMutex.Unlock()
+						tw.MultiWheel.TaskIDMutex.Lock()
+						tw.MultiWheel.TaskIDMap[task.ID] = true
+						tw.MultiWheel.TaskIDMutex.Unlock()
+						continue
+					}
 					// 尝试获取任务执行器并执行任务
 					executorType, ok := task.Meta["executor_type"].(string)
 					if ok && tw.MultiWheel != nil {
 						executor := tw.MultiWheel.GetExecutor(executorType)
 						if executor != nil {
-							go executor.Execute(task)
+							go func() {
+								executor.Execute(task)
+								logger.Info("任务通过执行器执行完成",
+									zap.String("task_id", task.ID),
+									zap.Time("exec_time", task.ExecTime),
+									zap.String("executor_type", executorType),
+									zap.Any("meta", task.Meta),
+								)
+							}()
 							continue
 						}
 					}
 					// 没有执行器，直接调用回调函数
-					go task.Callback()
+					go func() {
+						task.Callback()
+						logger.Info("任务直接执行完成",
+							zap.String("task_id", task.ID),
+							zap.Time("exec_time", task.ExecTime),
+							zap.Any("meta", task.Meta),
+						)
+					}()
 				}
 			}
 		}
@@ -544,8 +663,18 @@ func (tw *TimeWheel) migrateTasksToChildWheel(tasks map[string]*Task) {
 
 	// 将每个任务迁移到子时间轮
 	for _, task := range tasks {
-		// 计算任务在子时间轮中的延迟
+		// 计算任务执行时间与当前时间的差值
 		delay := task.ExecTime.Sub(currentTime)
+		// 添加调试日志
+		logger.Info("开始迁移任务到子时间轮",
+			zap.String("task_id", task.ID),
+			zap.Time("exec_time", task.ExecTime),
+			zap.Time("current_time", currentTime),
+			zap.Duration("delay", delay),
+			zap.String("parent_wheel_level", fmt.Sprintf("%d", tw.Level)),
+			zap.String("child_wheel_level", fmt.Sprintf("%d", childWheel.Level)),
+			zap.Any("meta", task.Meta),
+		)
 		if delay < 0 {
 			// 任务已经过期，立即执行
 			// 尝试获取任务执行器并执行任务
@@ -553,7 +682,15 @@ func (tw *TimeWheel) migrateTasksToChildWheel(tasks map[string]*Task) {
 			if ok && tw.MultiWheel != nil {
 				executor := tw.MultiWheel.GetExecutor(executorType)
 				if executor != nil {
-					go executor.Execute(task)
+					go func() {
+						executor.Execute(task)
+						logger.Info("迁移任务已过期，通过执行器执行完成",
+							zap.String("task_id", task.ID),
+							zap.Time("exec_time", task.ExecTime),
+							zap.String("executor_type", executorType),
+							zap.Any("meta", task.Meta),
+						)
+					}()
 					// 从任务ID映射中删除
 					tw.TaskIDMutex.Lock()
 					delete(tw.TaskIDMap, task.ID)
@@ -568,7 +705,14 @@ func (tw *TimeWheel) migrateTasksToChildWheel(tasks map[string]*Task) {
 				}
 			}
 			// 没有执行器，直接调用回调函数
-			go task.Callback()
+			go func() {
+				task.Callback()
+				logger.Info("迁移任务已过期，直接执行完成",
+					zap.String("task_id", task.ID),
+					zap.Time("exec_time", task.ExecTime),
+					zap.Any("meta", task.Meta),
+				)
+			}()
 			// 从任务ID映射中删除
 			tw.TaskIDMutex.Lock()
 			delete(tw.TaskIDMap, task.ID)
@@ -582,11 +726,23 @@ func (tw *TimeWheel) migrateTasksToChildWheel(tasks map[string]*Task) {
 			continue
 		}
 
-		// 计算在子时间轮中的槽位索引
+		// 计算在子时间轮中的精确时间槽索引
 		childWheel.Mutex.RLock()
-		totalSlots := int(delay / childWheel.Interval)
-		index := (childWheel.CurrentSlot + totalSlots) % childWheel.Slots
+		// 直接计算任务执行时间对应的槽位，简化计算逻辑
+		taskUnix := task.ExecTime.Unix()
+		intervalSec := int64(childWheel.Interval.Seconds())
+		// 任务执行时间在子时间轮上的槽位
+		index := int(taskUnix/intervalSec) % childWheel.Slots
 		childWheel.Mutex.RUnlock()
+
+		// 添加调试日志
+		logger.Info("迁移任务到子时间轮槽位",
+			zap.String("task_id", task.ID),
+			zap.Time("exec_time", task.ExecTime),
+			zap.String("child_wheel_interval", fmt.Sprintf("%v", childWheel.Interval)),
+			zap.Int("child_wheel_slots", childWheel.Slots),
+			zap.Int("target_slot", index),
+		)
 
 		// 添加任务到子时间轮
 		childWheel.SlotArray[index].Mutex.Lock()

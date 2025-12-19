@@ -1,1 +1,20 @@
-null
+[
+  {
+    "id": "task_1765979332795773500",
+    "exec_time": "2025-12-18T00:00:00+08:00",
+    "meta": {
+      "banner_id": 1,
+      "executor_type": "banner",
+      "task_type": "start"
+    }
+  },
+  {
+    "id": "task_1765979332795773500",
+    "exec_time": "2025-12-19T00:00:00+08:00",
+    "meta": {
+      "banner_id": 1,
+      "executor_type": "banner",
+      "task_type": "end"
+    }
+  }
+]

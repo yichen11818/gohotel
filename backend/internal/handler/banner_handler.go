@@ -185,7 +185,7 @@ func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 // @Param id path string true "活动横幅ID"
 // @Param title formData string false "活动横幅标题"
 // @Param subtitle formData string false "活动横幅副标题"
-// @Param temp_url formData string true "临时图片URL（通过通用上传接口获取）"
+// @Param temp_url formData string false "临时图片URL（通过通用上传接口获取）"
 // @Param link_url formData string false "点击跳转链接"
 // @Param sort formData int false "展示顺序"
 // @Param start_time formData string false "活动开始时间"

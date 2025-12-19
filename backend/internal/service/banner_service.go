@@ -32,11 +32,10 @@ func NewBannerTaskExecutor(bannerService *BannerService) *BannerTaskExecutor {
 // Execute 执行banner任务
 func (e *BannerTaskExecutor) Execute(task *utils.Task) {
 	// 从任务元数据中获取bannerID和任务类型
-	bannerIDFloat, ok := task.Meta["banner_id"].(float64)
+	bannerID, ok := task.Meta["banner_id"].(int64)
 	if !ok {
 		return
 	}
-	bannerID := int64(bannerIDFloat)
 
 	taskType, ok := task.Meta["task_type"].(string)
 	if !ok {
@@ -143,7 +142,6 @@ func (s *BannerService) CreateBanner(req *CreateBannerRequest) (*models.Banner, 
 
 	// 创建Banner对象
 	banner := &models.Banner{
-		ID:        utils.JSONInt64(utils.GenID()),
 		Title:     req.Title,
 		Subtitle:  req.Subtitle,
 		ImageURL:  req.ImageURL,
@@ -188,6 +186,9 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 		return nil, err
 	}
 
+	// 保存旧图片URL
+	oldImageURL := banner.ImageURL
+
 	// 更新字段
 	if req.Title != "" {
 		banner.Title = req.Title
@@ -196,7 +197,14 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 		banner.Subtitle = req.Subtitle
 	}
 	if req.ImageURL != "" {
+		// 更新图片URL
 		banner.ImageURL = req.ImageURL
+		// 删除旧图片（如果存在且与新图片不同）
+		if oldImageURL != "" && oldImageURL != req.ImageURL {
+			if err := s.cosService.DeleteFile(oldImageURL); err != nil {
+				return nil, err
+			}
+		}
 	}
 	if req.LinkURL != nil {
 		banner.LinkURL = req.LinkURL
@@ -269,7 +277,7 @@ func (s *BannerService) removeBannerTasks(bannerID int64) {
 
 // addBannerTasks 为banner添加时间轮任务
 func (s *BannerService) addBannerTasks(banner *models.Banner) {
-	bannerID := int64(banner.ID)
+	bannerID := banner.ID
 
 	// 初始化该banner的任务映射
 	s.taskMutex.Lock()
@@ -346,7 +354,7 @@ func (s *BannerService) DeleteBanner(id int64) error {
 	}
 
 	// 删除时间轮任务
-	s.removeBannerTasks(int64(banner.ID))
+	s.removeBannerTasks(banner.ID)
 
 	//删除数据库中的banner记录
 	return s.bannerRepo.Delete(id)
