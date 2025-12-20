@@ -15,7 +15,7 @@
     <!-- 主内容区域 -->
     <scroll-view class="main-content" scroll-y>
       <!-- 加载骨架屏 -->
-      <template v-if="loading">
+      <template v-if="loading || bannerLoading">
         <view class="skeleton-banner"></view>
         <view class="skeleton-address">
           <view class="skeleton-line"></view>
@@ -26,7 +26,7 @@
           <view class="skeleton-block"></view>
         </view>
       </template>
-      
+
       <template v-else>
         <!-- 酒店图片轮播 -->
         <view class="hotel-banner">
@@ -75,7 +75,7 @@
               <TnIcon name="edit" color="#C29D71" size="28" />
             </view>
           </view>
-          
+
           <view class="booking-dates">
             <view class="date-column">
               <text class="label">{{ checkInLabel }}</text>
@@ -112,10 +112,10 @@
 
           <!-- 立即预订按钮 -->
           <view class="action-area">
-             <TnButton 
-               shape="round" 
-               size="xl" 
-               width="100%" 
+             <TnButton
+               shape="round"
+               size="xl"
+               width="100%"
                height="100rpx"
                bg-color="linear-gradient(135deg, #D4B184 0%, #C29D71 50%, #B88A5E 100%)"
                text-color="#FFFFFF"
@@ -127,7 +127,7 @@
                </view>
              </TnButton>
           </view>
-          
+
           <view class="guarantee-bar">
             <view class="guarantee-icon">
               <TnIcon name="check-circle-fill" color="#52C41A" size="28" />
@@ -153,7 +153,7 @@
               <TnIcon name="right" color="#ddd" size="28" />
             </view>
           </view>
-          
+
           <view class="feature-card points" @click="navigateTo('points')">
             <view class="feature-bg-icon">
               <TnIcon name="gift-fill" color="rgba(194, 157, 113, 0.1)" size="80" />
@@ -169,7 +169,7 @@
               <TnIcon name="right" color="#ddd" size="28" />
             </view>
           </view>
-          
+
           <view class="feature-card vip" @click="navigateTo('vip')">
             <view class="feature-bg-icon">
               <TnIcon name="vip-fill" color="rgba(194, 157, 113, 0.1)" size="80" />
@@ -190,9 +190,9 @@
         <!-- 促销通告 -->
         <view class="notice-section" v-if="true">
           <view class="notice-wrapper">
-            <TnNoticeBar 
-              :data="['🎉 双11特惠活动火热进行中！','🎁 新用户注册立享88元大礼包','✨ 会员专享每日折扣优惠']" 
-              direction="vertical" 
+            <TnNoticeBar
+              :data="['🎉 双11特惠活动火热进行中！','🎁 新用户注册立享88元大礼包','✨ 会员专享每日折扣优惠']"
+              direction="vertical"
               left-icon="sound"
               bg-color="linear-gradient(135deg, #FFF9F0 0%, #FFF4E5 100%)"
               color="#E67E22"
@@ -215,17 +215,17 @@
           </view>
         </view>
       </template>
-      
+
       <!-- 底部占位，避免被tabbar遮挡 -->
       <view class="bottom-placeholder"></view>
     </scroll-view>
 
     <!-- 日期选择弹窗 -->
-    <TnPopup 
-      v-model="showCalendar" 
-      open-direction="bottom" 
-      :radius="32" 
-      height="80vh" 
+    <TnPopup
+      v-model="showCalendar"
+      open-direction="bottom"
+      :radius="32"
+      height="80vh"
       :safe-area-inset-bottom="true"
       width="100%"
       @close="calendarVisible = false"
@@ -238,12 +238,12 @@
             <TnIcon name="close" size="40" color="#999" />
           </view>
         </view>
-        
+
         <!-- 移除了自定义的状态栏和星期栏，直接使用组件自带的以避免布局冲突 -->
 
         <!-- 日期选择区域 - 延迟渲染确保正确初始化 -->
         <view class="calendar-body">
-          <TnCalendar 
+          <TnCalendar
             v-if="calendarVisible"
             :key="calendarKey"
             v-model="selectedDateRange"
@@ -263,15 +263,15 @@
             <text>加载中...</text>
           </view>
         </view>
-        
+
         <!-- 底部按钮 -->
         <view class="calendar-footer">
-          <TnButton 
-            shape="round" 
-            size="xl" 
-            width="100%" 
+          <TnButton
+            shape="round"
+            size="xl"
+            width="100%"
             height="90rpx"
-            bg-color="#C29D71" 
+            bg-color="#C29D71"
             text-color="#fff"
             :disabled="!tempCheckIn || !tempCheckOut"
             @click="confirmDateSelection"
@@ -287,7 +287,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { hotel, booking } from '@/api/index.js'
+import { hotel, booking, banner } from '@/api/index.js'
 import TnSwiper from '@/uni_modules/tuniaoui-vue3/components/swiper/src/swiper.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnPopup from '@/uni_modules/tuniaoui-vue3/components/popup/src/popup.vue'
@@ -312,6 +312,10 @@ const hotelImages = ref([
 const promotionImage = ref('https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80')
 const address = ref('湖北省武汉市硚口区晴川街道沿河大道246号')
 const loading = ref(false)
+
+// Banner数据
+const banners = ref([])
+const bannerLoading = ref(false)
 
 // 日期相关
 const checkInDate = ref(null)  // Date对象
@@ -354,7 +358,7 @@ const initDates = () => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   checkInDate.value = today
-  
+
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
   checkOutDate.value = tomorrow
@@ -391,9 +395,9 @@ const getDateLabel = (date, suffix) => {
   today.setHours(0, 0, 0, 0)
   const targetDate = new Date(date)
   targetDate.setHours(0, 0, 0, 0)
-  
+
   const diff = Math.floor((targetDate - today) / (1000 * 60 * 60 * 24))
-  
+
   if (diff === 0) return `今天${suffix}`
   if (diff === 1) return `明天${suffix}`
   if (diff === 2) return `后天${suffix}`
@@ -415,7 +419,7 @@ const openDatePicker = () => {
   // 初始化临时日期
   tempCheckIn.value = checkInDate.value
   tempCheckOut.value = checkOutDate.value
-  
+
   // 设置已选日期范围
   if (checkInDate.value && checkOutDate.value) {
     selectedDateRange.value = [
@@ -425,10 +429,10 @@ const openDatePicker = () => {
   } else {
     selectedDateRange.value = []
   }
-  
+
   // 先打开弹窗
   showCalendar.value = true
-  
+
   // 延迟渲染日历组件，确保 Popup 动画完成后再初始化
   setTimeout(() => {
     calendarKey.value++
@@ -456,7 +460,7 @@ const confirmDateSelection = () => {
     checkInDate.value = tempCheckIn.value
     checkOutDate.value = tempCheckOut.value
     closeCalendar()
-    
+
     uni.showToast({
       title: `已选择${nights.value}晚`,
       icon: 'none'
@@ -515,7 +519,7 @@ const handleFavorite = async () => {
     uni.showToast({ title: '请先登录', icon: 'none' })
     return
   }
-  
+
   try {
     await hotel.favoriteHotel(hotelId.value)
     uni.showToast({ title: '收藏成功', icon: 'success' })
@@ -533,22 +537,51 @@ const scanQRCode = () => {
   })
 }
 
+// 加载Banner数据
+const loadBanners = async () => {
+  try {
+    bannerLoading.value = true
+    const data = await banner.getActiveBanners()
+    banners.value = data || []
+    // 如果有banner数据，更新轮播图和促销横幅
+    if (banners.value.length > 0) {
+      // 按sort字段排序
+      banners.value.sort((a, b) => a.sort - b.sort)
+
+      // 更新酒店轮播图
+      const bannerImages = banners.value.map(item => item.image_url)
+      if (bannerImages.length > 0) {
+        hotelImages.value = bannerImages
+      }
+      // 更新促销横幅（使用第一个banner）
+      promotionImage.value = banners.value[0].image_url
+    }
+  } catch (error) {
+    console.error('加载Banner数据失败:', error)
+  } finally {
+    bannerLoading.value = false
+  }
+}
+
 onLoad((options) => {
   // 获取系统信息
   const systemInfo = uni.getSystemInfoSync()
   statusBarHeight.value = systemInfo.statusBarHeight || 0
   navbarHeight.value = statusBarHeight.value + 44
-  
+
   // 初始化日期
   initDates()
-  
+
   // 如果有传入酒店ID
   if (options?.hotelId) {
     hotelId.value = options.hotelId
   }
-  
+
   // 加载酒店数据
   loadHotelData()
+
+  // 加载Banner数据
+  loadBanners()
 })
 
 // 加载酒店详情
@@ -559,7 +592,7 @@ const loadHotelData = async () => {
     try {
       const data = await hotel.getHotelDetail(hotelId.value)
       hotelData.value = data
-      
+
       if (data.images && data.images.length > 0) {
         hotelImages.value = data.images
       }
@@ -613,7 +646,7 @@ const handleBooking = async () => {
     })
     return
   }
-  
+
   // 跳转到房型选择页面，传递日期参数
   uni.navigateTo({
     url: `/pages/hotel/hotel?id=${hotelId.value}&checkIn=${formatDateString(checkInDate.value)}&checkOut=${formatDateString(checkOutDate.value)}`
@@ -627,7 +660,7 @@ const navigateTo = (type) => {
     points: '/pages/points/points',
     vip: '/pages/vip/vip'
   }
-  
+
   if (routes[type]) {
     uni.navigateTo({
       url: routes[type]
@@ -662,7 +695,7 @@ const goToPromotion = () => {
   align-items: center;
   gap: 12rpx;
   white-space: nowrap;
-  
+
   .location-icon-wrapper {
     display: flex;
     align-items: center;
@@ -704,7 +737,7 @@ const goToPromotion = () => {
   margin: 0 24rpx;
   border-radius: 20rpx;
   margin-bottom: 24rpx;
-  
+
   .skeleton-line {
     height: 32rpx;
     width: 70%;
@@ -722,7 +755,7 @@ const goToPromotion = () => {
   background-color: #fff;
   margin: 0 24rpx;
   border-radius: 32rpx;
-  
+
   .skeleton-block {
     width: 180rpx;
     height: 80rpx;
@@ -756,11 +789,11 @@ const goToPromotion = () => {
   overflow: hidden;
   box-shadow: 0 12rpx 40rpx rgba(194, 157, 113, 0.15);
   transition: all 0.3s ease;
-  
+
   &:active {
     transform: scale(0.98);
   }
-  
+
   .banner-overlay {
     position: absolute;
     top: 0;
@@ -771,25 +804,25 @@ const goToPromotion = () => {
     z-index: 1;
     pointer-events: none;
   }
-  
+
   // 确保 swiper 组件也有圆角
   :deep(.tn-swiper) {
     border-radius: 24rpx;
     overflow: hidden;
     height: 100% !important;
   }
-  
+
   .swiper-item {
     width: 100%;
     height: 100%;
     position: relative;
-    
+
     .banner-img {
       width: 100%;
       height: 100%;
       transition: transform 0.3s ease;
     }
-    
+
     .image-gradient {
       position: absolute;
       bottom: 0;
@@ -800,7 +833,7 @@ const goToPromotion = () => {
       z-index: 1;
     }
   }
-  
+
   .image-count-badge {
     position: absolute;
     right: 24rpx;
@@ -813,7 +846,7 @@ const goToPromotion = () => {
     align-items: center;
     gap: 8rpx;
     z-index: 2;
-    
+
     text {
       color: #fff;
       font-size: 24rpx;
@@ -833,7 +866,7 @@ const goToPromotion = () => {
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03);
   gap: 12rpx;
   transition: all 0.3s ease;
-  
+
   .address-icon-wrapper {
     display: flex;
     align-items: center;
@@ -843,7 +876,7 @@ const goToPromotion = () => {
     background: linear-gradient(135deg, rgba(194, 157, 113, 0.15) 0%, rgba(194, 157, 113, 0.05) 100%);
     border-radius: 50%;
   }
-  
+
   .address-text {
     flex: 1;
     font-size: 28rpx;
@@ -851,18 +884,18 @@ const goToPromotion = () => {
     font-weight: 500;
     line-height: 1.5;
   }
-  
+
   .address-arrow {
     display: flex;
     align-items: center;
     opacity: 0.6;
     transition: all 0.3s ease;
   }
-  
+
   &:active {
     background: linear-gradient(135deg, #FAFAFA 0%, #F5F5F5 100%);
     transform: scale(0.98);
-    
+
     .address-arrow {
       opacity: 1;
       transform: translateX(4rpx);
@@ -879,20 +912,20 @@ const goToPromotion = () => {
   box-shadow: 0 16rpx 48rpx rgba(194, 157, 113, 0.12);
   border: 1rpx solid rgba(194, 157, 113, 0.08);
   transition: all 0.3s ease;
-  
+
   .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 32rpx;
-    
+
     .card-title {
       font-size: 32rpx;
       font-weight: 700;
       color: #333;
       letter-spacing: 0.5rpx;
     }
-    
+
     .edit-icon {
       display: flex;
       align-items: center;
@@ -902,13 +935,13 @@ const goToPromotion = () => {
       background: linear-gradient(135deg, rgba(194, 157, 113, 0.1) 0%, rgba(194, 157, 113, 0.05) 100%);
       border-radius: 50%;
       transition: all 0.3s ease;
-      
+
       &:active {
         transform: scale(0.9);
       }
     }
   }
-  
+
   .booking-dates {
     display: flex;
     align-items: center;
@@ -917,25 +950,25 @@ const goToPromotion = () => {
     padding: 32rpx;
     background: linear-gradient(135deg, rgba(194, 157, 113, 0.05) 0%, rgba(194, 157, 113, 0.02) 100%);
     border-radius: 24rpx;
-    
+
     .date-column {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8rpx;
-      
+
       .label {
         font-size: 24rpx;
         color: #999;
         font-weight: 500;
       }
-      
+
       .date-row {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 4rpx;
-        
+
         .date {
           font-size: 48rpx;
           font-weight: 700;
@@ -943,26 +976,26 @@ const goToPromotion = () => {
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
           line-height: 1;
         }
-        
+
         .weekday {
           font-size: 22rpx;
           color: #999;
         }
       }
     }
-    
+
     .nights-badge {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8rpx;
-      
+
       .arrow-icon {
         display: flex;
         align-items: center;
         justify-content: center;
       }
-      
+
       .count {
         font-size: 22rpx;
         color: #C29D71;
@@ -970,7 +1003,7 @@ const goToPromotion = () => {
       }
     }
   }
-  
+
   .search-wrapper {
     margin-bottom: 40rpx;
     padding: 28rpx 32rpx;
@@ -980,61 +1013,61 @@ const goToPromotion = () => {
     align-items: center;
     gap: 16rpx;
     transition: all 0.3s ease;
-    
+
     .search-placeholder {
       flex: 1;
       font-size: 28rpx;
       color: #999;
     }
-    
+
     .search-arrow {
       display: flex;
       align-items: center;
       opacity: 0.6;
     }
-    
+
     &:active {
       background: linear-gradient(135deg, #F5F5F5 0%, #F8F8F8 100%);
       transform: scale(0.98);
     }
   }
-  
+
   .action-area {
     margin-bottom: 24rpx;
     box-shadow: 0 16rpx 32rpx rgba(194, 157, 113, 0.35);
     border-radius: 100rpx;
     transition: all 0.3s ease;
-    
+
     &:active {
       transform: scale(0.98);
       box-shadow: 0 12rpx 24rpx rgba(194, 157, 113, 0.25);
     }
-    
+
     .btn-content {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 16rpx;
     }
-    
+
     .btn-text {
       font-size: 36rpx;
       font-weight: 700;
       letter-spacing: 2rpx;
     }
   }
-  
+
   .guarantee-bar {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8rpx;
-    
+
     .guarantee-icon {
       display: flex;
       align-items: center;
     }
-    
+
     text {
       font-size: 22rpx;
       color: #999;
@@ -1049,7 +1082,7 @@ const goToPromotion = () => {
   padding: 0 24rpx;
   gap: 16rpx;
   margin-bottom: 24rpx;
-  
+
   .feature-card {
     position: relative;
     background: linear-gradient(135deg, #FFFFFF 0%, #FEFEFE 100%);
@@ -1061,7 +1094,7 @@ const goToPromotion = () => {
     border: 1rpx solid rgba(194, 157, 113, 0.06);
     overflow: hidden;
     transition: all 0.3s ease;
-    
+
     .feature-bg-icon {
       position: absolute;
       right: -10rpx;
@@ -1070,14 +1103,14 @@ const goToPromotion = () => {
       opacity: 0.5;
       z-index: 0;
     }
-    
+
     .feature-content {
       flex: 1;
       display: flex;
       align-items: center;
       gap: 20rpx;
       z-index: 1;
-      
+
       .feature-icon {
         width: 72rpx;
         height: 72rpx;
@@ -1085,33 +1118,33 @@ const goToPromotion = () => {
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        
+
         &.cinema-icon {
           background: linear-gradient(135deg, rgba(194, 157, 113, 0.15) 0%, rgba(194, 157, 113, 0.08) 100%);
         }
-        
+
         &.points-icon {
           background: linear-gradient(135deg, rgba(194, 157, 113, 0.15) 0%, rgba(194, 157, 113, 0.08) 100%);
         }
-        
+
         &.vip-icon {
           background: linear-gradient(135deg, rgba(194, 157, 113, 0.15) 0%, rgba(194, 157, 113, 0.08) 100%);
         }
       }
-      
+
       .title {
         font-size: 32rpx;
         font-weight: 700;
         color: #333;
         margin-bottom: 4rpx;
       }
-      
+
       .desc {
         font-size: 22rpx;
         color: #999;
       }
     }
-    
+
     .feature-arrow {
       display: flex;
       align-items: center;
@@ -1123,11 +1156,11 @@ const goToPromotion = () => {
       z-index: 1;
       transition: all 0.3s ease;
     }
-    
+
     &:active {
       transform: scale(0.98);
       background: linear-gradient(135deg, #FAFAFA 0%, #F8F8F8 100%);
-      
+
       .feature-arrow {
         background: rgba(0, 0, 0, 0.04);
         transform: translateX(4rpx);
@@ -1139,12 +1172,12 @@ const goToPromotion = () => {
 /* 通告栏 */
 .notice-section {
   margin: 0 24rpx 24rpx;
-  
+
   .notice-wrapper {
     border-radius: 20rpx;
     overflow: hidden;
     box-shadow: 0 4rpx 16rpx rgba(230, 126, 34, 0.08);
-    
+
     :deep(.tn-notice-bar) {
       border-radius: 20rpx;
     }
@@ -1159,17 +1192,17 @@ const goToPromotion = () => {
   box-shadow: 0 16rpx 48rpx rgba(194, 157, 113, 0.2);
   position: relative;
   transition: all 0.3s ease;
-  
+
   &:active {
     transform: scale(0.98);
     box-shadow: 0 12rpx 36rpx rgba(194, 157, 113, 0.15);
   }
-  
+
   .promotion-img {
     width: 100%;
     height: 320rpx;
   }
-  
+
   .promotion-overlay {
     position: absolute;
     top: 0;
@@ -1179,7 +1212,7 @@ const goToPromotion = () => {
     background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 100%);
     z-index: 1;
   }
-  
+
   .promotion-content {
     position: absolute;
     top: 0;
@@ -1191,7 +1224,7 @@ const goToPromotion = () => {
     flex-direction: column;
     justify-content: space-between;
     padding: 28rpx;
-    
+
     .promotion-tag {
       align-self: flex-start;
       background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
@@ -1200,19 +1233,19 @@ const goToPromotion = () => {
       border-radius: 30rpx;
       box-shadow: 0 8rpx 16rpx rgba(255, 107, 107, 0.3);
       backdrop-filter: blur(10px);
-      
+
       .tag-text {
         font-size: 22rpx;
         font-weight: 600;
         letter-spacing: 1rpx;
       }
     }
-    
+
     .promotion-info {
       display: flex;
       flex-direction: column;
       gap: 8rpx;
-      
+
       .promotion-title {
         font-size: 40rpx;
         font-weight: 800;
@@ -1220,7 +1253,7 @@ const goToPromotion = () => {
         text-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.3);
         letter-spacing: 1rpx;
       }
-      
+
       .promotion-subtitle {
         font-size: 26rpx;
         color: rgba(255, 255, 255, 0.9);
@@ -1316,7 +1349,7 @@ const goToPromotion = () => {
 .action-area {
   position: relative;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -1347,7 +1380,7 @@ const goToPromotion = () => {
 .calendar-container {
   background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%);
   height: 80vh;
-  
+
   .calendar-header {
     display: flex;
     align-items: center;
@@ -1358,14 +1391,14 @@ const goToPromotion = () => {
     height: 100rpx;
     box-sizing: border-box;
     background: #fff;
-    
+
     .title {
       font-size: 36rpx;
       font-weight: 700;
       color: #333;
       letter-spacing: 1rpx;
     }
-    
+
     .close-btn {
       position: absolute;
       right: 32rpx;
@@ -1380,19 +1413,19 @@ const goToPromotion = () => {
       background: rgba(0, 0, 0, 0.03);
       border-radius: 50%;
       transition: all 0.3s ease;
-      
+
       &:active {
         background: rgba(0, 0, 0, 0.06);
         transform: translateY(-50%) scale(0.9);
       }
     }
   }
-  
+
   .calendar-body {
     height: calc(80vh - 100rpx - 140rpx);
     overflow-y: auto;
     background: #fff;
-    
+
     .calendar-loading {
       display: flex;
       align-items: center;
@@ -1401,41 +1434,41 @@ const goToPromotion = () => {
       color: #999;
       font-size: 28rpx;
     }
-    
+
     // 覆盖日历组件样式，确保在小程序中正确显示
     :deep(.tn-calendar) {
       width: 100%;
     }
-    
+
     :deep(.tn-calendar__data) {
       height: 650rpx !important;
       min-height: 650rpx !important;
     }
-    
+
     // swiper 在小程序中必须有明确的固定高度
     :deep(.tn-calendar__data__swiper) {
       height: 650rpx !important;
       min-height: 650rpx !important;
     }
-    
+
     :deep(.tn-calendar__data__swiper-item) {
       height: 650rpx !important;
       overflow: visible !important;
     }
-    
+
     :deep(.tn-calendar__data__dates) {
       display: flex !important;
       flex-wrap: wrap !important;
       min-height: 600rpx;
     }
-    
+
     :deep(.tn-calendar__data__date) {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
     }
   }
-  
+
   .calendar-footer {
     padding: 28rpx 32rpx;
     padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
@@ -1443,10 +1476,10 @@ const goToPromotion = () => {
     border-top: 1rpx solid rgba(194, 157, 113, 0.1);
     height: 140rpx;
     box-sizing: border-box;
-    
+
     :deep(.tn-button) {
       box-shadow: 0 12rpx 24rpx rgba(194, 157, 113, 0.3);
-      
+
       &:active {
         transform: scale(0.98);
       }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gohotel/internal/service"
+	"gohotel/pkg/utils"
 	"net/http"
 	"strconv"
 
@@ -162,17 +163,17 @@ func (h *BannerHandler) GetAllBanners(c *gin.Context) {
 // @Tags 活动管理
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Banner
-// @Failure 500 {object} map[string]string
+// @Success 200 {object} utils.Response{data=[]models.Banner}
+// @Failure 500 {object} utils.Response
 // @Router /api/banners/active [get]
 func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 	banners, err := h.bannerService.GetActiveBanners()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取失败: " + err.Error()})
+		utils.ErrorResponse(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, banners)
+	utils.SuccessResponse(c, banners)
 }
 
 // UpdateBanner 更新活动横幅

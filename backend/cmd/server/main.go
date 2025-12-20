@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"gohotel/internal/config"
 	"gohotel/internal/database"
@@ -137,6 +138,38 @@ func main() {
 		log.Printf("⚠️  时间轮任务加载失败: %v", err)
 	} else {
 		fmt.Println("✅ 时间轮任务加载成功!")
+	}
+
+	// 添加COS临时文件清理任务
+	if cosService != nil {
+		// 立即执行一次清理
+		go func() {
+			_, err := cosService.CleanupTempFiles(1 * time.Hour) // 清理1小时前的临时文件
+			if err != nil {
+				log.Printf("⚠️  初始清理COS临时文件失败: %v", err)
+			}
+		}()
+
+		// 使用命名函数来实现递归调用
+		var cleanupTask func()
+		cleanupTask = func() {
+			_, err := cosService.CleanupTempFiles(1 * time.Hour) // 清理1小时前的临时文件
+			if err != nil {
+				log.Printf("⚠️  清理COS临时文件失败: %v", err)
+			}
+
+			// 任务执行完成后，添加下一次任务
+			nextExecTime := time.Now().Add(30 * time.Minute)
+			timeWheel.AddTask(nextExecTime, cleanupTask, nil)
+		}
+
+		// 计算下一次执行时间
+		nextExecTime := time.Now().Add(30 * time.Minute)
+
+		// 添加任务到时间轮
+		timeWheel.AddTask(nextExecTime, cleanupTask, nil)
+
+		fmt.Println("✅ COS临时文件清理任务已添加，每30分钟执行一次")
 	}
 
 	// Handler 层

@@ -50,8 +50,8 @@ const responseInterceptor = (response) => {
   // HTTP状态码判断
   if (statusCode >= 200 && statusCode < 300) {
     // 业务状态码判断（根据您的后端约定调整）
-    if (data.code === 0 || data.code === 200) {
-      return data.data || data
+    if (data.code === 0 || data.code === 200 || data.success ) {
+      return Promise.resolve(data.data || data)
     } else {
       // 业务错误
       handleBusinessError(data)
@@ -69,7 +69,7 @@ const responseInterceptor = (response) => {
  */
 const handleBusinessError = (data) => {
   const errorMsg = data.message || data.msg || '请求失败'
-  
+
   // 特殊错误码处理
   switch (data.code) {
     case 401:
@@ -116,7 +116,7 @@ const handleBusinessError = (data) => {
  */
 const handleHttpError = (statusCode) => {
   let message = '请求失败'
-  
+
   switch (statusCode) {
     case 400:
       message = '请求参数错误'
@@ -189,14 +189,14 @@ const request = (options) => {
       ...config,
       success: (response) => {
         const duration = Date.now() - startTime
-        
+
         // 记录性能
         const dataSize = JSON.stringify(response.data).length
         perfMonitor.end(response.statusCode, dataSize)
-        
+
         // 记录响应日志
         logger.logResponse(config.url, config.method, response.statusCode, response.data, duration)
-        
+
         // 执行响应拦截器
         responseInterceptor(response)
           .then(data => resolve(data))
@@ -204,7 +204,7 @@ const request = (options) => {
       },
       fail: (error) => {
         const duration = Date.now() - startTime
-        
+
         // 记录错误日志
         logger.error('请求失败', {
           url: config.url,
@@ -212,13 +212,13 @@ const request = (options) => {
           error: error.errMsg,
           duration: `${duration}ms`
         })
-        
+
         // 统一错误处理
         errorHandler.handleError(error, 'network', {
           url: config.url,
           method: config.method
         })
-        
+
         // 网络错误处理
         if (error.errMsg.includes('timeout')) {
           uni.showToast({
@@ -231,7 +231,7 @@ const request = (options) => {
             icon: 'none'
           })
         }
-        
+
         reject(error)
       }
     })
@@ -291,7 +291,7 @@ export const del = (url, data = {}, options = {}) => {
  */
 export const upload = (url, filePath, formData = {}, options = {}) => {
   const token = uni.getStorageSync(TOKEN_KEY)
-  
+
   return new Promise((resolve, reject) => {
     uni.uploadFile({
       url: BASE_URL + url,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gohotel/internal/config"
+	"gohotel/pkg/logger"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
+	"go.uber.org/zap"
 )
 
 // CosService 腾讯云对象存储服务
@@ -209,6 +211,17 @@ func (s *CosService) ConfirmUpload(tempURL string) (string, error) {
 //   - 清理的文件数量
 //   - 错误信息
 func (s *CosService) CleanupTempFiles(olderThan time.Duration) (int, error) {
+	logger.Info("开始清理COS临时文件",
+		zap.Duration("older_than", olderThan),
+	)
+
+	startTime := time.Now()
+	defer func() {
+		logger.Info("COS临时文件清理完成",
+			zap.Duration("duration", time.Since(startTime)),
+		)
+	}()
+
 	// 构建临时文件夹前缀
 	tempPrefix := "tmp/"
 
@@ -223,6 +236,9 @@ func (s *CosService) CleanupTempFiles(olderThan time.Duration) (int, error) {
 	for {
 		resp, _, err := s.client.Bucket.Get(context.Background(), opt)
 		if err != nil {
+			logger.Error("列出临时文件失败",
+				zap.Error(err),
+			)
 			return cleanedCount, fmt.Errorf("列出临时文件失败: %v", err)
 		}
 
@@ -230,6 +246,10 @@ func (s *CosService) CleanupTempFiles(olderThan time.Duration) (int, error) {
 			// 检查文件修改时间
 			lastModified, err := time.Parse(time.RFC3339, content.LastModified)
 			if err != nil {
+				logger.Error("解析文件修改时间失败",
+					zap.String("file_key", content.Key),
+					zap.Error(err),
+				)
 				continue
 			}
 
@@ -237,10 +257,17 @@ func (s *CosService) CleanupTempFiles(olderThan time.Duration) (int, error) {
 			if time.Since(lastModified) > olderThan {
 				_, err = s.client.Object.Delete(context.Background(), content.Key)
 				if err != nil {
-					fmt.Printf("删除临时文件 %s 失败: %v\n", content.Key, err)
+					logger.Error("删除临时文件失败",
+						zap.String("file_key", content.Key),
+						zap.Error(err),
+					)
 					continue
 				}
 				cleanedCount++
+				logger.Info("删除临时文件成功",
+					zap.String("file_key", content.Key),
+					zap.Time("last_modified", lastModified),
+				)
 			}
 		}
 
@@ -251,6 +278,11 @@ func (s *CosService) CleanupTempFiles(olderThan time.Duration) (int, error) {
 		marker = resp.NextMarker
 		opt.Marker = marker
 	}
+
+	logger.Info("COS临时文件清理完成",
+		zap.Int("cleaned_count", cleanedCount),
+		zap.Duration("duration", time.Since(startTime)),
+	)
 
 	return cleanedCount, nil
 }

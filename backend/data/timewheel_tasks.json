@@ -1,16 +1,21 @@
 [
   {
-    "id": "task_1765979332795773500",
-    "exec_time": "2025-12-18T00:00:00+08:00",
+    "id": "task_1766156594193808700",
+    "exec_time": "2025-12-19T23:33:14.1938087+08:00",
+    "meta": null
+  },
+  {
+    "id": "task_1766151392158429100",
+    "exec_time": "2025-12-20T00:00:00+08:00",
     "meta": {
       "banner_id": 1,
       "executor_type": "banner",
-      "task_type": "start"
+      "task_type": "end"
     }
   },
   {
-    "id": "task_1765979332795773500",
-    "exec_time": "2025-12-19T00:00:00+08:00",
+    "id": "task_1766156783922194100",
+    "exec_time": "2025-12-21T00:00:00+08:00",
     "meta": {
       "banner_id": 1,
       "executor_type": "banner",
