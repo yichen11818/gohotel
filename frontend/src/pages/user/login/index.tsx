@@ -15,12 +15,19 @@ import {
   ProFormCheckbox,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Helmet, useModel } from '@umijs/max';
+import { Helmet, history, useModel } from '@umijs/max';
 import { Alert, App, Tabs } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import Settings from '../../../../config/defaultSettings';
+
+const getSafeRedirectPath = (rawRedirect: string | null) => {
+	if (!rawRedirect) return '/';
+	if (!rawRedirect.startsWith('/')) return '/';
+	if (rawRedirect.startsWith('//')) return '/';
+	return rawRedirect;
+};
 const useStyles = createStyles(({ token }) => {
   return {
     action: {
@@ -148,7 +155,7 @@ const Login: React.FC = () => {
         
         // 跳转到首页
         const urlParams = new URL(window.location.href).searchParams;
-        window.location.href = urlParams.get('redirect') || '/';
+        history.push(getSafeRedirectPath(urlParams.get('redirect')));
         return;
       } else {
         message.error(msg.message || '登录失败，请重试！');

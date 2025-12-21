@@ -15,12 +15,20 @@ import {
   ProFormCheckbox,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Helmet, useModel } from '@umijs/max';
-import { Alert, App, Tabs } from 'antd';
+import { Helmet, history, useModel } from '@umijs/max';
+import { Alert, message, Tabs } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import Settings from '../../../../config/defaultSettings';
+
+const getSafeRedirectPath = (rawRedirect: string | null) => {
+  if (!rawRedirect) return '/';
+  if (!rawRedirect.startsWith('/')) return '/';
+  if (rawRedirect.startsWith('//')) return '/';
+  return rawRedirect;
+};
+
 const useStyles = createStyles(({ token }) => {
   return {
     action: {
@@ -89,7 +97,6 @@ const Login: React.FC = () => {
   const [type, setType] = useState<string>('account');
   const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
-  const { message } = App.useApp();
   const fetchUserInfo = async () => {
     const userInfo = await initialState?.fetchUserInfo?.();
     if (userInfo) {
@@ -113,7 +120,7 @@ const Login: React.FC = () => {
         message.success(defaultLoginSuccessMessage);
         await fetchUserInfo();
         const urlParams = new URL(window.location.href).searchParams;
-        window.location.href = urlParams.get('redirect') || '/';
+        history.push(getSafeRedirectPath(urlParams.get('redirect')));
         return;
       }
       console.log(msg);
