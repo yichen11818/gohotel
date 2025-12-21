@@ -68,7 +68,7 @@ const ActionIcons = () => {
 };
 const Lang = () => {
   const { styles } = useStyles();
-  return;
+  return null;
 };
 const LoginMessage: React.FC<{
   content: string;
@@ -110,6 +110,14 @@ const Login: React.FC = () => {
       });
       if (msg.success && msg.data) {
         const { token, user } = msg.data;
+
+		if (!user || user.role !== 'admin') {
+			localStorage.removeItem('token');
+			localStorage.removeItem('userInfo');
+			sessionStorage.removeItem('token');
+			message.error('仅允许管理员登录');
+			return;
+		}
         
         // 保存 token 到 localStorage
         if (token) {

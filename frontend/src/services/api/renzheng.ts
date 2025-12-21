@@ -7,7 +7,7 @@ export async function postAuthLogin(
   body: API.LoginRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.LoginResponse>("/api/auth/login", {
+  return request<API.Response>("/api/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

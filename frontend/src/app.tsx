@@ -55,6 +55,19 @@ export async function getInitialState(): Promise<{
   const { location } = history;
   if (![loginPath, '/user/register', '/user/register-result'].includes(location.pathname)) {
     const currentUser = await fetchUserInfo();
+
+	// 仅允许管理员登录：如果本地有用户信息但角色不是管理员，直接清理并跳转登录
+	if (currentUser && (currentUser as any).role !== 'admin') {
+		localStorage.removeItem('token');
+		localStorage.removeItem('userInfo');
+		sessionStorage.removeItem('token');
+		history.push(loginPath);
+		return {
+			fetchUserInfo,
+			currentUser: undefined,
+			settings: defaultSettings as Partial<LayoutSettings>,
+		};
+	}
     
     // 如果没有用户信息且有 token，说明 token 可能过期，跳转登录页
     if (!currentUser && localStorage.getItem('token')) {
@@ -96,6 +109,14 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
       if (!initialState?.currentUser && location.pathname !== loginPath) {
         history.push(loginPath);
       }
+
+		// 仅允许管理员登录：如果已登录但不是管理员，同样强制回到登录页
+		if (initialState?.currentUser && (initialState as any).currentUser?.role !== 'admin' && location.pathname !== loginPath) {
+			localStorage.removeItem('token');
+			localStorage.removeItem('userInfo');
+			sessionStorage.removeItem('token');
+			history.push(loginPath);
+		}
     },
     bgLayoutImgList: [
       {
