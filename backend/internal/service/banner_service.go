@@ -109,20 +109,28 @@ type UpdateBannerRequest struct {
 }
 
 // parseTimeString 将字符串转换为*time.Time
-// 支持的格式：2006-01-02 15:04:05
+// 支持的格式：
+// 1. 2006-01-02 15:04:05（空格分隔）
+// 2. 2006-01-02T15:04:05+08:00（ISO格式，带时区）
 // 如果字符串为空或解析失败，返回nil
 func parseTimeString(timeStr *string) *time.Time {
 	if timeStr == nil || *timeStr == "" {
 		return nil
 	}
 
-	// 解析时间字符串为本地时间
+	// 首先尝试解析空格分隔的格式
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", *timeStr, time.Local)
-	if err != nil {
-		return nil
+	if err == nil {
+		return &t
 	}
 
-	return &t
+	// 如果失败，尝试解析ISO格式
+	t, err = time.Parse("2006-01-02T15:04:05Z07:00", *timeStr)
+	if err == nil {
+		return &t
+	}
+
+	return nil
 }
 
 // CreateBanner 创建活动横幅
@@ -214,10 +222,10 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 	}
 
 	// 更新时间字段
-	if req.StartTime != nil {
+	if req.StartTime != nil && *req.StartTime != "" {
 		banner.StartTime = parseTimeString(req.StartTime)
 	}
-	if req.EndTime != nil {
+	if req.EndTime != nil && *req.EndTime != "" {
 		banner.EndTime = parseTimeString(req.EndTime)
 	}
 
