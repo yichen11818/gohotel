@@ -162,14 +162,14 @@ func main() {
 
 			// 任务执行完成后，添加下一次任务
 			nextExecTime := time.Now().Add(30 * time.Minute)
-			timeWheel.AddTask(nextExecTime, cleanupTask, nil)
+			timeWheel.AddTask(nextExecTime, cleanupTask, nil, true) // 不持久化任务
 		}
 
 		// 计算下一次执行时间
 		nextExecTime := time.Now().Add(30 * time.Minute)
 
 		// 添加任务到时间轮
-		timeWheel.AddTask(nextExecTime, cleanupTask, nil)
+		timeWheel.AddTask(nextExecTime, cleanupTask, nil, true) // 不持久化任务
 
 		fmt.Println("✅ COS临时文件清理任务已添加，每30分钟执行一次")
 	}

@@ -18,6 +18,7 @@ type Task struct {
 	ExecTime  time.Time              // 执行时间
 	Callback  func()                 // 任务执行函数
 	Cancelled bool                   // 任务是否被取消
+	NoPersist bool                   // 任务是否不需要持久化
 	Meta      map[string]interface{} // 任务元数据，用于存储业务相关信息
 }
 
@@ -207,16 +208,23 @@ func (mtw *MultiTimeWheel) GetExecutor(taskType string) TaskExecutor {
 }
 
 // AddTask 添加一个定时任务（多层时间轮）
-func (mtw *MultiTimeWheel) AddTask(execTime time.Time, callback func(), meta map[string]interface{}) string {
+func (mtw *MultiTimeWheel) AddTask(execTime time.Time, callback func(), meta map[string]interface{}, noPersist ...bool) string {
 	// 生成唯一任务ID
 	taskID := fmt.Sprintf("task_%d", time.Now().UnixNano())
 
+	// 解析noPersist参数
+	noPersistFlag := false
+	if len(noPersist) > 0 {
+		noPersistFlag = noPersist[0]
+	}
+
 	// 创建任务
 	task := &Task{
-		ID:       taskID,
-		ExecTime: execTime,
-		Callback: callback,
-		Meta:     meta,
+		ID:        taskID,
+		ExecTime:  execTime,
+		Callback:  callback,
+		NoPersist: noPersistFlag,
+		Meta:      meta,
 	}
 
 	// 计算延迟时间
@@ -278,8 +286,8 @@ func (mtw *MultiTimeWheel) AddTask(execTime time.Time, callback func(), meta map
 }
 
 // AddDelayTask 添加一个延迟任务（多层时间轮）
-func (mtw *MultiTimeWheel) AddDelayTask(delay time.Duration, callback func(), meta map[string]interface{}) string {
-	return mtw.AddTask(time.Now().Add(delay), callback, meta)
+func (mtw *MultiTimeWheel) AddDelayTask(delay time.Duration, callback func(), meta map[string]interface{}, noPersist ...bool) string {
+	return mtw.AddTask(time.Now().Add(delay), callback, meta, noPersist...)
 }
 
 // RemoveTask 删除一个任务（多层时间轮）
@@ -781,7 +789,7 @@ func (mtw *MultiTimeWheel) saveTasks() {
 		for _, slot := range wheel.SlotArray {
 			slot.Mutex.RLock()
 			for _, task := range slot.Tasks {
-				if !task.Cancelled {
+				if !task.Cancelled && !task.NoPersist {
 					persistTasks = append(persistTasks, task.ToPersistTask())
 				}
 			}

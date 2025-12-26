@@ -222,11 +222,7 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	endTime, hasEndTime := c.GetPostForm("end_time")
 
 	imageURL := ""
-	if hasTempURL {
-		if tempURL == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "临时图片URL不能为空"})
-			return
-		}
+	if hasTempURL && tempURL != "" {
 		// 确认上传，获取正式URL
 		imageURL, err = h.cosService.ConfirmUpload(tempURL)
 		if err != nil {
