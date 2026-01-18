@@ -32,7 +32,7 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      nas.yumi.chat:19999
+// @host      192.168.1.7:19999
 // @BasePath
 
 // @securityDefinitions.apikey Bearer

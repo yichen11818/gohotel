@@ -3856,7 +3856,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "nas.yumi.chat:19999",
+	Host:             "192.168.1.7:19999",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "酒店管理系统 API",
