@@ -13,7 +13,7 @@ export default {
   // 如果需要自定义本地开发服务器  请取消注释按需调整
   dev: {
     '/api/': {
-      target: 'http://192.168.1.7:19999',
+      target: 'http://192.168.1.10:19999',
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },
@@ -25,7 +25,7 @@ export default {
   test: {
     // localhost:8000/api/** -> https://preview.pro.ant.design/api/**
     '/api/': {
-      target: 'http://192.168.1.7:19999',
+      target: 'http://192.168.1.10:19999',
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },

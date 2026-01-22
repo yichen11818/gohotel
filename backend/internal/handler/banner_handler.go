@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gohotel/internal/service"
+	"gohotel/pkg/errors"
 	"gohotel/pkg/utils"
 	"net/http"
 	"strconv"
@@ -42,11 +43,17 @@ func NewBannerHandler(bannerService *service.BannerService, cosService *service.
 // @Failure 500 {object} map[string]string
 // @Router /api/admin/banners [post]
 func (h *BannerHandler) CreateBanner(c *gin.Context) {
+	if h.cosService == nil {
+		utils.ErrorResponse(c, errors.NewInternalServerError("COS服务未初始化"))
+		return
+	}
+
 	// 从表单中获取Banner信息
 	title := c.PostForm("title")
 	subtitle := c.PostForm("subtitle")
 	tempURL := c.PostForm("temp_url")
 	linkURL := c.PostForm("link_url")
+	statusStr := c.PostForm("status")
 	sortStr := c.PostForm("sort")
 	startTime := c.PostForm("start_time")
 	endTime := c.PostForm("end_time")
@@ -76,12 +83,18 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		}
 	}
 
+	var statusPtr *string
+	if statusStr != "" {
+		statusPtr = &statusStr
+	}
+
 	// 构建请求对象
 	req := &service.CreateBannerRequest{
 		Title:     title,
 		Subtitle:  &subtitle,
 		ImageURL:  imageURL,
 		LinkURL:   &linkURL,
+		Status:    statusPtr,
 		Sort:      sort,
 		StartTime: &startTime,
 		EndTime:   &endTime,
@@ -141,7 +154,11 @@ func (h *BannerHandler) GetBannerByID(c *gin.Context) {
 // @Router /api/admin/banners [get]
 func (h *BannerHandler) GetAllBanners(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	pageSizeStr := c.DefaultQuery("pageSize", "")
+	if pageSizeStr == "" {
+		pageSizeStr = c.DefaultQuery("page_size", "10")
+	}
+	pageSize, _ := strconv.Atoi(pageSizeStr)
 
 	banners, total, err := h.bannerService.GetAllBanners(page, pageSize)
 	if err != nil {
@@ -176,6 +193,24 @@ func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 	utils.SuccessResponse(c, banners)
 }
 
+// GetBannerPublicByID 根据ID获取活动横幅（前端使用）
+func (h *BannerHandler) GetBannerPublicByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的ID"))
+		return
+	}
+
+	banner, err := h.bannerService.GetBannerByID(id)
+	if err != nil {
+		utils.ErrorResponse(c, errors.NewNotFoundError("活动横幅不存在"))
+		return
+	}
+
+	utils.SuccessResponse(c, banner)
+}
+
 // UpdateBanner 更新活动横幅
 // @Summary 更新活动横幅
 // @Description 更新活动横幅信息，使用临时图片URL
@@ -197,6 +232,11 @@ func (h *BannerHandler) GetActiveBanners(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/admin/banners/{id} [post]
 func (h *BannerHandler) UpdateBanner(c *gin.Context) {
+	if h.cosService == nil {
+		utils.ErrorResponse(c, errors.NewInternalServerError("COS服务未初始化"))
+		return
+	}
+
 	// 获取Banner ID
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -217,6 +257,7 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	subtitle, hasSubtitle := c.GetPostForm("subtitle")
 	tempURL, hasTempURL := c.GetPostForm("temp_url")
 	linkURL, hasLinkURL := c.GetPostForm("link_url")
+	status, hasStatus := c.GetPostForm("status")
 	sortStr, hasSort := c.GetPostForm("sort")
 	startTime, hasStartTime := c.GetPostForm("start_time")
 	endTime, hasEndTime := c.GetPostForm("end_time")
@@ -255,12 +296,17 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	if hasEndTime {
 		endTimePtr = &endTime
 	}
+	var statusPtr *string
+	if hasStatus {
+		statusPtr = &status
+	}
 
 	// 构建请求对象
 	req := &service.UpdateBannerRequest{
 		Subtitle:  subtitlePtr,
 		ImageURL:  imageURL,
 		LinkURL:   linkURLPtr,
+		Status:    statusPtr,
 		Sort:      sort,
 		StartTime: startTimePtr,
 		EndTime:   endTimePtr,
@@ -292,6 +338,11 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/admin/banners/{id}/delete [post]
 func (h *BannerHandler) DeleteBanner(c *gin.Context) {
+	if h.cosService == nil {
+		utils.ErrorResponse(c, errors.NewInternalServerError("COS服务未初始化"))
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

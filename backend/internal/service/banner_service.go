@@ -92,6 +92,7 @@ type CreateBannerRequest struct {
 	Subtitle  *string `json:"subtitle" binding:"omitempty,max=255"`
 	ImageURL  string  `json:"image_url" binding:"required,max=500"`
 	LinkURL   *string `json:"link_url" binding:"omitempty,max=500"`
+	Status    *string `json:"status" binding:"omitempty"`
 	Sort      int     `json:"sort" binding:"omitempty,min=0"`
 	StartTime *string `json:"start_time" binding:"omitempty"`
 	EndTime   *string `json:"end_time" binding:"omitempty"`
@@ -103,6 +104,7 @@ type UpdateBannerRequest struct {
 	Subtitle  *string `json:"subtitle" binding:"omitempty,max=255"`
 	ImageURL  string  `json:"image_url" binding:"omitempty,max=500"`
 	LinkURL   *string `json:"link_url" binding:"omitempty,max=500"`
+	Status    *string `json:"status" binding:"omitempty"`
 	Sort      *int    `json:"sort" binding:"omitempty,min=0"`
 	StartTime *string `json:"start_time" binding:"omitempty"`
 	EndTime   *string `json:"end_time" binding:"omitempty"`
@@ -138,14 +140,11 @@ func (s *BannerService) CreateBanner(req *CreateBannerRequest) (*models.Banner, 
 	// 解析时间
 	startTime := parseTimeString(req.StartTime)
 	endTime := parseTimeString(req.EndTime)
-	now := time.Now()
 
-	// 根据时间自动计算状态
-	status := "inactive"
-	// 如果开始时间已过且结束时间未过，设为active
-	if (startTime == nil || now.After(*startTime)) &&
-		(endTime == nil || now.Before(*endTime)) {
-		status = "active"
+	// status 作为“手动启用/禁用”开关，不再由时间自动改写
+	status := "active"
+	if req.Status != nil && *req.Status != "" {
+		status = *req.Status
 	}
 
 	// 创建Banner对象
@@ -165,9 +164,6 @@ func (s *BannerService) CreateBanner(req *CreateBannerRequest) (*models.Banner, 
 		return nil, err
 	}
 
-	// 添加时间轮任务
-	s.addBannerTasks(banner)
-
 	return banner, nil
 }
 
@@ -183,7 +179,7 @@ func (s *BannerService) GetAllBanners(page, pageSize int) ([]models.Banner, int6
 
 // GetActiveBanners 获取激活的活动横幅（前端展示用）
 func (s *BannerService) GetActiveBanners() ([]models.Banner, error) {
-	return s.bannerRepo.FindActive()
+	return s.bannerRepo.FindActive(time.Now())
 }
 
 // UpdateBanner 更新活动横幅信息
@@ -220,6 +216,9 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 	if req.Sort != nil {
 		banner.Sort = *req.Sort
 	}
+	if req.Status != nil && *req.Status != "" {
+		banner.Status = *req.Status
+	}
 
 	// 更新时间字段
 	if req.StartTime != nil && *req.StartTime != "" {
@@ -229,24 +228,10 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 		banner.EndTime = parseTimeString(req.EndTime)
 	}
 
-	// 根据时间自动计算状态
-	now := time.Now()
-	status := "inactive"
-	// 如果开始时间已过且结束时间未过，设为active
-	if (banner.StartTime == nil || now.After(*banner.StartTime)) &&
-		(banner.EndTime == nil || now.Before(*banner.EndTime)) {
-		status = "active"
-	}
-	banner.Status = status
-
 	// 保存更新
 	if err := s.bannerRepo.Update(banner); err != nil {
 		return nil, err
 	}
-
-	// 更新时间轮任务：先删除旧任务，再添加新任务
-	s.removeBannerTasks(id)
-	s.addBannerTasks(banner)
 
 	return banner, nil
 }

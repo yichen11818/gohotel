@@ -2,6 +2,7 @@ package repository
 
 import (
 	"gohotel/internal/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -49,9 +50,12 @@ func (r *BannerRepository) FindAll(page, pageSize int) ([]models.Banner, int64, 
 }
 
 // FindActive 查找激活的活动横幅（前端展示用）
-func (r *BannerRepository) FindActive() ([]models.Banner, error) {
+func (r *BannerRepository) FindActive(now time.Time) ([]models.Banner, error) {
 	var banners []models.Banner
-	err := r.db.Where("status = ?", "active").
+	err := r.db.
+		Where("status = ?", "active").
+		Where("(start_time IS NULL OR start_time <= ?)", now).
+		Where("(end_time IS NULL OR end_time >= ?)", now).
 		Order("sort ASC, created_at DESC").Find(&banners).Error
 	return banners, err
 }

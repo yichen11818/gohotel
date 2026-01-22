@@ -149,7 +149,7 @@ export default defineConfig({
       // 注意：__dirname 指向 frontend/config，需要向上两级到项目根目录
       schemaPath: join(__dirname, '../../backend/docs/swagger.json'),
       // 方式2: 使用后端 Swagger 端点（如果后端提供了 /swagger/doc.json 端点）
-      // schemaPath: 'http://192.168.1.7:19999/swagger/doc.json',
+      // schemaPath: 'http://192.168.1.10:19999/swagger/doc.json',
       mock: false,
       // 项目名称，用于生成文件路径，生成的 API 文件会在 src/services/{projectName} 目录下
       projectName: 'api',

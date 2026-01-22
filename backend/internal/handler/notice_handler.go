@@ -134,7 +134,11 @@ func (h *NoticeHandler) GetNoticeByID(c *gin.Context) {
 // @Router /api/admin/notices [get]
 func (h *NoticeHandler) GetAllNotices(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	pageSizeStr := c.DefaultQuery("pageSize", "")
+	if pageSizeStr == "" {
+		pageSizeStr = c.DefaultQuery("page_size", "10")
+	}
+	pageSize, _ := strconv.Atoi(pageSizeStr)
 
 	notices, total, err := h.noticeService.GetAllNotices(page, pageSize)
 	if err != nil {

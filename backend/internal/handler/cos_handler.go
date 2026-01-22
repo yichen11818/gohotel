@@ -31,6 +31,11 @@ func NewCosHandler(cosService *service.CosService) *CosHandler {
 // @Failure 500 {object} map[string]string "{\"error\": \"错误信息\"}"
 // @Router /api/upload/image [post]
 func (h *CosHandler) UploadImage(c *gin.Context) {
+	if h.cosService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "COS服务未初始化"})
+		return
+	}
+
 	// 获取上传的文件和资源类型
 	file, err := c.FormFile("image")
 	if err != nil {

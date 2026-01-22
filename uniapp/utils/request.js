@@ -50,13 +50,20 @@ const responseInterceptor = (response) => {
   // HTTP状态码判断
   if (statusCode >= 200 && statusCode < 300) {
     // 业务状态码判断（根据您的后端约定调整）
-    if (data.code === 0 || data.code === 200 || data.success ) {
-      return Promise.resolve(data.data || data)
-    } else {
-      // 业务错误
-      handleBusinessError(data)
-      return Promise.reject(data)
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      if (data.code === 0 || data.code === 200 || data.success) {
+        return Promise.resolve(data.data ?? data)
+      }
+
+      // 如果后端明确返回 success/code，但不满足成功条件，则视为业务错误
+      if (Object.prototype.hasOwnProperty.call(data, 'success') || Object.prototype.hasOwnProperty.call(data, 'code')) {
+        handleBusinessError(data)
+        return Promise.reject(data)
+      }
     }
+
+    // 兼容：后端直接返回数组/对象（无 success/code 字段）时，按成功处理
+    return Promise.resolve(data)
   } else {
     // HTTP错误
     handleHttpError(statusCode)
@@ -68,7 +75,7 @@ const responseInterceptor = (response) => {
  * 处理业务错误
  */
 const handleBusinessError = (data) => {
-  const errorMsg = data.message || data.msg || '请求失败'
+  const errorMsg = data?.message || data?.msg || data?.error?.message || '请求失败'
 
   // 特殊错误码处理
   switch (data.code) {

@@ -213,7 +213,23 @@ const CreateActivityForm: FC<CreateActivityFormProps> = (props) => {
         />
 
 
-
+        {/* 状态 */}
+        <ProFormSelect
+          width="md"
+          name="status"
+          label="状态"
+          initialValue="active"
+          options={[
+            {
+              label: '启用',
+              value: 'active',
+            },
+            {
+              label: '禁用',
+              value: 'inactive',
+            },
+          ]}
+        />
         {/* 排序 */}
         <ProFormDigit
           width="md"

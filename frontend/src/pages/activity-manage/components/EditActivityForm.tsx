@@ -39,6 +39,7 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
         title: activityData.title || '',
         subtitle: activityData.subtitle || '',
         link_url: activityData.link_url || '',
+        status: activityData.status || 'active',
         sort: activityData.sort || 0,
         start_time: activityData.start_time || '',
         end_time: activityData.end_time || '',
@@ -235,7 +236,21 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
           label="跳转链接"
           placeholder="请输入点击横幅后的跳转链接"
         />
-
+        <ProFormSelect
+          width="md"
+          name="status"
+          label="状态"
+          options={[
+            {
+              label: '启用',
+              value: 'active',
+            },
+            {
+              label: '禁用',
+              value: 'inactive',
+            },
+          ]}
+        />
         {/* 排序 */}
         <ProFormDigit
           width="md"

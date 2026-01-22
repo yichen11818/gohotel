@@ -32,7 +32,7 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      192.168.1.7:19999
+// @host      192.168.1.10:19999
 // @BasePath
 
 // @securityDefinitions.apikey Bearer
@@ -265,6 +265,7 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 		banners := api.Group("/banners")
 		{
 			banners.GET("/active", bannerHandler.GetActiveBanners) // 获取激活的活动横幅（前端展示用）
+			banners.GET("/:id", bannerHandler.GetBannerPublicByID) // 获取活动横幅详情（前端展示用）
 		}
 		// 公告路由（公开查询）
 		notices := api.Group("/notices")
