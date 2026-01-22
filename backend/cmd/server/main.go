@@ -3,6 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"gohotel/internal/config"
@@ -47,6 +51,16 @@ func main() {
 		log.Fatal("配置加载失败:", err)
 	}
 	fmt.Println("✅ 配置加载成功!")
+
+	backendDir := resolveBackendDir()
+	swaggerJSONPath := filepath.Join(backendDir, "docs", "swagger.json")
+	if shouldAutoUpdateSwagger(config.AppConfig.Server.Mode) {
+		if err := runSwagInit(backendDir); err != nil {
+			log.Printf("⚠️  Swagger 文档自动更新失败: %v", err)
+		} else {
+			fmt.Println("✅ Swagger 文档已自动更新!")
+		}
+	}
 
 	// 2. 初始化日志
 	fmt.Println("📝 正在初始化日志...")
@@ -196,7 +210,7 @@ func main() {
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 设置路由
-	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler)
+	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, swaggerJSONPath)
 
 	// 12. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
@@ -213,9 +227,13 @@ func main() {
 }
 
 // setupRoutes 设置所有路由
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler) {
+
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, swaggerJSONPath string) {
 	// Swagger 文档路由
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/swagger.json", func(c *gin.Context) {
+		c.File(swaggerJSONPath)
+	})
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger.json")))
 
 	// 健康检查
 	// @Summary 健康检查
@@ -350,4 +368,44 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 			}
 		}
 	}
+}
+
+func shouldAutoUpdateSwagger(serverMode string) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv("SWAGGER_AUTO_UPDATE")))
+	if v == "" {
+		return strings.TrimSpace(strings.ToLower(serverMode)) == "debug"
+	}
+	return v == "1" || v == "true" || v == "yes" || v == "on"
+}
+
+func resolveBackendDir() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
+
+	if _, err := os.Stat(filepath.Join(cwd, "cmd", "server", "main.go")); err == nil {
+		return cwd
+	}
+	if _, err := os.Stat(filepath.Join(cwd, "backend", "cmd", "server", "main.go")); err == nil {
+		return filepath.Join(cwd, "backend")
+	}
+
+	return cwd
+}
+
+func runSwagInit(backendDir string) error {
+	cmd := exec.Command("swag", "init", "-g", "cmd/server/main.go", "-o", "docs")
+	cmd.Dir = backendDir
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		trimmed := strings.TrimSpace(string(out))
+		if trimmed == "" {
+			return err
+		}
+		return fmt.Errorf("%w: %s", err, trimmed)
+	}
+
+	return nil
 }
