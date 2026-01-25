@@ -147,44 +147,33 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { hotel, booking } from '@/api/index.js'
+import { TOKEN_KEY } from '@/config/api.config.js'
 import TnSwiper from '@/uni_modules/tuniaoui-vue3/components/swiper/src/swiper.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
+import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 
 const currentImageIndex = ref(0)
 const roomId = ref('')
+const loading = ref(false)
 
 // 房间图片
-const roomImages = ref([
-  'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80',
-  'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
-])
+const roomImages = ref([])
 
 // 房间详情
 const roomDetail = ref({
-  id: 1,
-  name: '豪华大床房',
-  price: 299,
-  originalPrice: 399,
-  area: 30,
-  bedType: '1.8m大床',
-  maxGuests: 2,
-  window: '有窗',
-  breakfast: true,
-  tags: ['含早餐', '免费WiFi', '可取消'],
-  facilities: [
-    { name: 'WiFi', icon: 'wifi' },
-    { name: '空调', icon: 'home' },
-    { name: '电视', icon: 'tv' },
-    { name: '热水', icon: 'drop' },
-    { name: '吹风机', icon: 'sound' },
-    { name: '保险箱', icon: 'lock' },
-    { name: '衣柜', icon: 'closet' },
-    { name: '拖鞋', icon: 'steps' }
-  ]
+  id: '',
+  name: '',
+  price: 0,
+  original_price: 0,
+  area: 0,
+  bed_type: '',
+  max_guests: 0,
+  window: '',
+  breakfast: false,
+  tags: [],
+  facilities: []
 })
 
 // 日期
@@ -221,7 +210,7 @@ const openDatePicker = () => {
 
 // 立即预订
 const handleBook = () => {
-  const token = uni.getStorageSync('gohotel_token')
+  const token = uni.getStorageSync(TOKEN_KEY)
   if (!token) {
     uni.showModal({
       title: '提示',
@@ -259,8 +248,23 @@ onLoad((options) => {
 })
 
 // 加载房间详情
-const loadRoomDetail = () => {
-  // TODO: 从API获取房间详情
+const loadRoomDetail = async () => {
+  loading.value = true
+  try {
+    // 假设 hotel.js 中有 getRoomDetail 方法，如果没有则需要添加
+    // 目前 api/hotel.js 只有 getRoomList, getHotelDetail, getRoomTypes 等
+    // 我们可以根据业务逻辑获取房型详情
+    const data = await hotel.getRoomTypes(1) // 这里暂时用 hotelId=1，实际应从 options 获取
+    const detail = data.find(item => item.id == roomId.value)
+    if (detail) {
+      roomDetail.value = detail
+      roomImages.value = detail.images || [detail.image_url || detail.image]
+    }
+  } catch (error) {
+    console.error('Failed to load room detail:', error)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

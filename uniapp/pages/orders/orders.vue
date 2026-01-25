@@ -78,6 +78,7 @@
 </template>
 
 <script setup>
+import { booking } from '@/api/index.js'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
@@ -88,13 +89,14 @@ import TnEmpty from '@/uni_modules/tuniaoui-vue3/components/empty/src/empty.vue'
 const tabs = [
   { label: '全部', value: 'all' },
   { label: '待付款', value: 'pending' },
-  { label: '待入住', value: 'checkin' },
+  { label: '待入住', value: 'confirmed' },
   { label: '已完成', value: 'completed' },
   { label: '已取消', value: 'cancelled' }
 ]
 
 const currentTab = ref('all')
 const orderList = ref([])
+const loading = ref(false)
 
 onLoad((options) => {
   if (options?.type) {
@@ -110,10 +112,21 @@ const switchTab = (value) => {
 }
 
 // 加载订单
-const loadOrders = () => {
-  // TODO: 从API获取订单列表
-  // 模拟数据
-  orderList.value = []
+const loadOrders = async () => {
+  loading.value = true
+  try {
+    const params = {
+      status: currentTab.value === 'all' ? undefined : currentTab.value,
+      page: 1,
+      pageSize: 20
+    }
+    const data = await booking.getBookingList(params)
+    orderList.value = data || []
+  } catch (error) {
+    console.error('Failed to load orders:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 返回

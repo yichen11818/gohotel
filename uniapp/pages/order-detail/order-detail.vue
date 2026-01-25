@@ -168,34 +168,36 @@
 </template>
 
 <script setup>
+import { booking } from '@/api/index.js'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 
 const orderId = ref('')
+const loading = ref(false)
 
 // 订单详情
 const orderDetail = ref({
-  id: 1,
-  orderNo: 'ORDER202412130001',
-  status: 'checkin',
-  roomName: '豪华大床房',
-  roomImage: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-  roomSpecs: '30m² · 1.8m大床',
-  tags: ['含早餐', '免费WiFi'],
-  checkIn: '12月13日',
-  checkOut: '12月14日',
-  nights: 1,
-  roomCount: 1,
-  guestName: '张三',
-  guestPhone: '138****8888',
-  createTime: '2024-12-13 10:30:25',
-  payTime: '2024-12-13 10:32:18',
-  payMethod: '微信支付',
-  roomPrice: 299,
-  couponAmount: 50,
-  totalPrice: 249
+  id: '',
+  orderNo: '',
+  status: '',
+  roomName: '',
+  roomImage: '',
+  roomSpecs: '',
+  tags: [],
+  checkIn: '',
+  checkOut: '',
+  nights: 0,
+  roomCount: 0,
+  guestName: '',
+  guestPhone: '',
+  createTime: '',
+  payTime: '',
+  payMethod: '',
+  roomPrice: 0,
+  couponAmount: 0,
+  totalPrice: 0
 })
 
 // 订单状态
@@ -316,8 +318,38 @@ onLoad((options) => {
 })
 
 // 加载订单详情
-const loadOrderDetail = () => {
-  // TODO: 从API获取订单详情
+const loadOrderDetail = async () => {
+  loading.value = true
+  try {
+    const data = await booking.getBookingDetail(orderId.value)
+    if (data) {
+      orderDetail.value = {
+        id: data.id,
+        orderNo: data.order_no,
+        status: data.status,
+        roomName: data.room_type_name,
+        roomImage: data.room_type_image,
+        roomSpecs: `${data.room_area}m² · ${data.bed_type}`,
+        tags: data.tags || [],
+        checkIn: data.check_in_date,
+        checkOut: data.check_out_date,
+        nights: data.nights,
+        roomCount: data.room_count,
+        guestName: data.guest_name,
+        guestPhone: data.guest_phone,
+        createTime: data.created_at,
+        payTime: data.paid_at,
+        payMethod: data.payment_method === 'wechat' ? '微信支付' : '其他支付',
+        roomPrice: data.price,
+        couponAmount: data.coupon_amount || 0,
+        totalPrice: data.total_amount
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load order detail:', error)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

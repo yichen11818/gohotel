@@ -1,13 +1,39 @@
-/* 全局样式 */
+$primary-color: #C29D71;
+$bg-color: #F9F9F9;
+$text-main: #333333;
+$text-sub: #999999;
+$border-color: rgba(0, 0, 0, 0.05);
+$shadow-light: 0 8rpx 32rpx rgba(0, 0, 0, 0.04);
+$shadow-premium: 0 16rpx 48rpx rgba(194, 157, 113, 0.15);
+
 page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: $bg-color;
+  color: $text-main;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
 }
 
-/* 主题色 */
-$primary-color: #C8A882;
-$text-color: #333333;
-$text-light-color: #999999;
-$bg-color: #f8f8f8;
+.premium-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  box-shadow: $shadow-light;
+  border: 1rpx solid $border-color;
+  overflow: hidden;
+}
+
+.premium-button {
+  background: linear-gradient(135deg, #D4B184 0%, #C29D71 50%, #B88A5E 100%);
+  color: #ffffff;
+  border-radius: 100rpx;
+  box-shadow: 0 12rpx 24rpx rgba(194, 157, 113, 0.3);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 8rpx 16rpx rgba(194, 157, 113, 0.2);
+  }
+}
 
 
 

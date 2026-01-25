@@ -188,6 +188,8 @@
 </template>
 
 <script setup>
+import { user } from '@/api/index.js'
+import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
@@ -205,57 +207,88 @@ const userInfo = ref({
 
 // 用户统计数据
 const userStats = ref({
-  balance: '1.4',
-  points: '1519',
+  balance: '0.00',
+  points: '0',
   coupons: '0'
 })
 
 // 页面加载
 onLoad(() => {
-  loadUserInfo()
-  loadUserStats()
+  refreshData()
 })
 
 // 页面显示时刷新数据
 onShow(() => {
-  loadUserInfo()
-  loadUserStats()
+  refreshData()
 })
 
-// 加载用户信息
-const loadUserInfo = () => {
-  const token = uni.getStorageSync('gohotel_token')
+const refreshData = () => {
+  const token = uni.getStorageSync(TOKEN_KEY)
   if (token) {
-    // TODO: 从API获取用户信息
+    loadUserInfo()
+    loadUserStats()
+  } else {
+    // 未登录状态重置数据
     userInfo.value = {
-      avatar: defaultAvatar,
-      nickname: '不许凶我呀',
-      memberLevel: 'N口27187358829',
-      isVip: true
+      avatar: '',
+      nickname: '',
+      memberLevel: '',
+      isVip: false
+    }
+    userStats.value = {
+      balance: '0.00',
+      points: '0',
+      coupons: '0'
     }
   }
 }
 
+// 加载用户信息
+const loadUserInfo = async () => {
+  try {
+    const data = await user.getUserInfo()
+    if (data) {
+      userInfo.value = {
+        avatar: data.avatar || defaultAvatar,
+        nickname: data.nickname || '用户',
+        memberLevel: data.member_level_name || '普通会员',
+        isVip: data.is_vip || false
+      }
+      uni.setStorageSync(USER_INFO_KEY, data)
+    }
+  } catch (error) {
+    console.error('Failed to load user info:', error)
+  }
+}
+
 // 加载用户统计数据
-const loadUserStats = () => {
-  // TODO: 从API获取用户统计数据
-  userStats.value = {
-    balance: '1.4',
-    points: '1519',
-    coupons: '0'
+const loadUserStats = async () => {
+  try {
+    const [pointsRes, couponsRes] = await Promise.all([
+      user.getUserPoints(),
+      user.getCoupons({ status: 'unused' })
+    ])
+    
+    userStats.value = {
+      balance: userInfo.value.balance || '0.00',
+      points: String(pointsRes?.points || 0),
+      coupons: String(couponsRes?.length || 0)
+    }
+  } catch (error) {
+    console.error('Failed to load user stats:', error)
   }
 }
 
 // 处理登录
 const handleLogin = () => {
-  const token = uni.getStorageSync('gohotel_token')
+  const token = uni.getStorageSync(TOKEN_KEY)
   if (!token) {
     uni.navigateTo({
       url: '/pages/login/login'
     })
   } else {
     uni.navigateTo({
-      url: '/pages/profile/profile'
+      url: '/pages/settings/settings'
     })
   }
 }
@@ -324,7 +357,7 @@ const navigateTo = (type) => {
 
 // 检查登录并导航
 const checkLoginAndNavigate = (url) => {
-  const token = uni.getStorageSync('gohotel_token')
+  const token = uni.getStorageSync(TOKEN_KEY)
   if (!token) {
     uni.showModal({
       title: '提示',

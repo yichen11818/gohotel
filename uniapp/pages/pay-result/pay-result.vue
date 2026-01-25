@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import { hotel } from '@/api/index.js'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
@@ -99,28 +100,22 @@ const isSuccess = ref(true)
 const orderId = ref('')
 const amount = ref(0)
 const payTime = ref('')
+const recommendList = ref([])
 
-// 推荐列表
-const recommendList = ref([
-  {
-    id: 1,
-    name: '豪华大床房',
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
-    price: 299
-  },
-  {
-    id: 2,
-    name: '行政套房',
-    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80',
-    price: 599
-  },
-  {
-    id: 3,
-    name: '标准双床房',
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
-    price: 199
+// 加载推荐房型
+const loadRecommend = async () => {
+  try {
+    const data = await hotel.getRoomTypes(1) // 暂时硬编码
+    recommendList.value = data?.slice(0, 3).map(item => ({
+      id: item.id,
+      name: item.name,
+      image: item.image_url || item.image,
+      price: item.price
+    })) || []
+  } catch (error) {
+    console.error('Failed to load recommends:', error)
   }
-])
+}
 
 // 格式化当前时间
 const formatCurrentTime = () => {
@@ -170,6 +165,7 @@ onLoad((options) => {
   orderId.value = options?.orderId || ''
   amount.value = options?.amount || 0
   payTime.value = formatCurrentTime()
+  loadRecommend()
 })
 </script>
 

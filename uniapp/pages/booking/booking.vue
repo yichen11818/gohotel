@@ -168,37 +168,55 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { hotel, booking, user } from '@/api/index.js'
+import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
+import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 
 // 房间信息
 const roomInfo = ref({
-  id: 1,
-  name: '豪华大床房',
-  image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-  area: 30,
-  bedType: '1.8m大床',
-  price: 299
-})
-
-// 日期
-const checkInDate = ref(new Date())
-const checkOutDate = ref(new Date(Date.now() + 24 * 60 * 60 * 1000))
-
-// 入住人信息
-const guestInfo = ref({
+  id: '',
   name: '',
-  phone: ''
+  image: '',
+  area: 0,
+  bedType: '',
+  price: 0
 })
 
-// 房间数量
-const roomCount = ref(1)
+// 加载房间信息
+const loadRoomInfo = async (roomId) => {
+  try {
+    const data = await hotel.getRoomTypes(1) // 暂时硬编码酒店ID为1
+    const detail = data.find(item => item.id == roomId)
+    if (detail) {
+      roomInfo.value = {
+        id: detail.id,
+        name: detail.name,
+        image: detail.image_url || detail.image,
+        area: detail.area,
+        bedType: detail.bed_type,
+        price: detail.price
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load room info:', error)
+  }
+}
 
-// 优惠券
-const selectedCoupon = ref(null)
-const availableCoupons = ref(2)
+// 优惠券相关
+const coupons = ref([])
+const availableCoupons = computed(() => coupons.value.length)
+
+const loadCoupons = async () => {
+  try {
+    const data = await user.getCoupons({ status: 'unused' })
+    coupons.value = data || []
+  } catch (error) {
+    console.error('Failed to load coupons:', error)
+  }
+}
 
 // 备注
 const remark = ref('')
@@ -258,7 +276,7 @@ const goBack = () => {
 }
 
 // 提交订单
-const handleSubmit = () => {
+const handleSubmit = async () => {
   // 验证
   if (!guestInfo.value.name.trim()) {
     uni.showToast({ title: '请输入入住人姓名', icon: 'none' })
@@ -270,37 +288,60 @@ const handleSubmit = () => {
     return
   }
   
-  // 模拟提交订单
-  uni.showLoading({ title: '提交中...' })
-  
-  setTimeout(() => {
+  try {
+    uni.showLoading({ title: '提交中...' })
+    
+    const orderData = {
+      hotelId: 1, // 暂时硬编码
+      roomTypeId: roomInfo.value.id,
+      checkInDate: checkInDate.value.toISOString().split('T')[0],
+      checkOutDate: checkOutDate.value.toISOString().split('T')[0],
+      roomCount: roomCount.value,
+      guestName: guestInfo.value.name,
+      guestPhone: guestInfo.value.phone,
+      remark: remark.value
+    }
+    
+    const result = await booking.createBooking(orderData)
     uni.hideLoading()
     
-    // 模拟支付
-    uni.showModal({
-      title: '确认支付',
-      content: `需支付 ¥${totalPrice.value}`,
-      success: (res) => {
-        if (res.confirm) {
-          // 模拟支付成功
-          uni.showLoading({ title: '支付中...' })
-          setTimeout(() => {
-            uni.hideLoading()
-            // 跳转到支付结果页
-            uni.redirectTo({
-              url: `/pages/pay-result/pay-result?success=true&orderId=ORDER${Date.now()}&amount=${totalPrice.value}`
-            })
-          }, 1500)
+    if (result && result.id) {
+      // 模拟支付
+      uni.showModal({
+        title: '确认支付',
+        content: `订单已创建，需支付 ¥${totalPrice.value}`,
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              uni.showLoading({ title: '支付中...' })
+              await booking.payBooking(result.id, 'wechat')
+              uni.hideLoading()
+              
+              uni.redirectTo({
+                url: `/pages/pay-result/pay-result?success=true&orderId=${result.id}&amount=${totalPrice.value}`
+              })
+            } catch (payError) {
+              uni.hideLoading()
+              uni.redirectTo({
+                url: `/pages/pay-result/pay-result?success=false&orderId=${result.id}&amount=${totalPrice.value}`
+              })
+            }
+          } else {
+            // 取消支付跳转到订单列表
+            uni.redirectTo({ url: '/pages/orders/orders' })
+          }
         }
-      }
-    })
-  }, 1000)
+      })
+    }
+  } catch (error) {
+    uni.hideLoading()
+  }
 }
 
 onLoad((options) => {
   // 解析参数
   if (options?.roomId) {
-    // 加载房间信息
+    loadRoomInfo(options.roomId)
   }
   if (options?.checkIn) {
     checkInDate.value = new Date(options.checkIn)
@@ -310,10 +351,13 @@ onLoad((options) => {
   }
   
   // 预填用户信息
-  const userInfo = uni.getStorageSync('gohotel_userinfo')
-  if (userInfo?.phone) {
-    guestInfo.value.phone = userInfo.phone
+  const userInfo = uni.getStorageSync(USER_INFO_KEY)
+  if (userInfo) {
+    guestInfo.value.name = userInfo.nickname || ''
+    guestInfo.value.phone = userInfo.phone || ''
   }
+  
+  loadCoupons()
 })
 </script>
 

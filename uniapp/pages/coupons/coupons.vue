@@ -51,10 +51,10 @@
           <view class="coupon-right">
             <text class="coupon-name">{{ coupon.name }}</text>
             <text class="coupon-time">{{ coupon.validTime }}</text>
-            <view v-if="coupon.status === 'available'" class="use-btn" @click.stop="useCoupon(coupon)">
+            <view v-if="currentTab === 'unused'" class="use-btn" @click.stop="useCoupon(coupon)">
               <text>立即使用</text>
             </view>
-            <view v-else-if="coupon.status === 'used'" class="status-tag used">
+            <view v-else-if="currentTab === 'used'" class="status-tag used">
               <text>已使用</text>
             </view>
             <view v-else class="status-tag expired">
@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { user } from '@/api/index.js'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
@@ -80,45 +81,34 @@ import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnEmpty from '@/uni_modules/tuniaoui-vue3/components/empty/src/empty.vue'
 
 const tabs = [
-  { label: '可使用', value: 'available' },
+  { label: '可使用', value: 'unused' },
   { label: '已使用', value: 'used' },
   { label: '已过期', value: 'expired' }
 ]
 
-const currentTab = ref('available')
-const allCoupons = ref([
-  {
-    id: 1,
-    amount: 50,
-    condition: 200,
-    name: '住宿优惠券',
-    validTime: '2024.12.31前有效',
-    status: 'available'
-  },
-  {
-    id: 2,
-    amount: 30,
-    condition: 150,
-    name: '新人专享券',
-    validTime: '2024.12.31前有效',
-    status: 'available'
-  }
-])
-
-const couponList = computed(() => {
-  return allCoupons.value.filter(item => item.status === currentTab.value)
-})
+const currentTab = ref('unused')
+const couponList = ref([])
+const loading = ref(false)
 
 onLoad(() => {
   loadCoupons()
 })
 
-const loadCoupons = () => {
-  // TODO: 从API获取优惠券列表
+const loadCoupons = async () => {
+  loading.value = true
+  try {
+    const data = await user.getCoupons({ status: currentTab.value })
+    couponList.value = data || []
+  } catch (error) {
+    console.error('Failed to load coupons:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const switchTab = (value) => {
   currentTab.value = value
+  loadCoupons()
 }
 
 const goBack = () => {

@@ -110,8 +110,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { login, sendVerifyCode } from '@/api/user.js'
+import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnButton from '@/uni_modules/tuniaoui-vue3/components/button/src/button.vue'
 
@@ -126,7 +126,7 @@ const canLogin = computed(() => {
 })
 
 // 发送验证码
-const sendCode = () => {
+const sendCode = async () => {
   if (countdown.value > 0) return
   
   if (phone.value.length !== 11) {
@@ -134,16 +134,22 @@ const sendCode = () => {
     return
   }
   
-  // 模拟发送验证码
-  uni.showToast({ title: '验证码已发送', icon: 'success' })
-  countdown.value = 60
-  
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
+  try {
+    uni.showLoading({ title: '发送中...' })
+    await sendVerifyCode(phone.value, 'login')
+    uni.hideLoading()
+    uni.showToast({ title: '验证码已发送', icon: 'success' })
+    countdown.value = 60
+    
+    const timer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  } catch (error) {
+    uni.hideLoading()
+  }
 }
 
 // 登录
@@ -153,16 +159,9 @@ const handleLogin = async () => {
   try {
     uni.showLoading({ title: '登录中...' })
     
-    // 模拟登录请求
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 存储token和用户信息
-    uni.setStorageSync('gohotel_token', 'mock_token_' + Date.now())
-    uni.setStorageSync('gohotel_userinfo', {
-      id: 1,
-      nickname: '七天用户',
+    const result = await login({
       phone: phone.value,
-      avatar: ''
+      code: code.value
     })
     
     uni.hideLoading()
@@ -173,7 +172,6 @@ const handleLogin = async () => {
     }, 1500)
   } catch (error) {
     uni.hideLoading()
-    uni.showToast({ title: '登录失败，请重试', icon: 'none' })
   }
 }
 
@@ -185,43 +183,43 @@ const wechatLogin = () => {
   }
   
   // #ifdef MP-WEIXIN
-  uni.getUserProfile({
-    desc: '用于完善用户资料',
-    success: (res) => {
-      console.log('微信登录成功', res)
-      // 调用后端接口进行登录
-      mockWechatLogin(res.userInfo)
-    },
-    fail: (err) => {
-      console.log('微信登录取消', err)
+  uni.login({
+    provider: 'weixin',
+    success: (loginRes) => {
+      uni.getUserProfile({
+        desc: '用于完善用户资料',
+        success: (res) => {
+          // 调用后端接口进行登录
+          handleRealWechatLogin(loginRes.code, res.userInfo)
+        }
+      })
     }
   })
   // #endif
-  
-  // #ifndef MP-WEIXIN
-  uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })
-  // #endif
 }
 
-// 模拟微信登录
-const mockWechatLogin = (userInfo) => {
-  uni.showLoading({ title: '登录中...' })
-  
-  setTimeout(() => {
-    uni.setStorageSync('gohotel_token', 'wechat_token_' + Date.now())
-    uni.setStorageSync('gohotel_userinfo', {
-      id: 1,
-      nickname: userInfo.nickName || '微信用户',
-      avatar: userInfo.avatarUrl || ''
+const handleRealWechatLogin = async (code, userInfo) => {
+  try {
+    uni.showLoading({ title: '登录中...' })
+    const result = await post('/auth/wechat-login', {
+      code,
+      nickname: userInfo.nickName,
+      avatar: userInfo.avatarUrl
     })
+    
+    if (result.token) {
+      uni.setStorageSync(TOKEN_KEY, result.token)
+    }
+    if (result.userInfo) {
+      uni.setStorageSync(USER_INFO_KEY, result.userInfo)
+    }
     
     uni.hideLoading()
     uni.showToast({ title: '登录成功', icon: 'success' })
-    
-    setTimeout(() => {
-      uni.navigateBack()
-    }, 1500)
-  }, 1000)
+    setTimeout(() => uni.navigateBack(), 1500)
+  } catch (error) {
+    uni.hideLoading()
+  }
 }
 
 // 返回
@@ -245,7 +243,7 @@ const goToPrivacy = () => {
 
 onLoad(() => {
   // 检查是否已登录
-  const token = uni.getStorageSync('gohotel_token')
+  const token = uni.getStorageSync(TOKEN_KEY)
   if (token) {
     uni.navigateBack()
   }

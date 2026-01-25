@@ -129,6 +129,8 @@
 </template>
 
 <script setup>
+import { user } from '@/api/index.js'
+import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
@@ -209,10 +211,11 @@ const handleLogout = () => {
   uni.showModal({
     title: '提示',
     content: '确定要退出登录吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        uni.removeStorageSync('gohotel_token')
-        uni.removeStorageSync('gohotel_userinfo')
+        try {
+          await user.logout()
+        } catch (e) {}
         uni.reLaunch({
           url: '/pages/index/index'
         })

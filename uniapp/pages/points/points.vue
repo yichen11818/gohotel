@@ -88,50 +88,37 @@
 </template>
 
 <script setup>
+import { user } from '@/api/index.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnEmpty from '@/uni_modules/tuniaoui-vue3/components/empty/src/empty.vue'
 
-const points = ref(1519)
+const points = ref(0)
+const loading = ref(false)
 
-const recordList = ref([
-  {
-    id: 1,
-    type: 'add',
-    icon: 'check-circle',
-    iconColor: '#34C759',
-    title: '完成订单',
-    time: '2024-12-05 10:30',
-    points: 50
-  },
-  {
-    id: 2,
-    type: 'reduce',
-    icon: 'gift',
-    iconColor: '#FF9500',
-    title: '兑换优惠券',
-    time: '2024-12-04 15:20',
-    points: 100
-  },
-  {
-    id: 3,
-    type: 'add',
-    icon: 'user-add',
-    iconColor: '#34C759',
-    title: '签到奖励',
-    time: '2024-12-03 09:00',
-    points: 10
-  }
-])
+const recordList = ref([])
 
 onLoad(() => {
   loadPointsData()
 })
 
-const loadPointsData = () => {
-  // TODO: 从API获取积分数据
+const loadPointsData = async () => {
+  loading.value = true
+  try {
+    const data = await user.getUserPoints()
+    if (data) {
+      points.value = data.points || 0
+      // 记录列表也应从API获取
+      // const records = await user.getPointsRecords()
+      // recordList.value = records || []
+    }
+  } catch (error) {
+    console.error('Failed to load points data:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const goBack = () => {

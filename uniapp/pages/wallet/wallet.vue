@@ -111,6 +111,7 @@
 </template>
 
 <script setup>
+import { user } from '@/api/index.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
@@ -118,37 +119,44 @@ import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnEmpty from '@/uni_modules/tuniaoui-vue3/components/empty/src/empty.vue'
 
 const showBalance = ref(true)
-const balance = ref('1.40')
+const balance = ref('0.00')
 const couponsCount = ref(0)
-const pointsCount = ref(1519)
+const pointsCount = ref(0)
+const loading = ref(false)
 
-const transactionList = ref([
-  {
-    id: 1,
-    type: 'expense',
-    icon: 'shopping-bag',
-    iconColor: '#FF3B30',
-    title: '房费支付',
-    time: '2024-12-05 10:30',
-    amount: '298.00'
-  },
-  {
-    id: 2,
-    type: 'income',
-    icon: 'add-circle',
-    iconColor: '#34C759',
-    title: '账户充值',
-    time: '2024-12-04 15:20',
-    amount: '500.00'
-  }
-])
+const transactionList = ref([])
 
 onLoad(() => {
   loadWalletData()
 })
 
-const loadWalletData = () => {
-  // TODO: 从API获取钱包数据
+const loadWalletData = async () => {
+  loading.value = true
+  try {
+    const [infoRes, pointsRes, couponsRes] = await Promise.all([
+      user.getUserInfo(),
+      user.getUserPoints(),
+      user.getCoupons({ status: 'unused' })
+    ])
+    
+    if (infoRes) {
+      balance.value = infoRes.balance || '0.00'
+    }
+    if (pointsRes) {
+      pointsCount.value = pointsRes.points || 0
+    }
+    if (couponsRes) {
+      couponsCount.value = couponsRes.length || 0
+    }
+    
+    // 假设有交易记录API，如果没有则保持空
+    // const records = await user.getTransactionRecords()
+    // transactionList.value = records || []
+  } catch (error) {
+    console.error('Failed to load wallet data:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const toggleBalance = () => {
