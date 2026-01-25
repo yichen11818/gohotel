@@ -11,6 +11,21 @@ import { errorConfig } from './requestErrorConfig';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
+const API_BASE_URL_STORAGE_KEY = 'gohotel_admin_api_base_url';
+const DEFAULT_API_BASE_URL = 'http://192.168.1.10:19999';
+
+const getApiBaseURL = () => {
+	try {
+		const raw = localStorage.getItem(API_BASE_URL_STORAGE_KEY);
+		if (!raw) return DEFAULT_API_BASE_URL;
+		const trimmed = raw.trim().replace(/\/+$/, '');
+		if (!/^https?:\/\//i.test(trimmed)) return DEFAULT_API_BASE_URL;
+		return trimmed;
+	} catch (_e) {
+		return DEFAULT_API_BASE_URL;
+	}
+};
+
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
  * */
@@ -181,6 +196,6 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: 'http://192.168.1.10:19999',
+  baseURL: getApiBaseURL(),
   ...errorConfig,
 };

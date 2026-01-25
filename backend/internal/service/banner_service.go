@@ -4,9 +4,29 @@ import (
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/utils"
+	"strings"
 	"sync"
 	"time"
 )
+
+func computeBannerState(banner *models.Banner, now time.Time) {
+	if banner == nil {
+		return
+	}
+
+	banner.ManualActive = strings.EqualFold(strings.TrimSpace(banner.Status), "active")
+
+	inTimeWindow := true
+	if banner.StartTime != nil && banner.StartTime.After(now) {
+		inTimeWindow = false
+	}
+	if banner.EndTime != nil && banner.EndTime.Before(now) {
+		inTimeWindow = false
+	}
+
+	banner.InTimeWindow = inTimeWindow
+	banner.EffectiveActive = banner.ManualActive && banner.InTimeWindow
+}
 
 // BannerService 活动横幅业务逻辑层
 type BannerService struct {
@@ -120,6 +140,13 @@ func parseTimeString(timeStr *string) *time.Time {
 		return nil
 	}
 
+	if t, err := time.Parse(time.RFC3339Nano, *timeStr); err == nil {
+		return &t
+	}
+	if t, err := time.Parse(time.RFC3339, *timeStr); err == nil {
+		return &t
+	}
+
 	// 首先尝试解析空格分隔的格式
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", *timeStr, time.Local)
 	if err == nil {
@@ -163,23 +190,48 @@ func (s *BannerService) CreateBanner(req *CreateBannerRequest) (*models.Banner, 
 	if err := s.bannerRepo.Create(banner); err != nil {
 		return nil, err
 	}
-
+	computeBannerState(banner, time.Now())
 	return banner, nil
 }
 
 // GetBannerByID 根据ID获取活动横幅
 func (s *BannerService) GetBannerByID(id int64) (*models.Banner, error) {
-	return s.bannerRepo.FindByID(id)
+	banner, err := s.bannerRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	computeBannerState(banner, time.Now())
+	return banner, nil
 }
 
 // GetAllBanners 获取所有活动横幅（带分页）
 func (s *BannerService) GetAllBanners(page, pageSize int) ([]models.Banner, int64, error) {
-	return s.bannerRepo.FindAll(page, pageSize)
+	banners, total, err := s.bannerRepo.FindAll(page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	now := time.Now()
+	for i := range banners {
+		computeBannerState(&banners[i], now)
+	}
+
+	return banners, total, nil
 }
 
 // GetActiveBanners 获取激活的活动横幅（前端展示用）
 func (s *BannerService) GetActiveBanners() ([]models.Banner, error) {
-	return s.bannerRepo.FindActive(time.Now())
+	now := time.Now()
+	banners, err := s.bannerRepo.FindActive(now)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range banners {
+		computeBannerState(&banners[i], now)
+	}
+
+	return banners, nil
 }
 
 // UpdateBanner 更新活动横幅信息
@@ -221,10 +273,10 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 	}
 
 	// 更新时间字段
-	if req.StartTime != nil && *req.StartTime != "" {
+	if req.StartTime != nil {
 		banner.StartTime = parseTimeString(req.StartTime)
 	}
-	if req.EndTime != nil && *req.EndTime != "" {
+	if req.EndTime != nil {
 		banner.EndTime = parseTimeString(req.EndTime)
 	}
 
@@ -232,7 +284,7 @@ func (s *BannerService) UpdateBanner(id int64, req *UpdateBannerRequest) (*model
 	if err := s.bannerRepo.Update(banner); err != nil {
 		return nil, err
 	}
-
+	computeBannerState(banner, time.Now())
 	return banner, nil
 }
 

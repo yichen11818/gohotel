@@ -19,6 +19,8 @@ func AutoMigrate() error {
 	// 注意：不会删除已存在的列（为了安全）
 	err := DB.AutoMigrate(
 		&models.User{},
+		&models.Hotel{},
+		&models.HotelSettings{},
 		&models.Room{},
 		&models.Booking{},
 		&models.Facility{},

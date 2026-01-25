@@ -11,6 +11,7 @@ import {
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Button, message, Upload, type UploadProps } from 'antd';
+import dayjs from 'dayjs';
 import type { FC } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { postAdminBannersId } from '@/services/api/huodongguanli';
@@ -31,6 +32,14 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
   const [uploadedFile, setUploadedFile] = useState<any>(null);
   const formRef = useRef<ProFormInstance>(null);
 
+	const normalizeDateTime = (v: any) => {
+		if (v === '') return '';
+		if (v === null) return '';
+		if (v === undefined) return undefined;
+		if (typeof v === 'string') return v;
+		return dayjs(v).format('YYYY-MM-DD HH:mm:ss');
+	};
+
   // 监听活动数据变化，初始化表单
   useEffect(() => {
     if (visible && activityData) {
@@ -41,8 +50,8 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
         link_url: activityData.link_url || '',
         status: activityData.status || 'active',
         sort: activityData.sort || 0,
-        start_time: activityData.start_time || '',
-        end_time: activityData.end_time || '',
+			start_time: activityData.start_time ? dayjs(activityData.start_time) : '',
+			end_time: activityData.end_time ? dayjs(activityData.end_time) : '',
       });
 
       // 初始化图片
@@ -136,7 +145,9 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
           id: String(activityData.id),
         }, {
           ...data,
-          temp_url: tempImageUrl,
+				temp_url: tempImageUrl,
+				start_time: normalizeDateTime((data as any)?.start_time),
+				end_time: normalizeDateTime((data as any)?.end_time),
         });
         messageApi.success('活动更新成功');
         return true;

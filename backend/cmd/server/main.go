@@ -132,6 +132,8 @@ func main() {
 	// 7. 初始化依赖注入
 	// Repository 层
 	userRepo := repository.NewUserRepository(database.DB)
+	hotelRepo := repository.NewHotelRepository(database.DB)
+	hotelSettingsRepo := repository.NewHotelSettingsRepository(database.DB)
 	roomRepo := repository.NewRoomRepository(database.DB)
 	bookingRepo := repository.NewBookingRepository(database.DB)
 	logRepo := repository.NewLogRepository(database.DB)
@@ -141,6 +143,8 @@ func main() {
 
 	// Service 层
 	userService := service.NewUserService(userRepo)
+	hotelService := service.NewHotelService(database.DB, hotelRepo, hotelSettingsRepo)
+	hotelSettingsService := service.NewHotelSettingsService(database.DB, hotelSettingsRepo, hotelRepo)
 	roomService := service.NewRoomService(roomRepo)
 	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
 	logService := service.NewLogService(logRepo)
@@ -190,6 +194,8 @@ func main() {
 
 	// Handler 层
 	userHandler := handler.NewUserHandler(userService)
+	hotelHandler := handler.NewHotelHandler(hotelService)
+	hotelSettingsHandler := handler.NewHotelSettingsHandler(hotelSettingsService)
 	roomHandler := handler.NewRoomHandler(roomService)
 	bookingHandler := handler.NewBookingHandler(bookingService)
 	logHandler := handler.NewLogHandler(logService)
@@ -210,7 +216,7 @@ func main() {
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 设置路由
-	setupRoutes(r, userHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, swaggerJSONPath)
+	setupRoutes(r, userHandler, hotelHandler, hotelSettingsHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, swaggerJSONPath)
 
 	// 12. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
@@ -228,7 +234,7 @@ func main() {
 
 // setupRoutes 设置所有路由
 
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, swaggerJSONPath string) {
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *handler.HotelHandler, hotelSettingsHandler *handler.HotelSettingsHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, swaggerJSONPath string) {
 	// Swagger 文档路由
 	r.GET("/swagger.json", func(c *gin.Context) {
 		c.File(swaggerJSONPath)
@@ -278,6 +284,11 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 				roomsAuth.POST("/:id", roomHandler.UpdateRoom)         // 更新房间
 				roomsAuth.POST("/:id/delete", roomHandler.DeleteRoom)  // 删除房间
 			}
+		}
+		// 设置路由（公开查询）
+		settings := api.Group("/settings")
+		{
+			settings.GET("/public", hotelSettingsHandler.GetPublicSettings)
 		}
 		// 活动横幅路由（公开查询）
 		banners := api.Group("/banners")
@@ -329,6 +340,15 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, roomHandler *h
 			admin := authorized.Group("/admin")
 			admin.Use(middleware.AdminMiddleware())
 			{
+				admin.GET("/hotels", hotelHandler.ListHotels)
+				admin.POST("/hotels", hotelHandler.CreateHotel)
+				admin.GET("/hotels/:id", hotelHandler.GetHotelByID)
+				admin.POST("/hotels/:id", hotelHandler.UpdateHotel)
+				admin.POST("/hotels/:id/delete", hotelHandler.DeleteHotel)
+
+				admin.GET("/settings", hotelSettingsHandler.GetAdminSettings)
+				admin.POST("/settings/save", hotelSettingsHandler.SaveSettings)
+
 				// 用户管理
 				admin.GET("/users", userHandler.ListUsers)
 				admin.GET("/users/:id", userHandler.GetUserByID)
