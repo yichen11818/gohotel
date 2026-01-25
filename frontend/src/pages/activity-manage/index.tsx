@@ -41,6 +41,22 @@ const ActivityManage: React.FC = () => {
       width: 60,
       hideInSearch: true,
     },
+	{
+		title: '生效',
+		dataIndex: 'effective_active',
+		width: 100,
+		valueEnum: {
+			true: {
+				text: '生效',
+				status: 'Success',
+			},
+			false: {
+				text: '未生效',
+				status: 'Default',
+			},
+		},
+		hideInSearch: true,
+	},
     {
       title: '图片',
       dataIndex: 'image_url',
@@ -87,6 +103,38 @@ const ActivityManage: React.FC = () => {
         },
       },
     },
+	{
+		title: '手动启用',
+		dataIndex: 'manual_active',
+		width: 100,
+		valueEnum: {
+			true: {
+				text: '是',
+				status: 'Success',
+			},
+			false: {
+				text: '否',
+				status: 'Default',
+			},
+		},
+		hideInSearch: true,
+	},
+	{
+		title: '时间窗口',
+		dataIndex: 'in_time_window',
+		width: 100,
+		valueEnum: {
+			true: {
+				text: '在窗口内',
+				status: 'Success',
+			},
+			false: {
+				text: '不在窗口',
+				status: 'Default',
+			},
+		},
+		hideInSearch: true,
+	},
     {
       title: '排序',
       dataIndex: 'sort',

@@ -30,6 +30,10 @@ declare namespace API {
     title?: string;
     /** 更新时间 */
     updated_at?: string;
+
+	manual_active?: boolean;
+	in_time_window?: boolean;
+	effective_active?: boolean;
   };
 
   type BatchCreateRoomRequest = {
@@ -192,6 +196,14 @@ declare namespace API {
     width?: number;
   };
 
+  type Hotel = {
+  created_at?: string;
+  id?: number;
+  name?: string;
+  status?: string;
+  updated_at?: string;
+  };
+  
   type FailedRoom = {
     reason?: string;
     room_number?: string;

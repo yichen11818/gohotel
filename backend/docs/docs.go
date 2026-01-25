@@ -3017,6 +3017,9 @@ const docTemplate = `{
                     "description": "创建时间",
                     "type": "string"
                 },
+                "effective_active": {
+                    "type": "boolean"
+                },
                 "end_time": {
                     "description": "活动结束时间（可为空）",
                     "type": "string"
@@ -3029,9 +3032,15 @@ const docTemplate = `{
                     "description": "图片URL",
                     "type": "string"
                 },
+                "in_time_window": {
+                    "type": "boolean"
+                },
                 "link_url": {
                     "description": "跳转链接（可为空）",
                     "type": "string"
+                },
+                "manual_active": {
+                    "type": "boolean"
                 },
                 "sort": {
                     "description": "排序，数字越小越靠前",

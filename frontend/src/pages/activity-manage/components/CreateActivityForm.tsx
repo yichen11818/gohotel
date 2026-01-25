@@ -11,6 +11,7 @@ import {
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Button, message, Upload, type UploadProps } from 'antd';
+import dayjs from 'dayjs';
 import type { FC } from 'react';
 import { useState, useRef } from 'react';
 import { postAdminBanners } from '@/services/api/huodongguanli';
@@ -27,6 +28,13 @@ const CreateActivityForm: FC<CreateActivityFormProps> = (props) => {
   const [_uploading, setUploading] = useState<boolean>(false);
   const [uploadedFile, setUploadedFile] = useState<any>(null);
   const formRef = useRef<ProFormInstance>(null);
+
+	const normalizeDateTime = (v: any) => {
+		if (v === undefined) return undefined;
+		if (v === null) return undefined;
+		if (typeof v === 'string') return v;
+		return dayjs(v).format('YYYY-MM-DD HH:mm:ss');
+	};
 
   // 图片上传处理
   const handleImageUpload: UploadProps['customRequest'] = async ({ file, onSuccess, onError }) => {
@@ -144,10 +152,12 @@ const CreateActivityForm: FC<CreateActivityFormProps> = (props) => {
               return false;
             }
 
-            await run({
-              ...value,
-              temp_url: tempImageUrl,
-            });
+				await run({
+					...value,
+					temp_url: tempImageUrl,
+					start_time: normalizeDateTime((value as any)?.start_time),
+					end_time: normalizeDateTime((value as any)?.end_time),
+				});
             
             // 重置图片URL和上传文件
             setTempImageUrl('');

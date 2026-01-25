@@ -18,6 +18,10 @@ type Banner struct {
 	EndTime   *time.Time `json:"end_time"`                               // 活动结束时间（可为空）
 	CreatedAt time.Time  `json:"created_at"`                             // 创建时间
 	UpdatedAt time.Time  `json:"updated_at"`                             // 更新时间
+
+	ManualActive    bool `gorm:"-" json:"manual_active"`
+	InTimeWindow    bool `gorm:"-" json:"in_time_window"`
+	EffectiveActive bool `gorm:"-" json:"effective_active"`
 }
 
 // TableName 指定表名
