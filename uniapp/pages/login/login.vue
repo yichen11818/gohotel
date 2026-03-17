@@ -89,6 +89,12 @@
             <text class="link" @click.stop="goToPrivacy">《隐私政策》</text>
           </text>
         </view>
+        
+        <!-- 注册链接 -->
+        <view class="register-link">
+            <text>还没有账号？</text>
+            <text class="link" @click="goToRegister">立即注册</text>
+        </view>
       </view>
 
       <!-- 其他登录方式 -->
@@ -264,6 +270,8 @@ onLoad(() => {
   right: 0;
   height: 400rpx;
   overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
   
   .gradient-layer {
     width: 100%;
@@ -284,7 +292,7 @@ onLoad(() => {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
-  z-index: 10;
+  z-index: 100;
   
   &:active {
     transform: scale(0.9);
@@ -293,7 +301,7 @@ onLoad(() => {
 
 .main-content {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   padding: 0 48rpx;
   padding-top: 180rpx;
 }
@@ -432,6 +440,19 @@ onLoad(() => {
       color: #C29D71;
     }
   }
+}
+
+.register-link {
+    margin-top: 20rpx;
+    text-align: center;
+    font-size: 26rpx;
+    color: #999;
+    
+    .link {
+        color: #C29D71;
+        margin-left: 10rpx;
+        font-weight: 500;
+    }
 }
 
 .other-login {

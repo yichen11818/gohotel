@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/errors"
@@ -12,21 +13,27 @@ import (
 
 // BookingService 预订业务逻辑层
 type BookingService struct {
-	bookingRepo *repository.BookingRepository
-	roomRepo    *repository.RoomRepository
-	userRepo    *repository.UserRepository
+	bookingRepo      *repository.BookingRepository
+	roomRepo         repository.RoomRepository
+	userRepo         *repository.UserRepository
+	userService      *UserService
+	inventoryService InventoryService
 }
 
 // NewBookingService 创建预订服务实例
 func NewBookingService(
 	bookingRepo *repository.BookingRepository,
-	roomRepo *repository.RoomRepository,
+	roomRepo repository.RoomRepository,
 	userRepo *repository.UserRepository,
+	userService *UserService,
+	inventoryService InventoryService,
 ) *BookingService {
 	return &BookingService{
-		bookingRepo: bookingRepo,
-		roomRepo:    roomRepo,
-		userRepo:    userRepo,
+		bookingRepo:      bookingRepo,
+		roomRepo:         roomRepo,
+		userRepo:         userRepo,
+		userService:      userService,
+		inventoryService: inventoryService,
 	}
 }
 
@@ -42,7 +49,7 @@ type CreateBookingRequest struct {
 }
 
 // CreateBooking 创建预订
-func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) (*models.Booking, error) {
+func (s *BookingService) CreateBooking(ctx context.Context, userID int64, req *CreateBookingRequest) (*models.Booking, error) {
 	// 1. 验证日期格式
 	checkIn, err := time.Parse("2006-01-02", req.CheckIn)
 	if err != nil {
@@ -77,18 +84,27 @@ func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) 
 		return nil, errors.NewBadRequestError("房间不可用")
 	}
 
-	// 5. 检查房间在指定日期是否已被预订
-	available, err := s.bookingRepo.CheckRoomAvailability(req.RoomID, checkIn, checkOut)
+	// 5. 使用库存服务检查房型在该日期范围是否有房
+	available, err := s.inventoryService.CheckAvailability(ctx, room.RoomType, checkIn, checkOut)
 	if err != nil {
-		return nil, errors.NewDatabaseError("check availability", err)
+		return nil, errors.NewDatabaseError("check inventory", err)
 	}
 	if !available {
-		return nil, errors.NewConflictError("该房间在所选日期已被预订")
+		return nil, errors.NewConflictError("该房型在所选日期已售罄")
 	}
 
-	// 6. 计算总天数和总价
+	// 6. 计算总天数和动态总价
 	totalDays := int(checkOut.Sub(checkIn).Hours() / 24)
-	totalPrice := float64(totalDays) * room.Price
+	var totalPrice float64
+	for i := 0; i < totalDays; i++ {
+		date := checkIn.AddDate(0, 0, i)
+		dailyPrice, err := s.inventoryService.GetDailyPrice(ctx, room.RoomType, date)
+		if err != nil {
+			totalPrice += room.Price
+		} else {
+			totalPrice += dailyPrice
+		}
+	}
 
 	// 7. 生成订单号和预订ID
 	bookingNumber := utils.GenID()
@@ -104,6 +120,7 @@ func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) 
 		CheckOut:       checkOut,
 		TotalDays:      totalDays,
 		TotalPrice:     totalPrice,
+		ActualPrice:    totalPrice, // 初始成交价等于总价
 		GuestName:      req.GuestName,
 		GuestPhone:     req.GuestPhone,
 		GuestIDCard:    req.GuestIDCard,
@@ -117,7 +134,10 @@ func (s *BookingService) CreateBooking(userID int64, req *CreateBookingRequest) 
 		return nil, errors.NewDatabaseError("create booking", err)
 	}
 
-	// 10. 加载关联的房间信息
+	// 10. 更新库存
+	_ = s.inventoryService.UpdateInventory(ctx, room.RoomType, checkIn, checkOut, 1)
+
+	// 11. 加载关联的房间信息
 	booking.Room = *room
 
 	return booking, nil
@@ -173,8 +193,87 @@ func (s *BookingService) GetMyBookings(userID int64, page, pageSize int) ([]mode
 	return bookings, total, nil
 }
 
+func (s *BookingService) ConfirmBooking(id int64) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.NewNotFoundError("预订不存在")
+		}
+		return errors.NewDatabaseError("find booking", err)
+	}
+
+	if !booking.IsPending() {
+		return errors.NewBadRequestError("只能确认待处理的预订")
+	}
+
+	if err := s.bookingRepo.UpdateStatus(id, "confirmed"); err != nil {
+		return errors.NewDatabaseError("confirm booking", err)
+	}
+	return nil
+}
+
+// CheckIn 办理入住（管理员）
+func (s *BookingService) CheckIn(ctx context.Context, id int64) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.NewNotFoundError("预订不存在")
+		}
+		return errors.NewDatabaseError("find booking", err)
+	}
+
+	if !booking.CanCheckIn() {
+		return errors.NewBadRequestError("该预订无法办理入住")
+	}
+
+	// 更新预订状态为入住中
+	if err := s.bookingRepo.UpdateStatus(id, "checkin"); err != nil {
+		return errors.NewDatabaseError("check in", err)
+	}
+
+	// 更新房间状态为已占用
+	if err := s.roomRepo.UpdateStatus(ctx, booking.RoomID, "occupied"); err != nil {
+		return errors.NewDatabaseError("update room status", err)
+	}
+
+	return nil
+}
+
+// CheckOut 办理退房（管理员）
+func (s *BookingService) CheckOut(ctx context.Context, id int64) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.NewNotFoundError("预订不存在")
+		}
+		return errors.NewDatabaseError("find booking", err)
+	}
+
+	if booking.Status != "checkin" {
+		return errors.NewBadRequestError("只能为入住中的订单办理退房")
+	}
+
+	// 1. 更新预订状态为已退房
+	if err := s.bookingRepo.UpdateStatus(id, "checkout"); err != nil {
+		return errors.NewDatabaseError("check out", err)
+	}
+
+	// 2. 更新房间状态为可用（且脏）
+	if err := s.roomRepo.UpdateStatus(ctx, booking.RoomID, "available"); err != nil {
+		return errors.NewDatabaseError("update room status", err)
+	}
+	_ = s.roomRepo.UpdateCleanStatus(ctx, booking.RoomID, "dirty")
+
+	// 3. 更新用户积分和消费总额 (CRM)
+	points := int(booking.ActualPrice + booking.ExtraCharges)
+	totalSpend := booking.ActualPrice + booking.ExtraCharges
+	_ = s.userService.UpdateSpendAndPoints(booking.UserID.Int64(), totalSpend, points)
+
+	return nil
+}
+
 // CancelBooking 取消预订
-func (s *BookingService) CancelBooking(id int64, userID int64, reason string) error {
+func (s *BookingService) CancelBooking(ctx context.Context, id int64, userID int64, reason string) error {
 	// 1. 查找预订
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
@@ -202,78 +301,10 @@ func (s *BookingService) CancelBooking(id int64, userID int64, reason string) er
 		return errors.NewDatabaseError("cancel booking", err)
 	}
 
-	return nil
-}
-
-func (s *BookingService) ConfirmBooking(id int64) error {
-	booking, err := s.bookingRepo.FindByID(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.NewNotFoundError("预订不存在")
-		}
-		return errors.NewDatabaseError("find booking", err)
-	}
-
-	if !booking.IsPending() {
-		return errors.NewBadRequestError("只能确认待处理的预订")
-	}
-
-	if err := s.bookingRepo.UpdateStatus(id, "confirmed"); err != nil {
-		return errors.NewDatabaseError("confirm booking", err)
-	}
-
-	return nil
-}
-
-// CheckIn 办理入住（管理员）
-func (s *BookingService) CheckIn(id int64) error {
-	booking, err := s.bookingRepo.FindByID(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.NewNotFoundError("预订不存在")
-		}
-		return errors.NewDatabaseError("find booking", err)
-	}
-
-	if !booking.CanCheckIn() {
-		return errors.NewBadRequestError("该预订无法办理入住")
-	}
-
-	// 更新预订状态为入住中
-	if err := s.bookingRepo.UpdateStatus(id, "checkin"); err != nil {
-		return errors.NewDatabaseError("check in", err)
-	}
-
-	// 更新房间状态为已占用
-	if err := s.roomRepo.UpdateStatus(uint(booking.RoomID), "occupied"); err != nil {
-		return errors.NewDatabaseError("update room status", err)
-	}
-
-	return nil
-}
-
-// CheckOut 办理退房（管理员）
-func (s *BookingService) CheckOut(id int64) error {
-	booking, err := s.bookingRepo.FindByID(id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.NewNotFoundError("预订不存在")
-		}
-		return errors.NewDatabaseError("find booking", err)
-	}
-
-	if booking.Status != "checkin" {
-		return errors.NewBadRequestError("只能为入住中的订单办理退房")
-	}
-
-	// 更新预订状态为已退房
-	if err := s.bookingRepo.UpdateStatus(id, "checkout"); err != nil {
-		return errors.NewDatabaseError("check out", err)
-	}
-
-	// 更新房间状态为可用
-	if err := s.roomRepo.UpdateStatus(uint(booking.RoomID), "available"); err != nil {
-		return errors.NewDatabaseError("update room status", err)
+	// 5. 释放库存
+	room, _ := s.roomRepo.FindByID(uint(booking.RoomID))
+	if room != nil {
+		_ = s.inventoryService.UpdateInventory(ctx, room.RoomType, booking.CheckIn, booking.CheckOut, -1)
 	}
 
 	return nil

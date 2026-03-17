@@ -1,28 +1,47 @@
 package repository
 
 import (
+	"context"
 	"gohotel/internal/models"
 
 	"gorm.io/gorm"
 )
 
-// RoomRepository 房间数据访问层
-type RoomRepository struct {
+// RoomRepository 房间数据访问接口
+type RoomRepository interface {
+	Create(room *models.Room) error
+	FindByID(id uint) (*models.Room, error)
+	FindByRoomNumber(roomNumber string) (*models.Room, error)
+	Update(room *models.Room) error
+	Delete(id uint) error
+	FindAll(page, pageSize int) ([]models.Room, int64, error)
+	FindAvailable(page, pageSize int) ([]models.Room, int64, error)
+	FindByRoomType(roomType string, page, pageSize int) ([]models.Room, int64, error)
+	FindByPriceRange(minPrice, maxPrice float64, page, pageSize int) ([]models.Room, int64, error)
+	FindRoomByFloor(floor, page, pageSize int) ([]models.Room, int64, error)
+	UpdateStatus(ctx context.Context, id int64, status string) error
+	UpdateCleanStatus(ctx context.Context, id int64, cleanStatus string) error
+	ExistsByRoomNumber(roomNumber string) (bool, error)
+	CreateBatch(rooms []*models.Room) error
+	ExistsByRoomNumbers(roomNumbers []string) ([]string, error)
+}
+
+type roomRepository struct {
 	db *gorm.DB
 }
 
 // NewRoomRepository 创建房间仓库实例
-func NewRoomRepository(db *gorm.DB) *RoomRepository {
-	return &RoomRepository{db: db}
+func NewRoomRepository(db *gorm.DB) RoomRepository {
+	return &roomRepository{db: db}
 }
 
 // Create 创建房间
-func (r *RoomRepository) Create(room *models.Room) error {
+func (r *roomRepository) Create(room *models.Room) error {
 	return r.db.Create(room).Error
 }
 
 // FindByID 根据 ID 查找房间
-func (r *RoomRepository) FindByID(id uint) (*models.Room, error) {
+func (r *roomRepository) FindByID(id uint) (*models.Room, error) {
 	var room models.Room
 	err := r.db.First(&room, id).Error
 	if err != nil {
@@ -32,7 +51,7 @@ func (r *RoomRepository) FindByID(id uint) (*models.Room, error) {
 }
 
 // FindByRoomNumber 根据房间号查找房间
-func (r *RoomRepository) FindByRoomNumber(roomNumber string) (*models.Room, error) {
+func (r *roomRepository) FindByRoomNumber(roomNumber string) (*models.Room, error) {
 	var room models.Room
 	err := r.db.Where("room_number = ?", roomNumber).First(&room).Error
 	if err != nil {
@@ -42,17 +61,17 @@ func (r *RoomRepository) FindByRoomNumber(roomNumber string) (*models.Room, erro
 }
 
 // Update 更新房间信息
-func (r *RoomRepository) Update(room *models.Room) error {
+func (r *roomRepository) Update(room *models.Room) error {
 	return r.db.Save(room).Error
 }
 
 // Delete 删除房间
-func (r *RoomRepository) Delete(id uint) error {
+func (r *roomRepository) Delete(id uint) error {
 	return r.db.Delete(&models.Room{}, id).Error
 }
 
 // FindAll 查询所有房间（分页）
-func (r *RoomRepository) FindAll(page, pageSize int) ([]models.Room, int64, error) {
+func (r *roomRepository) FindAll(page, pageSize int) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
@@ -66,7 +85,7 @@ func (r *RoomRepository) FindAll(page, pageSize int) ([]models.Room, int64, erro
 }
 
 // FindAvailable 查询可用房间（分页）
-func (r *RoomRepository) FindAvailable(page, pageSize int) ([]models.Room, int64, error) {
+func (r *roomRepository) FindAvailable(page, pageSize int) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
@@ -82,7 +101,7 @@ func (r *RoomRepository) FindAvailable(page, pageSize int) ([]models.Room, int64
 }
 
 // FindByRoomType 根据房型查询房间（分页）
-func (r *RoomRepository) FindByRoomType(roomType string, page, pageSize int) ([]models.Room, int64, error) {
+func (r *roomRepository) FindByRoomType(roomType string, page, pageSize int) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
@@ -98,7 +117,7 @@ func (r *RoomRepository) FindByRoomType(roomType string, page, pageSize int) ([]
 }
 
 // FindByPriceRange 根据价格范围查询房间（分页）
-func (r *RoomRepository) FindByPriceRange(minPrice, maxPrice float64, page, pageSize int) ([]models.Room, int64, error) {
+func (r *roomRepository) FindByPriceRange(minPrice, maxPrice float64, page, pageSize int) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
@@ -113,8 +132,8 @@ func (r *RoomRepository) FindByPriceRange(minPrice, maxPrice float64, page, page
 	return rooms, total, err
 }
 
-// FindByFloor 根据楼层查询房间
-func (r *RoomRepository) FindRoomByFloor(floor, page, pageSize int) ([]models.Room, int64, error) {
+// FindRoomByFloor 根据楼层查询房间
+func (r *roomRepository) FindRoomByFloor(floor, page, pageSize int) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
@@ -130,24 +149,29 @@ func (r *RoomRepository) FindRoomByFloor(floor, page, pageSize int) ([]models.Ro
 }
 
 // UpdateStatus 更新房间状态
-func (r *RoomRepository) UpdateStatus(id uint, status string) error {
-	return r.db.Model(&models.Room{}).Where("id = ?", id).Update("status", status).Error
+func (r *roomRepository) UpdateStatus(ctx context.Context, id int64, status string) error {
+	return r.db.WithContext(ctx).Model(&models.Room{}).Where("id = ?", id).Update("status", status).Error
+}
+
+// UpdateCleanStatus 更新房间清洁状态
+func (r *roomRepository) UpdateCleanStatus(ctx context.Context, id int64, cleanStatus string) error {
+	return r.db.WithContext(ctx).Model(&models.Room{}).Where("id = ?", id).Update("clean_status", cleanStatus).Error
 }
 
 // ExistsByRoomNumber 检查房间号是否已存在
-func (r *RoomRepository) ExistsByRoomNumber(roomNumber string) (bool, error) {
+func (r *roomRepository) ExistsByRoomNumber(roomNumber string) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.Room{}).Where("room_number = ?", roomNumber).Count(&count).Error
 	return count > 0, err
 }
 
 // CreateBatch 批量创建房间
-func (r *RoomRepository) CreateBatch(rooms []*models.Room) error {
+func (r *roomRepository) CreateBatch(rooms []*models.Room) error {
 	return r.db.Create(rooms).Error
 }
 
 // ExistsByRoomNumbers 批量检查房间号是否已存在，返回已存在的房间号列表
-func (r *RoomRepository) ExistsByRoomNumbers(roomNumbers []string) ([]string, error) {
+func (r *roomRepository) ExistsByRoomNumbers(roomNumbers []string) ([]string, error) {
 	var existingRooms []models.Room
 	err := r.db.Model(&models.Room{}).Where("room_number IN ?", roomNumbers).Select("room_number").Find(&existingRooms).Error
 	if err != nil {

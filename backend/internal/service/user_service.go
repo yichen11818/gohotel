@@ -1,10 +1,14 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
+	"gohotel/internal/config"
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/errors"
 	"gohotel/pkg/utils"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -49,6 +53,22 @@ type LoginRequest struct {
 type LoginResponse struct {
 	User  *models.User `json:"user"`
 	Token string       `json:"token"`
+}
+
+// WeChatLoginRequest 微信登录请求结构
+type WeChatLoginRequest struct {
+	Code     string `json:"code" binding:"required"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+}
+
+// WeChatSessionResponse 微信 Code2Session 响应
+type WeChatSessionResponse struct {
+	OpenID     string `json:"openid"`
+	SessionKey string `json:"session_key"`
+	UnionID    string `json:"unionid"`
+	ErrCode    int    `json:"errcode"`
+	ErrMsg     string `json:"errmsg"`
 }
 
 // DeleteUsersRequest 批量删除用户请求结构
@@ -157,6 +177,90 @@ func (s *UserService) Login(req *LoginRequest) (*LoginResponse, error) {
 	// 3. 验证密码
 	if !utils.CheckPassword(req.Password, user.Password) {
 		return nil, errors.NewUnauthorizedError("用户名或密码错误")
+	}
+
+	// 4. 生成 JWT 令牌
+	token, err := utils.GenerateToken(user.ID.Int64(), user.Username, user.Role)
+	if err != nil {
+		return nil, errors.NewInternalServerError("生成令牌失败")
+	}
+
+	return &LoginResponse{
+		User:  user,
+		Token: token,
+	}, nil
+}
+
+// WeChatLogin 微信一键登录
+func (s *UserService) WeChatLogin(req *WeChatLoginRequest) (*LoginResponse, error) {
+	// 1. 获取微信 OpenID
+	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
+		config.AppConfig.WeChat.AppID,
+		config.AppConfig.WeChat.AppSecret,
+		req.Code,
+	)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, errors.NewInternalServerError("请求微信接口失败")
+	}
+	defer resp.Body.Close()
+
+	var wxResp WeChatSessionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&wxResp); err != nil {
+		return nil, errors.NewInternalServerError("解析微信响应失败")
+	}
+
+	if wxResp.ErrCode != 0 {
+		return nil, errors.NewBadRequestError(fmt.Sprintf("微信登录失败: %s", wxResp.ErrMsg))
+	}
+
+	// 2. 查找或创建用户
+	user, err := s.userRepo.FindByOpenID(wxResp.OpenID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.NewDatabaseError("find user by openid", err)
+	}
+
+	if user == nil {
+		// 用户不存在，自动注册
+		userID := utils.GenID()
+		username := "wx_" + utils.GenerateRandomString(8)
+		// 确保用户名唯一
+		for {
+			exists, _ := s.userRepo.ExistsByUsername(username)
+			if !exists {
+				break
+			}
+			username = "wx_" + utils.GenerateRandomString(8)
+		}
+
+		user = &models.User{
+			ID:         utils.JSONInt64(userID),
+			Username:   username,
+			Email:      username + "@wechat.com", // 生成虚拟邮箱
+			Password:   "",                       // 微信登录无密码
+			RealName:   req.Nickname,
+			Avatar:     req.Avatar,
+			Role:       "user",
+			Status:     "active",
+			OpenID:     wxResp.OpenID,
+			FirstLogin: true,
+		}
+
+		if err := s.userRepo.Create(user); err != nil {
+			return nil, errors.NewDatabaseError("create wechat user", err)
+		}
+	} else {
+		// 用户已存在，更新信息（可选）
+		// if req.Nickname != "" && user.RealName == "" {
+		// 	user.RealName = req.Nickname
+		// 	s.userRepo.Update(user)
+		// }
+	}
+
+	// 3. 检查账号状态
+	if !user.IsActive() {
+		return nil, errors.NewForbiddenError("账号已被封禁")
 	}
 
 	// 4. 生成 JWT 令牌
@@ -322,6 +426,28 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+// UpdateSpendAndPoints 更新消费金额和积分
+func (s *UserService) UpdateSpendAndPoints(userID int64, spend float64, points int) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.TotalSpend += spend
+	user.Points += points
+
+	// 简单的等级提升逻辑
+	if user.TotalSpend >= 10000 {
+		user.Level = "platinum"
+	} else if user.TotalSpend >= 5000 {
+		user.Level = "gold"
+	} else if user.TotalSpend >= 2000 {
+		user.Level = "silver"
+	}
+
+	return s.userRepo.Update(user)
 }
 
 // DeleteUsers 批量删除用户

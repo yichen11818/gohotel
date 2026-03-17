@@ -1,5 +1,6 @@
 # 编译文件
 hotel_server
+backend/server
 *.exe
 *.exe~
 *.dll

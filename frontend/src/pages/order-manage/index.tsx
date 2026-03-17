@@ -1,4 +1,4 @@
-import { getAdminBookings, postAdminBookingsIdConfirm } from '@/services/api/guanliyuan';
+import { getAdminBookings, postAdminBookingsIdConfirm, postAdminBookingsIdCheckin, postAdminBookingsIdCheckout } from '@/services/api/guanliyuan';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -146,6 +146,27 @@ const TableList: React.FC = () => {
       render: (text) => `¥${text}`,
     },
     {
+      title: '押金',
+      dataIndex: 'deposit',
+      width: 100,
+      hideInSearch: true,
+      render: (text) => `¥${text || 0}`,
+    },
+    {
+      title: '成交价',
+      dataIndex: 'actual_price',
+      width: 100,
+      hideInSearch: true,
+      render: (text) => `¥${text}`,
+    },
+    {
+      title: '杂费',
+      dataIndex: 'extra_charges',
+      width: 100,
+      hideInSearch: true,
+      render: (text) => `¥${text || 0}`,
+    },
+    {
       title: '订单状态',
       dataIndex: 'status',
       width: 110,
@@ -198,7 +219,7 @@ const TableList: React.FC = () => {
       render: (_, record) => [
         <Button
           key="confirm"
-          type="primary"
+          type="link"
           disabled={record.status !== 'pending'}
           onClick={() => {
             postAdminBookingsIdConfirm({
@@ -215,6 +236,47 @@ const TableList: React.FC = () => {
           }}
         >
           确认
+        </Button>,
+        <Button
+          key="checkin"
+          type="link"
+          disabled={record.status !== 'confirmed'}
+          onClick={() => {
+            postAdminBookingsIdCheckin({
+              id: record.id,
+            })
+              .then(() => {
+                messageApi.success('入住办理成功');
+                actionRef.current?.reload();
+              })
+              .catch((error: Error) => {
+                console.error('入住办理失败:', error);
+                messageApi.error('入住办理失败');
+              });
+          }}
+        >
+          入住
+        </Button>,
+        <Button
+          key="checkout"
+          type="link"
+          danger
+          disabled={record.status !== 'checkin'}
+          onClick={() => {
+            postAdminBookingsIdCheckout({
+              id: record.id,
+            })
+              .then(() => {
+                messageApi.success('退房办理成功');
+                actionRef.current?.reload();
+              })
+              .catch((error: Error) => {
+                console.error('退房办理失败:', error);
+                messageApi.error('退房办理失败');
+              });
+          }}
+        >
+          退房
         </Button>,
       ],
     },

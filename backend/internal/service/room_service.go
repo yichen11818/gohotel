@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/errors"
@@ -10,11 +11,11 @@ import (
 
 // RoomService 房间业务逻辑层
 type RoomService struct {
-	roomRepo *repository.RoomRepository
+	roomRepo repository.RoomRepository
 }
 
 // NewRoomService 创建房间服务实例
-func NewRoomService(roomRepo *repository.RoomRepository) *RoomService {
+func NewRoomService(roomRepo repository.RoomRepository) *RoomService {
 	return &RoomService{roomRepo: roomRepo}
 }
 
@@ -277,7 +278,7 @@ func (s *RoomService) SearchRoomsByPrice(minPrice, maxPrice float64, page, pageS
 }
 
 // UpdateRoomStatus 更新房间状态
-func (s *RoomService) UpdateRoomStatus(id uint, status string) error {
+func (s *RoomService) UpdateRoomStatus(ctx context.Context, id int64, status string) error {
 	// 验证状态值
 	validStatuses := map[string]bool{
 		"available":   true,
@@ -288,8 +289,26 @@ func (s *RoomService) UpdateRoomStatus(id uint, status string) error {
 		return errors.NewBadRequestError("无效的房间状态")
 	}
 
-	if err := s.roomRepo.UpdateStatus(id, status); err != nil {
+	if err := s.roomRepo.UpdateStatus(ctx, id, status); err != nil {
 		return errors.NewDatabaseError("update room status", err)
+	}
+
+	return nil
+}
+
+// UpdateRoomCleanStatus 更新房间清洁状态
+func (s *RoomService) UpdateRoomCleanStatus(ctx context.Context, id int64, cleanStatus string) error {
+	validStatuses := map[string]bool{
+		"clean":      true,
+		"dirty":      true,
+		"inspecting": true,
+	}
+	if !validStatuses[cleanStatus] {
+		return errors.NewBadRequestError("无效的清洁状态")
+	}
+
+	if err := s.roomRepo.UpdateCleanStatus(ctx, id, cleanStatus); err != nil {
+		return errors.NewDatabaseError("update room clean status", err)
 	}
 
 	return nil

@@ -120,6 +120,16 @@ func (r *UserRepository) FindByPhone(phone string) (*models.User, error) {
 	return &user, nil
 }
 
+// FindByOpenID 根据微信 OpenID 查找用户
+func (r *UserRepository) FindByOpenID(openID string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("open_id = ?", openID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // FindAll 根据条件过滤查询用户（分页）
 func (r *UserRepository) FindAll(page, pageSize int, username, email, phone, realName, role, status string) ([]models.User, int64, error) {
 	var users []models.User

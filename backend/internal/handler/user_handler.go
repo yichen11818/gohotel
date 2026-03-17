@@ -83,6 +83,37 @@ func (h *UserHandler) Login(c *gin.Context) {
 	utils.SuccessWithMessage(c, "登录成功", resp)
 }
 
+// WeChatLogin 微信一键登录
+// @Summary 微信一键登录
+// @Description 微信小程序一键登录接口
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body service.WeChatLoginRequest true "微信登录信息"
+// @Success 200 {object} service.LoginResponse
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 500 {object} errors.ErrorResponse
+// @Router /api/auth/wechat-login [post]
+func (h *UserHandler) WeChatLogin(c *gin.Context) {
+	var req service.WeChatLoginRequest
+
+	// 1. 绑定并验证请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 2. 调用 Service 层
+	resp, err := h.userService.WeChatLogin(&req)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	// 3. 返回成功响应
+	utils.SuccessWithMessage(c, "登录成功", resp)
+}
+
 // GetProfile 获取个人信息
 // @Summary 获取个人信息
 // @Description 获取当前登录用户的个人信息

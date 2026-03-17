@@ -28,6 +28,8 @@ interface BookingInfo {
   status: string;
   paymentStatus: string;
   totalAmount: number;
+  actualPrice?: number;
+  extraCharges?: number;
 }
 
 const CheckOutForm: React.FC = () => {
@@ -96,6 +98,8 @@ const CheckOutForm: React.FC = () => {
           status: booking.status,
           paymentStatus: booking.payment_status || booking.paymentStatus || '',
           totalAmount: booking.total_price || booking.total_amount || booking.totalAmount || 0,
+          actualPrice: booking.actual_price,
+          extraCharges: booking.extra_charges,
         };
         
         setBookingInfo(formattedBooking);
@@ -230,7 +234,13 @@ const CheckOutForm: React.FC = () => {
             <Descriptions.Item label="支付状态">
               {renderPaymentStatusTag(bookingInfo.paymentStatus)}
             </Descriptions.Item>
-            <Descriptions.Item label="总金额">¥{bookingInfo.totalAmount ? bookingInfo.totalAmount.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="房费总计">¥{bookingInfo.actualPrice ? bookingInfo.actualPrice.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="杂费/赔偿">¥{bookingInfo.extraCharges ? bookingInfo.extraCharges.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="应收总额">
+              <span style={{ fontSize: '18px', color: '#f5222d', fontWeight: 'bold' }}>
+                ¥{((bookingInfo.actualPrice || 0) + (bookingInfo.extraCharges || 0)).toFixed(2)}
+              </span>
+            </Descriptions.Item>
           </Descriptions>
           
           <div style={{ marginTop: 24, textAlign: 'center' }}>

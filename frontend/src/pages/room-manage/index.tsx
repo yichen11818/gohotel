@@ -48,6 +48,9 @@ const RoomList: React.FC = () => {
       title: '房型',
       dataIndex: 'room_type',
       valueEnum: {
+        '标准间': {
+          text: '标准间',
+        },
         '单人间': {
           text: '单人间',
         },
@@ -103,16 +106,34 @@ const RoomList: React.FC = () => {
       dataIndex: 'status',
       valueEnum: {
         available: {
-          text: '可用',
+          text: '空闲',
           status: 'Success',
         },
         occupied: {
-          text: '占用',
+          text: '在住',
           status: 'Error',
         },
         maintenance: {
-          text: '维护中',
+          text: '维修中',
           status: 'Warning',
+        },
+      },
+    },
+    {
+      title: '清洁状态',
+      dataIndex: 'clean_status',
+      valueEnum: {
+        clean: {
+          text: '干净',
+          status: 'Success',
+        },
+        dirty: {
+          text: '脏房',
+          status: 'Error',
+        },
+        inspecting: {
+          text: '待查',
+          status: 'Processing',
         },
       },
     },

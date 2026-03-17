@@ -10,14 +10,17 @@ declare namespace API {
   type Banner = {
     /** 创建时间 */
     created_at?: string;
+    effective_active?: boolean;
     /** 活动结束时间（可为空） */
     end_time?: string;
     /** 主键（自增ID） */
     id?: number;
     /** 图片URL */
     image_url?: string;
+    in_time_window?: boolean;
     /** 跳转链接（可为空） */
     link_url?: string;
+    manual_active?: boolean;
     /** 排序，数字越小越靠前 */
     sort?: number;
     /** 活动开始时间（可为空） */
@@ -30,10 +33,6 @@ declare namespace API {
     title?: string;
     /** 更新时间 */
     updated_at?: string;
-
-	manual_active?: boolean;
-	in_time_window?: boolean;
-	effective_active?: boolean;
   };
 
   type BatchCreateRoomRequest = {
@@ -65,6 +64,8 @@ declare namespace API {
   };
 
   type Booking = {
+    /** 实际成交价 */
+    actual_price?: number;
     /** 预订单号（唯一，JSON序列化为字符串） */
     booking_number?: number;
     /** 取消原因 */
@@ -75,6 +76,12 @@ declare namespace API {
     check_out?: string;
     /** 创建时间 */
     created_at?: string;
+    /** 押金 */
+    deposit?: number;
+    /** 杂项费用 */
+    extra_charges?: number;
+    /** 同住人信息 (JSON) */
+    extra_guests?: string;
     /** 入住人身份证号 */
     guest_id_card?: string;
     /** 入住人姓名 */
@@ -97,7 +104,7 @@ declare namespace API {
     status?: string;
     /** 总天数 */
     total_days?: number;
-    /** 总价 */
+    /** 预订总价 */
     total_price?: number;
     /** 更新时间 */
     updated_at?: string;
@@ -131,6 +138,11 @@ declare namespace API {
     top: number;
     type: string;
     width: number;
+  };
+
+  type CreateHotelRequest = {
+    name: string;
+    status?: string;
   };
 
   type CreateRoomRequest = {
@@ -196,14 +208,6 @@ declare namespace API {
     width?: number;
   };
 
-  type Hotel = {
-  created_at?: string;
-  id?: number;
-  name?: string;
-  status?: string;
-  updated_at?: string;
-  };
-  
   type FailedRoom = {
     reason?: string;
     room_number?: string;
@@ -261,6 +265,25 @@ declare namespace API {
     page_size?: number;
   };
 
+  type getAdminHotelsIdParams = {
+    /** 酒店 ID */
+    id: number;
+  };
+
+  type getAdminHotelsParams = {
+    /** 页码 */
+    page?: number;
+    /** 每页数量 */
+    page_size?: number;
+  };
+
+  type getAdminInventoryGridParams = {
+    /** 开始日期 */
+    start_date: string;
+    /** 结束日期 */
+    end_date: string;
+  };
+
   type getAdminLogsParams = {
     /** 页码 */
     page?: number;
@@ -278,6 +301,11 @@ declare namespace API {
     page?: number;
     /** 每页条数，默认10 */
     pageSize?: number;
+  };
+
+  type getAdminSettingsParams = {
+    /** 酒店 ID */
+    hotel_id: number;
   };
 
   type getAdminUsersIdParams = {
@@ -301,6 +329,16 @@ declare namespace API {
     /** 角色 */
     role?: string;
     /** 状态 */
+    status?: string;
+  };
+
+  type getAdminWorkOrdersCleaningsParams = {
+    /** 状态筛选 */
+    status?: string;
+  };
+
+  type getAdminWorkOrdersRepairsParams = {
+    /** 状态筛选 */
     status?: string;
   };
 
@@ -351,6 +389,27 @@ declare namespace API {
     page?: number;
     /** 每页数量 */
     page_size?: number;
+  };
+
+  type getSettingsPublicParams = {
+    /** 酒店 ID */
+    hotel_id: number;
+  };
+
+  type Hotel = {
+    created_at?: string;
+    id?: number;
+    name?: string;
+    status?: string;
+    updated_at?: string;
+  };
+
+  type HotelSettings = {
+    created_at?: string;
+    hotel_id?: number;
+    id?: number;
+    settings_json?: string;
+    updated_at?: string;
   };
 
   type LogEntry = {
@@ -428,6 +487,16 @@ declare namespace API {
     id: number;
   };
 
+  type postAdminHotelsId_openAPI_deleteParams = {
+    /** 酒店 ID */
+    id: number;
+  };
+
+  type postAdminHotelsIdParams = {
+    /** 酒店 ID */
+    id: number;
+  };
+
   type postAdminNoticesId_openAPI_deleteParams = {
     /** 公告ID */
     id: string;
@@ -436,6 +505,21 @@ declare namespace API {
   type postAdminNoticesIdParams = {
     /** 公告ID */
     id: string;
+  };
+
+  type postAdminWorkOrdersCleaningIdAssignParams = {
+    /** 工单ID */
+    id: number;
+  };
+
+  type postAdminWorkOrdersCleaningIdCompleteParams = {
+    /** 清洁任务ID */
+    id: number;
+  };
+
+  type postAdminWorkOrdersRepairIdCompleteParams = {
+    /** 维修任务ID */
+    id: number;
   };
 
   type postBookingsIdCancelParams = {
@@ -479,6 +563,8 @@ declare namespace API {
     bed_type?: string;
     /** 可住人数 */
     capacity?: number;
+    /** 清洁状态：clean(干净), dirty(脏房), inspecting(待查) */
+    clean_status?: string;
     /** 创建时间 */
     created_at?: string;
     /** 房间描述 */
@@ -503,7 +589,7 @@ declare namespace API {
     room_number?: string;
     /** 房间类型（有索引） */
     room_type?: string;
-    /** 状态：available, occupied, maintenance */
+    /** 状态：available(空闲), occupied(在住), maintenance(维修) */
     status?: string;
     /** 上边界 */
     top?: number;
@@ -511,6 +597,11 @@ declare namespace API {
     updated_at?: string;
     /** 宽度 */
     width?: number;
+  };
+
+  type SaveHotelSettingsRequest = {
+    hotel_id: number;
+    settings: Record<string, any>;
   };
 
   type UpdateFacilityRequest = {
@@ -522,6 +613,11 @@ declare namespace API {
     top?: number;
     type?: string;
     width?: number;
+  };
+
+  type UpdateHotelRequest = {
+    name?: string;
+    status?: string;
   };
 
   type UpdateRoomRequest = {
@@ -545,6 +641,8 @@ declare namespace API {
   type User = {
     /** 头像 URL */
     avatar?: string;
+    /** 余额 */
+    balance?: number;
     /** 创建时间 */
     created_at?: string;
     /** 邮箱（唯一） */
@@ -553,17 +651,31 @@ declare namespace API {
     first_login?: boolean;
     /** 主键（使用雪花算法生成，JSON序列化为字符串） */
     id?: number;
+    /** 会员等级：normal, silver, gold, platinum */
+    level?: string;
+    /** 微信 OpenID */
+    open_id?: string;
     /** 手机号（唯一，可为空） */
     phone?: string;
+    /** 积分 */
+    points?: number;
     /** 真实姓名 */
     real_name?: string;
     /** 角色：user, admin */
     role?: string;
     /** 状态：active, blocked */
     status?: string;
+    /** 总消费 */
+    total_spend?: number;
     /** 更新时间 */
     updated_at?: string;
     /** 用户名（唯一） */
     username?: string;
+  };
+
+  type WeChatLoginRequest = {
+    avatar?: string;
+    code: string;
+    nickname?: string;
   };
 }

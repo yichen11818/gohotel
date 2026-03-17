@@ -73,6 +73,29 @@ const TableList: React.FC = () => {
       },
     },
     {
+      title: '等级',
+      dataIndex: 'level',
+      valueEnum: {
+        normal: { text: '普通会员', status: 'Default' },
+        silver: { text: '白银会员', status: 'Processing' },
+        gold: { text: '黄金会员', status: 'Warning' },
+        platinum: { text: '铂金会员', status: 'Error' },
+      },
+    },
+    {
+      title: '积分',
+      dataIndex: 'points',
+      hideInSearch: true,
+      sorter: true,
+    },
+    {
+      title: '累计消费',
+      dataIndex: 'total_spend',
+      hideInSearch: true,
+      sorter: true,
+      render: (text) => `¥${text || 0}`,
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       valueEnum: {
@@ -199,10 +222,10 @@ const TableList: React.FC = () => {
             danger
             onClick={async () => {
               try {
-                // 获取选中用户的ID列表，并过滤掉可能的undefined值
+                // 获取选中用户的ID列表，并转换为字符串，过滤掉可能的undefined值
                 const userIds = selectedRowsState
-                  .map(row => row.id)
-                  .filter((id): id is number => id !== undefined && id !== null);
+                  .map(row => row.id?.toString())
+                  .filter((id): id is string => id !== undefined && id !== null);
                 
                 // 确保有有效ID再调用API
                 if (userIds.length === 0) {
