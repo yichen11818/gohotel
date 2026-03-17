@@ -16,6 +16,7 @@ export const IconMap = {
   'laundry': '\ue625',     // 洗衣房
   'microwave': '\ue626',   // 微波炉
   'elevator': '\ue627',    // 电梯
+  'tool': '\ue62a',        // 扳手/工具
 } as const;
 
 export type IconName = keyof typeof IconMap;

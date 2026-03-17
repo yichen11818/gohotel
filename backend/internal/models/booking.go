@@ -15,10 +15,14 @@ type Booking struct {
 	CheckIn        time.Time       `gorm:"not null;index" json:"check_in"`                       // 入住日期（有索引）
 	CheckOut       time.Time       `gorm:"not null;index" json:"check_out"`                      // 退房日期（有索引）
 	TotalDays      int             `gorm:"not null" json:"total_days"`                           // 总天数
-	TotalPrice     float64         `gorm:"not null;type:decimal(10,2)" json:"total_price"`       // 总价
+	TotalPrice     float64         `gorm:"not null;type:decimal(10,2)" json:"total_price"`       // 预订总价
+	Deposit        float64         `gorm:"type:decimal(10,2);default:0" json:"deposit"`          // 押金
+	ActualPrice    float64         `gorm:"type:decimal(10,2)" json:"actual_price"`               // 实际成交价
+	ExtraCharges   float64         `gorm:"type:decimal(10,2);default:0" json:"extra_charges"`    // 杂项费用
 	GuestName      string          `gorm:"not null;size:50" json:"guest_name"`                   // 入住人姓名
 	GuestPhone     string          `gorm:"not null;size:20" json:"guest_phone"`                  // 入住人电话
 	GuestIDCard    string          `gorm:"size:50" json:"guest_id_card"`                         // 入住人身份证号
+	ExtraGuests    string          `gorm:"type:text" json:"extra_guests"`                        // 同住人信息 (JSON)
 	SpecialRequest string          `gorm:"type:text" json:"special_request"`                     // 特殊要求
 	Status         string          `gorm:"default:'pending';size:20;index" json:"status"`        // 状态：pending, confirmed, checkin, checkout, cancelled
 	PaymentStatus  string          `gorm:"default:'unpaid';size:20;index" json:"payment_status"` // 支付状态：unpaid, paid, refunded

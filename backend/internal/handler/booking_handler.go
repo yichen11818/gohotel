@@ -46,7 +46,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	booking, err := h.bookingService.CreateBooking(userID.(int64), &req)
+	booking, err := h.bookingService.CreateBooking(c.Request.Context(), userID.(int64), &req)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -143,7 +143,7 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&req)
 
-	err = h.bookingService.CancelBooking(id, userID.(int64), req.Reason)
+	err = h.bookingService.CancelBooking(c.Request.Context(), id, userID.(int64), req.Reason)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -207,7 +207,7 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 		return
 	}
 
-	err = h.bookingService.CheckIn(id)
+	err = h.bookingService.CheckIn(c.Request.Context(), id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return
@@ -239,7 +239,7 @@ func (h *BookingHandler) CheckOut(c *gin.Context) {
 		return
 	}
 
-	err = h.bookingService.CheckOut(id)
+	err = h.bookingService.CheckOut(c.Request.Context(), id)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return

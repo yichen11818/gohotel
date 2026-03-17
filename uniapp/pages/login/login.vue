@@ -270,6 +270,8 @@ onLoad(() => {
   right: 0;
   height: 400rpx;
   overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
   
   .gradient-layer {
     width: 100%;
@@ -290,7 +292,7 @@ onLoad(() => {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
-  z-index: 10;
+  z-index: 100;
   
   &:active {
     transform: scale(0.9);
@@ -299,7 +301,7 @@ onLoad(() => {
 
 .main-content {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   padding: 0 48rpx;
   padding-top: 180rpx;
 }

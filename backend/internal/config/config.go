@@ -17,7 +17,14 @@ type Config struct {
 	JWT      JWTConfig
 	Redis    RedisConfig
 	COS      COSConfig
+	WeChat   WeChatConfig
 	Log      LogConfig
+}
+
+// WeChatConfig 微信小程序配置
+type WeChatConfig struct {
+	AppID     string // 小程序 AppID
+	AppSecret string // 小程序 AppSecret
 }
 
 // COSConfig 腾讯云对象存储配置
@@ -115,6 +122,10 @@ func Load() error {
 			SecretKey:  getEnv("SECRETKEY", ""),
 			BaseURL:    getEnv("COS_BASE_URL", ""),
 			BucketName: getEnv("COS_BUCKET_NAME", ""),
+		},
+		WeChat: WeChatConfig{
+			AppID:     getEnv("WECHAT_APP_ID", ""),
+			AppSecret: getEnv("WECHAT_APP_SECRET", ""),
 		},
 		Log: LogConfig{
 			Level:      getEnv("LOG_LEVEL", "info"),

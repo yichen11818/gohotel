@@ -205,9 +205,19 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
             width="md"
             label={'状态'}
             valueEnum={{
-              available: '可用',
-              occupied: '占用',
-              maintenance: '维护中',
+              available: '空闲',
+              occupied: '在住',
+              maintenance: '维修中',
+            }}
+          />
+          <ProFormSelect
+            name="clean_status"
+            width="md"
+            label={'清洁状态'}
+            valueEnum={{
+              clean: '干净',
+              dirty: '脏房',
+              inspecting: '待查',
             }}
           />
         </StepsForm.StepForm>

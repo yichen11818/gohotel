@@ -3,7 +3,7 @@
  */
 
 // 开发环境API地址
-const DEV_API_URL = 'http://192.168.1.10:19999'
+const DEV_API_URL = 'http://127.0.0.1:19999'
 
 // 生产环境API地址
 const PROD_API_URL = 'http://192.168.1.10:19999'

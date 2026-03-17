@@ -28,6 +28,8 @@ interface BookingInfo {
   status: string;
   paymentStatus: string;
   totalAmount: number;
+  deposit?: number;
+  actualPrice?: number;
 }
 
 const CheckInForm: React.FC = () => {
@@ -104,6 +106,8 @@ const CheckInForm: React.FC = () => {
           status: booking.status,
           paymentStatus: booking.payment_status || booking.paymentStatus || '',
           totalAmount: booking.total_price || booking.total_amount || booking.totalAmount || 0,
+          deposit: booking.deposit,
+          actualPrice: booking.actual_price,
         };
         
         setBookingInfo(formattedBooking);
@@ -254,7 +258,9 @@ const CheckInForm: React.FC = () => {
             <Descriptions.Item label="支付状态">
               {renderPaymentStatusTag(bookingInfo.paymentStatus)}
             </Descriptions.Item>
-            <Descriptions.Item label="总金额">¥{bookingInfo.totalAmount ? bookingInfo.totalAmount.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="房费总额">¥{bookingInfo.totalAmount ? bookingInfo.totalAmount.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="应收押金">¥{bookingInfo.deposit ? bookingInfo.deposit.toFixed(2) : '0.00'}</Descriptions.Item>
+            <Descriptions.Item label="实收房费">¥{bookingInfo.actualPrice ? bookingInfo.actualPrice.toFixed(2) : '0.00'}</Descriptions.Item>
           </Descriptions>
           
           <div style={{ marginTop: 24, textAlign: 'center' }}>

@@ -36,7 +36,7 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      192.168.1.10:19999
+// @host      127.0.0.1:19999
 // @BasePath
 
 // @securityDefinitions.apikey Bearer
@@ -140,17 +140,22 @@ func main() {
 	facilityRepo := repository.NewFacilityRepository(database.DB)
 	bannerRepo := repository.NewBannerRepository(database.DB)
 	noticeRepo := repository.NewNoticeRepository(database.DB)
+	inventoryRepo := repository.NewInventoryRepository(database.DB)
+	workOrderRepo := repository.NewWorkOrderRepository(database.DB)
+	pricingRepo := repository.NewPricingRepository(database.DB)
 
 	// Service 层
 	userService := service.NewUserService(userRepo)
 	hotelService := service.NewHotelService(database.DB, hotelRepo, hotelSettingsRepo)
 	hotelSettingsService := service.NewHotelSettingsService(database.DB, hotelSettingsRepo, hotelRepo)
+	noticeService := service.NewNoticeService(noticeRepo, cosService, timeWheel)
+	inventoryService := service.NewInventoryService(inventoryRepo, pricingRepo)
+	workOrderService := service.NewWorkOrderService(workOrderRepo, roomRepo)
 	roomService := service.NewRoomService(roomRepo)
-	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo)
+	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo, userService, inventoryService)
 	logService := service.NewLogService(logRepo)
 	facilityService := service.NewFacilityService(facilityRepo)
 	bannerService := service.NewBannerService(bannerRepo, cosService, timeWheel)
-	noticeService := service.NewNoticeService(noticeRepo, cosService, timeWheel)
 
 	// 加载持久化的时间轮任务
 	fmt.Println("📂 正在加载时间轮任务...")
@@ -203,6 +208,9 @@ func main() {
 	bannerHandler := handler.NewBannerHandler(bannerService, cosService)
 	noticeHandler := handler.NewNoticeHandler(noticeService)
 	cosHandler := handler.NewCosHandler(cosService)
+	workOrderHandler := handler.NewWorkOrderHandler(workOrderService)
+	pricingHandler := handler.NewPricingHandler(pricingRepo)
+	inventoryHandler := handler.NewInventoryHandler(inventoryService)
 
 	// 8. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
@@ -216,7 +224,7 @@ func main() {
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 设置路由
-	setupRoutes(r, userHandler, hotelHandler, hotelSettingsHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, swaggerJSONPath)
+	setupRoutes(r, userHandler, hotelHandler, hotelSettingsHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, workOrderHandler, pricingHandler, inventoryHandler, swaggerJSONPath)
 
 	// 12. 启动服务器
 	fmt.Println("═══════════════════════════════════════════════")
@@ -234,7 +242,7 @@ func main() {
 
 // setupRoutes 设置所有路由
 
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *handler.HotelHandler, hotelSettingsHandler *handler.HotelSettingsHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, swaggerJSONPath string) {
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *handler.HotelHandler, hotelSettingsHandler *handler.HotelSettingsHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, workOrderHandler *handler.WorkOrderHandler, pricingHandler *handler.PricingHandler, inventoryHandler *handler.InventoryHandler, swaggerJSONPath string) {
 	// Swagger 文档路由
 	r.GET("/swagger.json", func(c *gin.Context) {
 		c.File(swaggerJSONPath)
@@ -264,6 +272,7 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 		{
 			auth.POST("/register", userHandler.Register)
 			auth.POST("/login", userHandler.Login)
+			auth.POST("/wechat-login", userHandler.WeChatLogin)
 		}
 
 		// 房间路由（公开查询）
@@ -361,6 +370,25 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 				admin.POST("/bookings/:id/checkin", bookingHandler.CheckIn)
 				admin.POST("/bookings/:id/checkout", bookingHandler.CheckOut)
 				admin.GET("/bookings/room", bookingHandler.GetBookingsByRoomNumberAndStatus) // 根据房间号和状态获取预订列表
+
+				// 工单与客房服务管理
+				admin.POST("/work-orders/repair", workOrderHandler.CreateRepairRequest)
+				admin.POST("/work-orders/repair/:id/complete", workOrderHandler.CompleteRepair)
+				admin.GET("/work-orders/repairs", workOrderHandler.ListMaintenance)
+				admin.POST("/work-orders/cleaning", workOrderHandler.CreateCleaningTask)
+				admin.POST("/work-orders/cleaning/:id/assign", workOrderHandler.AssignStaff)
+				admin.POST("/work-orders/cleaning/:id/complete", workOrderHandler.CompleteCleaning)
+				admin.GET("/work-orders/cleanings", workOrderHandler.ListHousekeeping)
+
+				// 房态库存管理
+				admin.POST("/inventory/init", inventoryHandler.InitInventory)
+				admin.POST("/inventory/update", inventoryHandler.UpdateInventory)
+				admin.GET("/inventory/grid", inventoryHandler.GetInventoryGrid)
+
+				// 定价规则管理
+				admin.GET("/pricing/rules", pricingHandler.ListRules)
+				admin.POST("/pricing/rules", pricingHandler.CreateRule)
+
 				// 日志管理
 				admin.GET("/logs", logHandler.GetLogs) // 获取日志列表
 				// 设施管理

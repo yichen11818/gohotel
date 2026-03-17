@@ -27,6 +27,10 @@ func AutoMigrate() error {
 		&models.Log{},
 		&models.Banner{},
 		&models.Notice{},
+		&models.RoomInventory{},
+		&models.Maintenance{},
+		&models.Housekeeping{},
+		&models.PricingRule{},
 	)
 
 	if err != nil {

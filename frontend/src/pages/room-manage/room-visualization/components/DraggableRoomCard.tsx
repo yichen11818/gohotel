@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Card, Button, Space, Popconfirm } from 'antd';
+import { Card, Button, Space, Popconfirm, Tag } from 'antd';
 import { DeleteOutlined, GatewayOutlined, FormOutlined } from '@ant-design/icons';
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from './DraggableFacilityCard';
@@ -15,6 +15,8 @@ interface DraggableRoomCardProps {
   onDelete: (id: number) => void;
   onDrop: (id: number, left: number, top: number) => void;
   onResizeComplete?: (id: number, newWidth: number, newHeight: number, roomType?: string) => void;
+  onRepair?: (room: API.Room) => void;
+  onCleaning?: (room: API.Room) => void;
 }
 
 // 网格大小（与背景网格一致）
@@ -37,6 +39,8 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
   onDelete,
   onDrop,
   onResizeComplete,
+  onRepair,
+  onCleaning,
 }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeWidth, setResizeWidth] = useState(width);
@@ -190,6 +194,11 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
             room.status === 'maintenance' ? '#fffbe6' : '#fafafa',
         }}
       >
+        {room.clean_status === 'dirty' && (
+          <div style={{ position: 'absolute', top: 2, right: 2, zIndex: 1 }}>
+            <Tag color="error" style={{ margin: 0, fontSize: '10px', padding: '0 4px' }}>脏</Tag>
+          </div>
+        )}
         <div style={{ textAlign: 'center', width: '100%' }}>
           {/* 床位图标 */}
           <Iconfont 
@@ -286,6 +295,32 @@ const DraggableRoomCard: React.FC<DraggableRoomCardProps> = ({
               onClick={handleEnterResizeMode}
               style={{ fontSize: 12, padding: '0 4px', height: 22 }}
               title="调整大小"
+            />
+          )}
+          {onRepair && (
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<Iconfont name="tool" size={14} />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                onRepair(room);
+              }}
+              style={{ fontSize: 12, padding: '0 4px', height: 22 }}
+              title="快捷报修"
+            />
+          )}
+          {onCleaning && (
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<Iconfont name="rest" size={14} />} 
+              onClick={(e) => {
+                e.stopPropagation();
+                onCleaning(room);
+              }}
+              style={{ fontSize: 12, padding: '0 4px', height: 22 }}
+              title="快捷清洁"
             />
           )}
           <Popconfirm

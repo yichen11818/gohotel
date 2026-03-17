@@ -31,3 +31,18 @@ export async function postAuthRegister(
     ...(options || {}),
   });
 }
+
+/** 微信一键登录 微信小程序一键登录接口 POST /api/auth/wechat-login */
+export async function postAuthWechatLogin(
+  body: API.WeChatLoginRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.LoginResponse>("/api/auth/wechat-login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}

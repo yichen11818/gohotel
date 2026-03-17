@@ -71,6 +71,13 @@
       }
     },
     {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/room-detail/room-detail",
       "style": {
         "navigationBarTitleText": "房间详情",

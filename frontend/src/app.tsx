@@ -12,7 +12,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
 const API_BASE_URL_STORAGE_KEY = 'gohotel_admin_api_base_url';
-const DEFAULT_API_BASE_URL = 'http://192.168.1.10:19999';
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:19999';
 
 const getApiBaseURL = () => {
 	try {

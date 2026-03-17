@@ -60,6 +60,9 @@ definitions:
     type: object
   models.Booking:
     properties:
+      actual_price:
+        description: 实际成交价
+        type: number
       booking_number:
         description: 预订单号（唯一，JSON序列化为字符串）
         type: integer
@@ -74,6 +77,15 @@ definitions:
         type: string
       created_at:
         description: 创建时间
+        type: string
+      deposit:
+        description: 押金
+        type: number
+      extra_charges:
+        description: 杂项费用
+        type: number
+      extra_guests:
+        description: 同住人信息 (JSON)
         type: string
       guest_id_card:
         description: 入住人身份证号
@@ -110,7 +122,7 @@ definitions:
         description: 总天数
         type: integer
       total_price:
-        description: 总价
+        description: 预订总价
         type: number
       updated_at:
         description: 更新时间
@@ -160,6 +172,32 @@ definitions:
         description: 宽度
         type: integer
     type: object
+  models.Hotel:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.HotelSettings:
+    properties:
+      created_at:
+        type: string
+      hotel_id:
+        type: integer
+      id:
+        type: integer
+      settings_json:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.Notice:
     properties:
       created_at:
@@ -201,6 +239,9 @@ definitions:
       capacity:
         description: 可住人数
         type: integer
+      clean_status:
+        description: 清洁状态：clean(干净), dirty(脏房), inspecting(待查)
+        type: string
       created_at:
         description: 创建时间
         type: string
@@ -238,7 +279,7 @@ definitions:
         description: 房间类型（有索引）
         type: string
       status:
-        description: 状态：available, occupied, maintenance
+        description: 状态：available(空闲), occupied(在住), maintenance(维修)
         type: string
       top:
         description: 上边界
@@ -255,6 +296,9 @@ definitions:
       avatar:
         description: 头像 URL
         type: string
+      balance:
+        description: 余额
+        type: number
       created_at:
         description: 创建时间
         type: string
@@ -267,9 +311,18 @@ definitions:
       id:
         description: 主键（使用雪花算法生成，JSON序列化为字符串）
         type: integer
+      level:
+        description: 会员等级：normal, silver, gold, platinum
+        type: string
+      open_id:
+        description: 微信 OpenID
+        type: string
       phone:
         description: 手机号（唯一，可为空）
         type: string
+      points:
+        description: 积分
+        type: integer
       real_name:
         description: 真实姓名
         type: string
@@ -279,6 +332,9 @@ definitions:
       status:
         description: 状态：active, blocked
         type: string
+      total_spend:
+        description: 总消费
+        type: number
       updated_at:
         description: 更新时间
         type: string
@@ -412,6 +468,15 @@ definitions:
     - type
     - width
     type: object
+  service.CreateHotelRequest:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+    required:
+    - name
+    type: object
   service.CreateRoomRequest:
     properties:
       area:
@@ -530,6 +595,17 @@ definitions:
     - password
     - username
     type: object
+  service.SaveHotelSettingsRequest:
+    properties:
+      hotel_id:
+        type: integer
+      settings:
+        additionalProperties: true
+        type: object
+    required:
+    - hotel_id
+    - settings
+    type: object
   service.UpdateFacilityRequest:
     properties:
       floor:
@@ -548,6 +624,13 @@ definitions:
         type: string
       width:
         type: integer
+    type: object
+  service.UpdateHotelRequest:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
     type: object
   service.UpdateRoomRequest:
     properties:
@@ -582,6 +665,17 @@ definitions:
       width:
         type: integer
     type: object
+  service.WeChatLoginRequest:
+    properties:
+      avatar:
+        type: string
+      code:
+        type: string
+      nickname:
+        type: string
+    required:
+    - code
+    type: object
   utils.ErrorInfo:
     properties:
       code:
@@ -606,7 +700,7 @@ definitions:
         description: 是否成功
         type: boolean
     type: object
-host: 192.168.1.10:19999
+host: 127.0.0.1:19999
 info:
   contact:
     email: support@gohotel.com
@@ -1348,6 +1442,275 @@ paths:
       summary: 按楼层查询设施（管理员）
       tags:
       - 管理员
+  /api/admin/hotels:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有酒店列表，支持分页
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{\"hotels\": [...], \"total\": ...}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取酒店列表
+      tags:
+      - 酒店管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的酒店
+      parameters:
+      - description: 酒店信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateHotelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 创建酒店
+      tags:
+      - 酒店管理
+  /api/admin/hotels/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取酒店详情
+      parameters:
+      - description: 酒店 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取酒店详情
+      tags:
+      - 酒店管理
+    post:
+      consumes:
+      - application/json
+      description: 更新指定酒店的信息
+      parameters:
+      - description: 酒店 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateHotelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新酒店信息
+      tags:
+      - 酒店管理
+  /api/admin/hotels/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除指定酒店
+      parameters:
+      - description: 酒店 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 删除酒店
+      tags:
+      - 酒店管理
+  /api/admin/inventory/grid:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定日期范围的库存网格数据
+      parameters:
+      - description: 开始日期
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: 结束日期
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 获取库存网格
+      tags:
+      - 库存管理
+  /api/admin/inventory/init:
+    post:
+      consumes:
+      - application/json
+      description: 初始化房型库存
+      parameters:
+      - description: '初始化库存请求 {room_type: string, total_count: int, price: number,
+          days: int}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 初始化成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 初始化库存
+      tags:
+      - 库存管理
+  /api/admin/inventory/update:
+    post:
+      consumes:
+      - application/json
+      description: 调整指定日期范围的库存
+      parameters:
+      - description: '更新库存请求 {room_type: string, start_date: string, end_date: string,
+          delta: int}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 更新库存
+      tags:
+      - 库存管理
   /api/admin/logs:
     get:
       consumes:
@@ -1602,6 +1965,124 @@ paths:
       summary: 删除活动横幅
       tags:
       - 活动管理
+  /api/admin/pricing/rules:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有定价规则
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 获取定价规则列表
+      tags:
+      - 定价管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的定价规则
+      parameters:
+      - description: '创建定价规则请求 {name: string, type: string, room_type: string, start_date:
+          string, end_date: string, adjustment: number, is_percent: boolean, priority:
+          int}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 创建定价规则
+      tags:
+      - 定价管理
+  /api/admin/settings:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定酒店的配置信息
+      parameters:
+      - description: 酒店 ID
+        in: query
+        name: hotel_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HotelSettings'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取酒店设置
+      tags:
+      - 酒店管理
+  /api/admin/settings/save:
+    post:
+      consumes:
+      - application/json
+      description: 保存或更新酒店配置
+      parameters:
+      - description: 设置信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.SaveHotelSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 保存酒店设置
+      tags:
+      - 酒店管理
   /api/admin/users:
     get:
       consumes:
@@ -1780,6 +2261,226 @@ paths:
       summary: 添加用户
       tags:
       - 管理员
+  /api/admin/work-orders/cleaning:
+    post:
+      consumes:
+      - application/json
+      description: 创建新的清洁任务
+      parameters:
+      - description: '创建清洁任务 {room_id: int, type: string}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 创建清洁任务
+      tags:
+      - 工单管理
+  /api/admin/work-orders/cleaning/{id}/assign:
+    post:
+      consumes:
+      - application/json
+      description: 为工单分派负责员工
+      parameters:
+      - description: 工单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '分派请求 {staff_id: int}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 分派成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 分派员工
+      tags:
+      - 工单管理
+  /api/admin/work-orders/cleaning/{id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: 标记清洁任务为已完成
+      parameters:
+      - description: 清洁任务ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 完成清洁任务
+      tags:
+      - 工单管理
+  /api/admin/work-orders/cleanings:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有清洁任务，支持按状态筛选
+      parameters:
+      - description: 状态筛选
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 获取清洁任务列表
+      tags:
+      - 工单管理
+  /api/admin/work-orders/repair:
+    post:
+      consumes:
+      - application/json
+      description: 创建新的维修请求
+      parameters:
+      - description: '创建维修请求 {room_id: int, type: string, description: string}'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 创建维修请求
+      tags:
+      - 工单管理
+  /api/admin/work-orders/repair/{id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: 标记维修任务为已完成
+      parameters:
+      - description: 维修任务ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '备注 {remark: string}'
+        in: body
+        name: request
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 完成维修任务
+      tags:
+      - 工单管理
+  /api/admin/work-orders/repairs:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有维修任务，支持按状态筛选
+      parameters:
+      - description: 状态筛选
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - Bearer: []
+      summary: 获取维修任务列表
+      tags:
+      - 工单管理
   /api/auth/login:
     post:
       consumes:
@@ -1838,6 +2539,36 @@ paths:
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       summary: 用户注册
+      tags:
+      - 认证
+  /api/auth/wechat-login:
+    post:
+      consumes:
+      - application/json
+      description: 微信小程序一键登录接口
+      parameters:
+      - description: 微信登录信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.WeChatLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 微信一键登录
       tags:
       - 认证
   /api/banners/active:
@@ -2393,6 +3124,31 @@ paths:
       summary: 按房型搜索房间
       tags:
       - 房间
+  /api/settings/public:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定酒店的公开配置信息
+      parameters:
+      - description: 酒店 ID
+        in: query
+        name: hotel_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HotelSettings'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: 获取酒店公开设置
+      tags:
+      - 酒店设置
   /api/upload/image:
     post:
       consumes:

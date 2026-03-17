@@ -21,6 +21,7 @@ import {
   postAdminFacilitiesIdOpenApiDelete,
   postAdminFacilitiesBatch,
 } from '@/services/api/guanliyuan';
+import { postAdminWorkOrdersCleaning as createCleaningTask, postAdminWorkOrdersRepair as createRepairRequest } from '@/services/api/gongdanguanli';
 import Iconfont from '@/components/Iconfont';
 import UpdateForm from '../components/UpdateForm';
 
@@ -116,8 +117,14 @@ const CustomDragLayer: React.FC = () => {
                       ? '#fffbe6'
                       : '#fafafa',
               boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+              position: 'relative',
             }}
           >
+            {room.clean_status === 'dirty' && (
+              <div style={{ position: 'absolute', top: 2, right: 2 }}>
+                <Tag color="error" style={{ margin: 0, fontSize: '10px', padding: '0 4px' }}>脏</Tag>
+              </div>
+            )}
             <div style={{ textAlign: 'center', width: '100%' }}>
               <Iconfont 
                 name="bed" 
@@ -601,6 +608,35 @@ const RoomManage: React.FC = () => {
     setResizePending(null);
   };
 
+  // 快捷报修
+  const handleQuickRepair = async (room: API.Room) => {
+    try {
+      await createRepairRequest({
+        room_id: room.id!,
+        type: 'other',
+        description: '来自可视化界面的快捷报修',
+      });
+      message.success(`房间 ${room.room_number} 报修申请已提交`);
+      reloadRooms();
+    } catch (error) {
+      message.error('报修失败');
+    }
+  };
+
+  // 快捷清洁
+  const handleQuickCleaning = async (room: API.Room) => {
+    try {
+      await createCleaningTask({
+        room_id: room.id!,
+        type: room.status === 'occupied' ? 'daily' : 'checkout',
+      });
+      message.success(`房间 ${room.room_number} 清洁任务已创建`);
+      reloadRooms();
+    } catch (error) {
+      message.error('创建清洁任务失败');
+    }
+  };
+
   // 删除房间
   const handleDelete = async (id: number) => {
     try {
@@ -922,6 +958,8 @@ const RoomManage: React.FC = () => {
                     onDelete={handleDelete}
                     onDrop={handleRoomDrop}
                     onResizeComplete={handleRoomResizeComplete}
+                    onRepair={handleQuickRepair}
+                    onCleaning={handleQuickCleaning}
                   />
                 );
               })}
