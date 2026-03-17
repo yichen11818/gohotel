@@ -9,8 +9,8 @@
       class="custom-navbar"
     >
       <template #back>
-        <view class="navbar-left" :class="{ 'dark-mode': scrollTop > 100 }">
-          <TnIcon name="location-fill" :color="scrollTop > 100 ? '#333' : '#fff'" size="32" />
+        <view class="navbar-left" v-if="scrollTop > 100">
+          <TnIcon name="location-fill" color="#333" size="32" />
           <text class="hotel-name">{{ hotelData?.name || '' }}</text>
         </view>
       </template>
@@ -18,62 +18,55 @@
 
     <!-- 顶部轮播区域 -->
     <view class="hero-section">
-      <TnSwiper
-        v-model="currentSwiperIndex"
-        :data="bannerImages"
-        width="100%"
-        height="560"
-        autoplay
-        loop
-        indicator
-        indicator-type="line"
-        indicator-bg-color="rgba(255,255,255,0.3)"
-        indicator-active-bg-color="#C29D71"
+      <swiper
+        class="banner-swiper"
+        :indicator-dots="true"
+        :autoplay="true"
+        :interval="3000"
+        :duration="500"
+        indicator-color="rgba(255,255,255,0.3)"
+        indicator-active-color="#C29D71"
+        @change="handleBannerChange"
       >
-        <template #default="{ data }">
+        <swiper-item v-for="(item, index) in bannerImages" :key="index">
           <view class="swiper-item">
-            <image class="banner-img" :src="data" mode="aspectFill"></image>
+            <image class="banner-img" :src="item" mode="aspectFill" @error="handleImageError" @load="handleImageLoad"></image>
             <view class="image-gradient"></view>
           </view>
-        </template>
-      </TnSwiper>
+        </swiper-item>
+      </swiper>
       
       <!-- 酒店信息浮层 -->
       <view class="hotel-info-overlay" v-if="hotelData">
-        <text class="overlay-title">{{ hotelData.name }}</text>
+        <text class="overlay-title">{{ hotelData.name }} · Premium</text>
         <view class="overlay-location" @click="openMap">
-          <TnIcon name="location" color="#fff" size="28" />
+          <TnIcon name="location-fill" color="#fff" size="32" />
           <text class="location-text">{{ hotelData.address }}</text>
-          <TnIcon name="right" color="#fff" size="24" />
         </view>
       </view>
     </view>
 
-    <!-- 主要内容区 (上浮卡片) -->
+    <!-- 主要内容区 -->
     <view class="main-content">
       <!-- 预订卡片 -->
-      <view class="booking-card" @click="openDatePicker">
-        <view class="date-selection">
+      <view class="booking-card">
+        <view class="date-selection" @click="openDatePicker">
           <view class="date-block">
             <text class="label">入住</text>
             <view class="date-value">
-              <text class="day">{{ formatDay(checkInDate) }}</text>
-              <text class="month">{{ formatMonth(checkInDate) }}</text>
+              <text class="date-text">{{ formatMonthDay(checkInDate) }}</text>
             </view>
             <text class="weekday">{{ getWeekDay(checkInDate) }}</text>
           </view>
           
           <view class="nights-divider">
-            <view class="divider-line"></view>
             <view class="nights-badge">{{ nights }}晚</view>
-            <view class="divider-line"></view>
           </view>
           
-          <view class="date-block">
+          <view class="date-block checkout">
             <text class="label">离店</text>
             <view class="date-value">
-              <text class="day">{{ formatDay(checkOutDate) }}</text>
-              <text class="month">{{ formatMonth(checkOutDate) }}</text>
+              <text class="date-text">{{ formatMonthDay(checkOutDate) }}</text>
             </view>
             <text class="weekday">{{ getWeekDay(checkOutDate) }}</text>
           </view>
@@ -84,12 +77,11 @@
             shape="round"
             size="lg"
             width="100%"
-            height="90rpx"
+            height="104rpx"
             bg-color="#2A2A2A"
             text-color="#D4B184"
             @click.stop="handleBooking"
-            :shadow="true"
-            shadow-color="rgba(42, 42, 42, 0.3)"
+            :shadow="false"
           >
             <view class="btn-content">
               <text class="btn-text">立即预订</text>
@@ -98,29 +90,29 @@
         </view>
       </view>
 
-      <!-- 金刚区/功能入口 -->
+      <!-- 功能入口 -->
       <view class="feature-section">
         <view class="feature-item" @click="navigateTo('vip')">
-          <view class="icon-box vip">
-            <TnIcon name="vip-fill" color="#8B5E3C" size="48" />
+          <view class="icon-box">
+            <TnIcon name="vip-diamond" color="#C29D71" size="48" />
           </view>
           <text class="feature-name">会员权益</text>
         </view>
         <view class="feature-item" @click="navigateTo('points')">
-          <view class="icon-box points">
-            <TnIcon name="gift-fill" color="#8B5E3C" size="48" />
+          <view class="icon-box">
+            <TnIcon name="gift" color="#C29D71" size="48" />
           </view>
           <text class="feature-name">积分商城</text>
         </view>
         <view class="feature-item" @click="navigateTo('cinema')">
-          <view class="icon-box service">
-            <TnIcon name="video-fill" color="#8B5E3C" size="48" />
+          <view class="icon-box">
+            <TnIcon name="video" color="#C29D71" size="48" />
           </view>
           <text class="feature-name">影音服务</text>
         </view>
         <view class="feature-item" @click="showMoreOptions">
-          <view class="icon-box more">
-            <TnIcon name="menu-circle-fill" color="#8B5E3C" size="48" />
+          <view class="icon-box">
+            <TnIcon name="menu-circle" color="#C29D71" size="48" />
           </view>
           <text class="feature-name">更多服务</text>
         </view>
@@ -128,15 +120,12 @@
 
       <!-- 促销活动 -->
       <view class="promotion-section" v-if="promotionImage">
-        <view class="section-header">
-          <text class="section-title">精选优惠</text>
-        </view>
         <view class="promotion-card" @click="goToPromotion">
           <image :src="promotionImage" mode="aspectFill" class="promo-img"></image>
           <view class="promo-content">
             <view class="promo-tag">限时特惠</view>
             <text class="promo-title">尊享会员专享礼遇</text>
-            <text class="promo-desc">预订立减，再享延迟退房</text>
+            <text class="promo-desc">预订立减 · 延迟退房</text>
           </view>
         </view>
       </view>
@@ -201,6 +190,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import { hotel, banner } from '@/api/index.js'
+import { API_BASE_URL } from '@/config/api.config.js'
 import TnSwiper from '@/uni_modules/tuniaoui-vue3/components/swiper/src/swiper.vue'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnPopup from '@/uni_modules/tuniaoui-vue3/components/popup/src/popup.vue'
@@ -220,6 +210,7 @@ const navbarBgColor = computed(() => {
 const hotelId = ref(1)
 const hotelData = ref(null)
 const bannerImages = ref([])
+const bannerLinks = ref([])
 const promotionImage = ref('')
 const currentSwiperIndex = ref(0)
 
@@ -252,6 +243,13 @@ const maxSelectDate = computed(() => {
   date.setMonth(date.getMonth() + 6)
   return formatDateString(date)
 })
+
+const formatMonthDay = (date) => {
+  if (!date) return '--'
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${month}月${day}日`
+}
 
 // 格式化工具
 const formatDateString = (date) => {
@@ -287,30 +285,72 @@ const initDates = () => {
   checkOutDate.value = tomorrow
 }
 
+const normalizeAssetUrl = (url) => {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('//')) return `https:${url}`
+  const firstSegment = String(url).split('/')[0]
+  if (firstSegment.includes('.') || firstSegment.includes(':')) return `http://${url}`
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`
+  return `${API_BASE_URL}/${url}`
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    const [hotelRes, bannerRes] = await Promise.all([
-      hotel.getHotelDetail(hotelId.value),
-      banner.getActiveBanners()
-    ])
+    // 获取横幅数据
+    const bannerRes = await banner.getActiveBanners()
     
-    // 处理酒店数据
-    if (hotelRes) {
-      hotelData.value = hotelRes
+    // 处理Banner数据 - 后端返回 { success: true, data: [...] }
+    const bannerData = bannerRes?.data || (bannerRes?.success ? bannerRes.data : bannerRes)
+    
+    if (bannerData && Array.isArray(bannerData) && bannerData.length > 0) {
+      bannerImages.value = bannerData
+        .map(item => normalizeAssetUrl(item?.image_url))
+        .filter(Boolean)
+      bannerLinks.value = bannerData.map(item => item?.link_url || '')
+      promotionImage.value = normalizeAssetUrl(bannerData?.[0]?.image_url)
     }
     
-    // 处理Banner数据
-    if (bannerRes && bannerRes.length > 0) {
-      bannerImages.value = bannerRes.map(item => item.image_url).filter(Boolean)
-      if (bannerRes[0]?.image_url) {
-        promotionImage.value = bannerRes[0].image_url
-      }
+    // 酒店数据暂时使用固定值，等待后端提供酒店详情接口
+    hotelData.value = {
+      name: 'GoHotel精品酒店',
+      address: '北京市朝阳区建国门外大街1号',
+      latitude: 39.9042,
+      longitude: 116.4074
     }
   } catch (error) {
     console.error('Data loading failed:', error)
+    throw error
   } finally {
     loading.value = false
+  }
+}
+
+const handleBannerChange = (e) => {
+  currentSwiperIndex.value = e.detail.current
+}
+
+const handleImageLoad = (e) => {
+  // 图片加载成功
+}
+
+const handleImageError = (e) => {
+  console.error('Image load failed:', e)
+}
+
+const handleBannerClick = (index) => {
+  const linkUrl = bannerLinks.value[index]
+  if (linkUrl) {
+    // 如果是小程序页面路径
+    if (linkUrl.startsWith('/pages/')) {
+      uni.navigateTo({ url: linkUrl })
+    } else {
+      // 如果是外部链接，使用 webview
+      uni.navigateTo({
+        url: `/pages/webview/webview?url=${encodeURIComponent(linkUrl)}`
+      })
+    }
   }
 }
 
@@ -425,27 +465,24 @@ const showMoreOptions = () => {
 .container {
   min-height: 100vh;
   background-color: #F9F9F9;
+  box-sizing: border-box;
 }
 
 /* 导航栏 */
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 6rpx;
+  width: 500rpx;
   
   .hotel-name {
     font-size: 32rpx;
     font-weight: 600;
-    color: #fff;
-    opacity: 0.9;
-    text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.3);
-  }
-  
-  &.dark-mode {
-    .hotel-name {
-      color: #333;
-      text-shadow: none;
-    }
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
   }
 }
 
@@ -453,10 +490,23 @@ const showMoreOptions = () => {
 .hero-section {
   position: relative;
   height: 560rpx;
+  overflow: hidden;
+  width: 100%;
   
-  .banner-img {
+  .banner-swiper {
     width: 100%;
     height: 100%;
+  }
+  
+  .swiper-item {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    
+    .banner-img {
+      width: 100%;
+      height: 100%;
+    }
   }
   
   .image-gradient {
@@ -465,37 +515,36 @@ const showMoreOptions = () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.55) 100%);
   }
   
   .hotel-info-overlay {
     position: absolute;
-    left: 40rpx;
-    bottom: 80rpx;
+    left: 32rpx;
+    top: 380rpx;
     z-index: 2;
     
     .overlay-title {
       font-size: 48rpx;
       font-weight: bold;
       color: #fff;
-      margin-bottom: 16rpx;
+      margin-bottom: 24rpx;
       display: block;
-      text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.3);
     }
     
     .overlay-location {
       display: inline-flex;
       align-items: center;
-      gap: 8rpx;
-      background: rgba(255,255,255,0.2);
+      gap: 12rpx;
+      background: rgba(255,255,255,0.22);
       backdrop-filter: blur(10px);
-      padding: 12rpx 24rpx;
-      border-radius: 100rpx;
+      padding: 12rpx 20rpx;
+      border-radius: 999rpx;
       
       .location-text {
         font-size: 24rpx;
         color: #fff;
-        max-width: 400rpx;
+        max-width: 440rpx;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -508,53 +557,55 @@ const showMoreOptions = () => {
 .main-content {
   position: relative;
   z-index: 3;
-  margin-top: -40rpx;
-  padding: 0 32rpx;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+  margin-top: -80rpx;
   
   .booking-card {
     background: #fff;
-    border-radius: 32rpx;
-    padding: 40rpx;
-    box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.08);
-    margin-bottom: 40rpx;
+    border-radius: 44rpx;
+    padding: 32rpx;
+    box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.05);
+    border: 1rpx solid #F0F0F0;
+    height: 420rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
     
     .date-selection {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 40rpx;
+      height: 176rpx;
       
       .date-block {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12rpx;
+        
+        &.checkout {
+          align-items: flex-end;
+        }
         
         .label {
-          font-size: 24rpx;
+          font-size: 22rpx;
           color: #999;
-          margin-bottom: 12rpx;
-          display: block;
         }
         
         .date-value {
-          display: flex;
-          align-items: baseline;
-          gap: 4rpx;
-          margin-bottom: 8rpx;
-          
-          .day {
-            font-size: 44rpx;
-            font-weight: 600;
-            color: #333;
-            font-family: 'Din', sans-serif;
-          }
-          
-          .month {
-            font-size: 24rpx;
+          .date-text {
+            font-size: 36rpx;
+            font-weight: bold;
             color: #333;
           }
         }
         
         .weekday {
-          font-size: 24rpx;
+          font-size: 22rpx;
           color: #999;
         }
       }
@@ -562,23 +613,22 @@ const showMoreOptions = () => {
       .nights-divider {
         display: flex;
         align-items: center;
-        gap: 16rpx;
-        padding: 0 20rpx;
-        
-        .divider-line {
-          width: 40rpx;
-          height: 2rpx;
-          background: #eee;
-        }
+        justify-content: center;
         
         .nights-badge {
           font-size: 22rpx;
+          font-weight: 600;
           color: #C29D71;
-          border: 1rpx solid #C29D71;
-          padding: 4rpx 16rpx;
-          border-radius: 100rpx;
+          background: rgba(194,157,113,0.12);
+          border: 1rpx solid rgba(194,157,113,0.35);
+          padding: 8rpx 24rpx;
+          border-radius: 999rpx;
         }
       }
+    }
+    
+    .search-btn-wrapper {
+      width: 100%;
     }
     
     .btn-content {
@@ -588,7 +638,7 @@ const showMoreOptions = () => {
       
       .btn-text {
         font-size: 32rpx;
-        font-weight: 600;
+        font-weight: bold;
         letter-spacing: 2rpx;
       }
     }
@@ -599,33 +649,31 @@ const showMoreOptions = () => {
 .feature-section {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 48rpx;
-  padding: 0 16rpx;
+  padding: 24rpx 16rpx;
+  background: #fff;
+  border-radius: 44rpx;
+  border: 1rpx solid #F0F0F0;
+  height: 184rpx;
+  align-items: center;
+  box-sizing: border-box;
   
   .feature-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 16rpx;
+    width: 144rpx;
     
     .icon-box {
-      width: 96rpx;
-      height: 96rpx;
-      border-radius: 32rpx;
+      width: 44rpx;
+      height: 44rpx;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
-      box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.03);
-      
-      &.vip { background: linear-gradient(135deg, #FFF8F0 0%, #FFF 100%); }
-      &.points { background: linear-gradient(135deg, #FFF0F0 0%, #FFF 100%); }
-      &.service { background: linear-gradient(135deg, #F0F4FF 0%, #FFF 100%); }
-      &.more { background: linear-gradient(135deg, #F5F5F5 0%, #FFF 100%); }
     }
     
     .feature-name {
-      font-size: 24rpx;
+      font-size: 22rpx;
       color: #666;
     }
   }
@@ -633,30 +681,16 @@ const showMoreOptions = () => {
 
 /* 促销区域 */
 .promotion-section {
-  margin-bottom: 60rpx;
-  
-  .section-header {
-    margin-bottom: 24rpx;
-    padding-left: 8rpx;
-    
-    .section-title {
-      font-size: 32rpx;
-      font-weight: 600;
-      color: #333;
-    }
-  }
-  
   .promotion-card {
     position: relative;
-    height: 240rpx;
-    border-radius: 24rpx;
+    height: 320rpx;
+    border-radius: 44rpx;
     overflow: hidden;
-    background: #000;
+    background: #111;
     
     .promo-img {
       width: 100%;
       height: 100%;
-      opacity: 0.8;
     }
     
     .promo-content {
@@ -665,19 +699,21 @@ const showMoreOptions = () => {
       left: 0;
       width: 100%;
       height: 100%;
-      padding: 32rpx;
+      padding: 36rpx 32rpx;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+      justify-content: flex-start;
+      background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.05) 70%, transparent 100%);
+      box-sizing: border-box;
       
       .promo-tag {
         align-self: flex-start;
         background: #C29D71;
         color: #fff;
-        font-size: 20rpx;
-        padding: 4rpx 12rpx;
-        border-radius: 8rpx;
+        font-size: 22rpx;
+        font-weight: 600;
+        padding: 6rpx 24rpx;
+        border-radius: 16rpx;
         margin-bottom: 16rpx;
       }
       
@@ -685,12 +721,12 @@ const showMoreOptions = () => {
         font-size: 36rpx;
         font-weight: bold;
         color: #fff;
-        margin-bottom: 8rpx;
+        margin-bottom: 12rpx;
       }
       
       .promo-desc {
         font-size: 24rpx;
-        color: rgba(255,255,255,0.8);
+        color: rgba(255,255,255,0.85);
       }
     }
   }

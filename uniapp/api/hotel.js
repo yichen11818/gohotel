@@ -4,78 +4,142 @@
 
 import { get, post, put, del } from '@/utils/request.js'
 
+// === 房间相关API ===
+
 /**
- * 获取酒店列表
+ * 获取所有房间列表
  * @param {Object} params - 查询参数
- * @param {Number} params.page - 页码
- * @param {Number} params.pageSize - 每页数量
- * @param {String} params.keyword - 搜索关键词
- * @param {String} params.city - 城市
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
  */
-export const getHotelList = (params) => {
-  return get('/hotels', params)
+export const getRoomList = (params = {}) => {
+  return get('/rooms', params)
 }
 
 /**
- * 获取酒店详情
- * @param {Number} id - 酒店ID
+ * 获取可用房间列表
+ * @param {Object} params - 查询参数
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
  */
-export const getHotelDetail = (id) => {
-  return get(`/hotels/${id}`)
+export const getAvailableRooms = (params = {}) => {
+  return get('/rooms/available', params)
 }
 
 /**
- * 搜索酒店
+ * 根据楼层获取房间
+ * @param {Number} floor - 楼层号
+ * @param {Object} params - 查询参数
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
+ */
+export const getRoomsByFloor = (floor, params = {}) => {
+  return get(`/rooms/floor/${floor}`, params)
+}
+
+/**
+ * 根据房型搜索房间
  * @param {Object} params - 搜索参数
- * @param {String} params.keyword - 关键词
- * @param {String} params.checkInDate - 入住日期
- * @param {String} params.checkOutDate - 离店日期
- * @param {Number} params.minPrice - 最低价格
- * @param {Number} params.maxPrice - 最高价格
+ * @param {String} params.room_type - 房型
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
  */
-export const searchHotels = (params) => {
-  return get('/hotels/search', params)
+export const searchRoomsByType = (params) => {
+  return get('/rooms/search/type', params)
 }
 
 /**
- * 获取酒店房型列表
- * @param {Number} hotelId - 酒店ID
+ * 获取房间详情
+ * @param {Number} id - 房间ID
  */
-export const getRoomTypes = (hotelId) => {
-  return get(`/hotels/${hotelId}/rooms`)
+export const getRoomDetail = (id) => {
+  return get(`/rooms/${id}`)
 }
 
 /**
- * 获取酒店设施
- * @param {Number} hotelId - 酒店ID
+ * 创建房间（管理员）
+ * @param {Object} data - 房间信息
  */
-export const getHotelFacilities = (hotelId) => {
-  return get(`/hotels/${hotelId}/facilities`)
+export const createRoom = (data) => {
+  return post('/rooms', data)
 }
 
 /**
- * 获取酒店评价
- * @param {Number} hotelId - 酒店ID
- * @param {Object} params - 分页参数
+ * 更新房间（管理员）
+ * @param {Number} id - 房间ID
+ * @param {Object} data - 房间信息
  */
-export const getHotelReviews = (hotelId, params) => {
-  return get(`/hotels/${hotelId}/reviews`, params)
+export const updateRoom = (id, data) => {
+  return post(`/rooms/${id}`, data)
 }
 
 /**
- * 收藏酒店
- * @param {Number} hotelId - 酒店ID
+ * 删除房间（管理员）
+ * @param {Number} id - 房间ID
  */
-export const favoriteHotel = (hotelId) => {
-  return post(`/hotels/${hotelId}/favorite`)
+export const deleteRoom = (id) => {
+  return post(`/rooms/${id}/delete`)
 }
 
 /**
- * 取消收藏酒店
- * @param {Number} hotelId - 酒店ID
+ * 批量创建房间（管理员）
+ * @param {Object} data - 批量房间信息
  */
-export const unfavoriteHotel = (hotelId) => {
-  return del(`/hotels/${hotelId}/favorite`)
+export const batchCreateRooms = (data) => {
+  return post('/rooms/batch', data)
+}
+
+// === 设施相关API ===
+
+/**
+ * 获取所有设施（管理员）
+ * @param {Object} params - 查询参数
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
+ */
+export const getFacilities = (params = {}) => {
+  return get('/admin/facilities', params)
+}
+
+/**
+ * 根据楼层获取设施（管理员）
+ * @param {Number} floor - 楼层号
+ */
+export const getFacilitiesByFloor = (floor) => {
+  return get(`/admin/facilities/floor/${floor}`)
+}
+
+/**
+ * 获取设施详情（管理员）
+ * @param {Number} id - 设施ID
+ */
+export const getFacilityDetail = (id) => {
+  return get(`/admin/facilities/${id}`)
+}
+
+/**
+ * 创建设施（管理员）
+ * @param {Object} data - 设施信息
+ */
+export const createFacility = (data) => {
+  return post('/admin/facilities', data)
+}
+
+/**
+ * 更新设施（管理员）
+ * @param {Number} id - 设施ID
+ * @param {Object} data - 设施信息
+ */
+export const updateFacility = (id, data) => {
+  return post(`/admin/facilities/${id}`, data)
+}
+
+/**
+ * 批量更新设施位置（管理员）
+ * @param {Object} data - 批量设施位置信息
+ */
+export const batchUpdateFacilities = (data) => {
+  return post('/admin/facilities/batch', data)
 }
 
 

@@ -6,7 +6,7 @@
         v-model="currentImageIndex"
         :data="roomImages"
         width="100%"
-        height="500"
+        height="500rpx"
         autoplay
         loop
         indicator
@@ -14,9 +14,9 @@
         indicator-bg-color="rgba(255,255,255,0.4)"
         indicator-active-bg-color="#C29D71"
       >
-        <template #default="{ data }">
+        <template #default="{ item }">
           <view class="swiper-item">
-            <image class="room-image" :src="data" mode="aspectFill"></image>
+            <image class="room-image" :src="item" mode="aspectFill"></image>
           </view>
         </template>
       </TnSwiper>

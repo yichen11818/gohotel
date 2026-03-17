@@ -66,10 +66,42 @@ onLoad((options) => {
 const loadRoomTypes = async () => {
   loading.value = true
   try {
-    const data = await hotel.getRoomTypes(hotelId.value)
-    roomList.value = data || []
+    // 使用新的后端API获取可用房间列表
+    const data = await hotel.getAvailableRooms({
+      page: 1,
+      page_size: 20
+    })
+    
+    // 处理返回的数据结构
+    if (data && Array.isArray(data)) {
+      roomList.value = data.map(room => ({
+        id: room.id,
+        name: room.room_number || `${room.room_type}房间`,
+        description: room.room_type || room.description,
+        price: room.price,
+        image_url: room.image_url,
+        score: room.score || '5.0',
+        booked_count: room.booked_count || 0,
+        comment_count: room.comment_count || 0
+      }))
+    } else if (data && data.data) {
+      // 如果返回的是分页数据结构
+      roomList.value = data.data.map(room => ({
+        id: room.id,
+        name: room.room_number || `${room.room_type}房间`,
+        description: room.room_type || room.description,
+        price: room.price,
+        image_url: room.image_url,
+        score: room.score || '5.0',
+        booked_count: room.booked_count || 0,
+        comment_count: room.comment_count || 0
+      }))
+    } else {
+      roomList.value = []
+    }
   } catch (error) {
     console.error('Failed to load room types:', error)
+    throw error
   } finally {
     loading.value = false
   }

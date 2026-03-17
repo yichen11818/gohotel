@@ -188,13 +188,13 @@ const roomInfo = ref({
 // 加载房间信息
 const loadRoomInfo = async (roomId) => {
   try {
-    const data = await hotel.getRoomTypes(1) // 暂时硬编码酒店ID为1
-    const detail = data.find(item => item.id == roomId)
+    // 使用新的后端API获取房间详情
+    const detail = await hotel.getRoomDetail(roomId)
     if (detail) {
       roomInfo.value = {
         id: detail.id,
-        name: detail.name,
-        image: detail.image_url || detail.image,
+        name: detail.room_number || `${detail.room_type}房间`,
+        image: detail.image_url,
         area: detail.area,
         bedType: detail.bed_type,
         price: detail.price
@@ -202,6 +202,7 @@ const loadRoomInfo = async (roomId) => {
     }
   } catch (error) {
     console.error('Failed to load room info:', error)
+    throw error
   }
 }
 

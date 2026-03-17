@@ -89,6 +89,12 @@
             <text class="link" @click.stop="goToPrivacy">《隐私政策》</text>
           </text>
         </view>
+        
+        <!-- 注册链接 -->
+        <view class="register-link">
+            <text>还没有账号？</text>
+            <text class="link" @click="goToRegister">立即注册</text>
+        </view>
       </view>
 
       <!-- 其他登录方式 -->
@@ -432,6 +438,19 @@ onLoad(() => {
       color: #C29D71;
     }
   }
+}
+
+.register-link {
+    margin-top: 20rpx;
+    text-align: center;
+    font-size: 26rpx;
+    color: #999;
+    
+    .link {
+        color: #C29D71;
+        margin-left: 10rpx;
+        font-weight: 500;
+    }
 }
 
 .other-login {
