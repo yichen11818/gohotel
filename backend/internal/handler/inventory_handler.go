@@ -92,7 +92,7 @@ func (h *InventoryHandler) UpdateInventory(c *gin.Context) {
 // @Produce json
 // @Param start_date query string true "开始日期"
 // @Param end_date query string true "结束日期"
-// @Success 200 {object} utils.Response "获取成功"
+// @Success 200 {object} utils.Response{data=service.InventoryGridResponse} "获取成功"
 // @Failure 400 {object} utils.Response "请求参数错误"
 // @Failure 500 {object} utils.Response "服务器内部错误"
 // @Router /api/admin/inventory/grid [get]

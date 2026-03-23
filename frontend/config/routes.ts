@@ -51,7 +51,9 @@ export default [
   { name: '定价策略', icon: 'accountBook', path: '/pricing-manage', component: './pricing-manage' },
   { name: '活动管理', icon: 'gift', path: '/activity-manage', component: './activity-manage' },
   { name: '公告管理', icon: 'notification', path: '/notice-manage', component: './notice-manage' },
+  { name: '日志管理', icon: 'profile', path: '/log-manage', component: './log-manage' },
   { name: '系统设置', icon: 'table', path: '/system-setting', component: './system-setting' },
+  { path: '/profile', component: './profile' },
   { path: '/', redirect: '/welcome' },
   { path: '*', layout: false, component: './404' },
 ];

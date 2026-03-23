@@ -198,6 +198,76 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.Housekeeping:
+    properties:
+      created_at:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: integer
+      room:
+        $ref: '#/definitions/models.Room'
+      room_id:
+        type: integer
+      staff_id:
+        description: 清洁人员 ID
+        type: integer
+      start_time:
+        type: string
+      status:
+        description: 状态：pending, in_progress, completed
+        type: string
+      type:
+        description: 类型：daily(续住清), checkout(退房清), deep(深清)
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Log:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      level:
+        type: string
+      message:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Maintenance:
+    properties:
+      created_at:
+        type: string
+      description:
+        description: 问题描述
+        type: string
+      id:
+        type: integer
+      remark:
+        description: 维修备注
+        type: string
+      reporter_id:
+        description: 报修人 (员工 ID)
+        type: integer
+      room:
+        $ref: '#/definitions/models.Room'
+      room_id:
+        type: integer
+      status:
+        description: 状态：pending, in_progress, completed, cancelled
+        type: string
+      type:
+        description: 报修类型：plumbing, electrical, furniture, etc.
+        type: string
+      updated_at:
+        type: string
+      worker_id:
+        description: 维修人 (员工 ID)
+        type: integer
+    type: object
   models.Notice:
     properties:
       created_at:
@@ -226,6 +296,36 @@ definitions:
         type: string
       updated_at:
         description: 更新时间
+        type: string
+    type: object
+  models.PricingRule:
+    properties:
+      adjustment:
+        description: 调整金额 (+ 为涨价, - 为降价)
+        type: number
+      created_at:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: integer
+      is_percent:
+        description: 是否按百分比调整
+        type: boolean
+      name:
+        type: string
+      priority:
+        description: 优先级 (数字越大越高)
+        type: integer
+      room_type:
+        description: 适用房型 (空表示全部)
+        type: string
+      start_date:
+        type: string
+      type:
+        description: 类型：holiday, weekend, special
+        type: string
+      updated_at:
         type: string
     type: object
   models.Room:
@@ -291,6 +391,30 @@ definitions:
         description: 宽度
         type: integer
     type: object
+  models.RoomInventory:
+    properties:
+      booked_count:
+        description: 已售数量
+        type: integer
+      created_at:
+        type: string
+      date:
+        description: 日期
+        type: string
+      id:
+        type: integer
+      price:
+        description: 当日价格
+        type: number
+      room_type:
+        description: 房型
+        type: string
+      total_count:
+        description: 总量
+        type: integer
+      updated_at:
+        type: string
+    type: object
   models.User:
     properties:
       avatar:
@@ -315,7 +439,7 @@ definitions:
         description: 会员等级：normal, silver, gold, platinum
         type: string
       open_id:
-        description: 微信 OpenID
+        description: 微信 OpenID（仅微信登录用户有值）
         type: string
       phone:
         description: 手机号（唯一，可为空）
@@ -533,6 +657,12 @@ definitions:
       room_number:
         type: string
     type: object
+  service.InventoryGridResponse:
+    additionalProperties:
+      items:
+        $ref: '#/definitions/models.RoomInventory'
+      type: array
+    type: object
   service.LogEntry:
     properties:
       level:
@@ -665,6 +795,36 @@ definitions:
       width:
         type: integer
     type: object
+  service.UpdateUserRequest:
+    properties:
+      avatar:
+        type: string
+      balance:
+        type: number
+      email:
+        type: string
+      level:
+        type: string
+      phone:
+        type: string
+      points:
+        type: integer
+      real_name:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      total_spend:
+        type: number
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - email
+    - username
+    type: object
   service.WeChatLoginRequest:
     properties:
       avatar:
@@ -684,6 +844,29 @@ definitions:
       message:
         description: 错误消息
         type: string
+    type: object
+  utils.PageInfo:
+    properties:
+      page:
+        description: 当前页码
+        type: integer
+      page_size:
+        description: 每页数量
+        type: integer
+      total:
+        description: 总记录数
+        type: integer
+      total_pages:
+        description: 总页数
+        type: integer
+    type: object
+  utils.PageResponse:
+    properties:
+      data: {}
+      page:
+        $ref: '#/definitions/utils.PageInfo'
+      success:
+        type: boolean
     type: object
   utils.Response:
     properties:
@@ -1631,7 +1814,12 @@ paths:
         "200":
           description: 获取成功
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.InventoryGridResponse'
+              type: object
         "400":
           description: 请求参数错误
           schema:
@@ -1733,8 +1921,14 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            allOf:
+            - $ref: '#/definitions/utils.PageResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Log'
+                  type: array
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -1976,7 +2170,14 @@ paths:
         "200":
           description: 获取成功
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PricingRule'
+                  type: array
+              type: object
         "500":
           description: 服务器内部错误
           schema:
@@ -2005,7 +2206,12 @@ paths:
         "200":
           description: 创建成功
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PricingRule'
+              type: object
         "400":
           description: 请求参数错误
           schema:
@@ -2129,9 +2335,14 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.User'
-            type: array
+            allOf:
+            - $ref: '#/definitions/utils.PageResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.User'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
@@ -2162,7 +2373,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -2184,6 +2400,59 @@ paths:
       summary: 获取用户详情（管理员）
       tags:
       - 管理员
+    post:
+      consumes:
+      - application/json
+      description: 管理员更新用户资料
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 用户信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新用户
+      tags:
+      - 管理员
   /api/admin/users/batch:
     post:
       consumes:
@@ -2202,8 +2471,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
@@ -2239,7 +2507,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -2377,7 +2650,14 @@ paths:
         "200":
           description: 获取成功
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Housekeeping'
+                  type: array
+              type: object
         "500":
           description: 服务器内部错误
           schema:
@@ -2471,7 +2751,14 @@ paths:
         "200":
           description: 获取成功
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Maintenance'
+                  type: array
+              type: object
         "500":
           description: 服务器内部错误
           schema:
@@ -2499,7 +2786,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/service.LoginResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.LoginResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -2529,7 +2821,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -2559,7 +2856,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/service.LoginResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.LoginResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -2766,8 +3068,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
@@ -3209,8 +3510,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
@@ -3235,7 +3535,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
         "401":
           description: Unauthorized
           schema:
@@ -3266,7 +3571,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
         "400":
           description: Bad Request
           schema:

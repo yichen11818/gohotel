@@ -1,95 +1,140 @@
 /**
- * 预订相关API
+ * 预订相关 API（按当前后端真实能力适配）
  */
 
-import { get, post, put, del } from '@/utils/request.js'
+import { get, post } from '@/utils/request.js'
 
-/**
- * 创建预订
- * @param {Object} data - 预订信息
- * @param {Number} data.hotelId - 酒店ID
- * @param {Number} data.roomTypeId - 房型ID
- * @param {String} data.checkInDate - 入住日期
- * @param {String} data.checkOutDate - 离店日期
- * @param {Number} data.roomCount - 房间数量
- * @param {String} data.guestName - 客人姓名
- * @param {String} data.guestPhone - 客人电话
- */
+const STATUS_TEXT_MAP = {
+  pending: '待确认',
+  confirmed: '待入住',
+  checkin: '入住中',
+  checkout: '已完成',
+  cancelled: '已取消',
+}
+
+const STATUS_CLASS_MAP = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  checkin: 'checkin',
+  checkout: 'checkout',
+  cancelled: 'cancelled',
+}
+
+const ensureArray = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean)
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
+    } catch (_error) {
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+  }
+
+  return []
+}
+
+const ensureNumber = (value, fallback = 0) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : fallback
+}
+
+const formatDate = (value) => {
+  if (!value) return ''
+  return String(value).slice(0, 10)
+}
+
+const extractRoomImage = (room = {}) => {
+  const images = ensureArray(room.images)
+  return images[0] || room.image_url || room.image || 'https://dummyimage.com/720x420/f5f5f5/999999&text=Room'
+}
+
+const normalizeBooking = (booking = {}) => {
+  const room = booking.room || {}
+  const status = booking.status || 'pending'
+  const roomId = booking.room_id || room.id || ''
+  const roomImage = extractRoomImage(room)
+
+  return {
+    id: String(booking.id || ''),
+    orderNo: String(booking.booking_number || booking.id || ''),
+    status,
+    statusText: STATUS_TEXT_MAP[status] || status,
+    statusClass: STATUS_CLASS_MAP[status] || 'default',
+    roomId: String(roomId),
+    roomName: room.room_type || room.name || '房型待确认',
+    roomType: room.room_type || room.name || '房型待确认',
+    roomNumber: room.room_number || '',
+    roomImage,
+    hotelName: '七天酒店',
+    hotelImage: roomImage,
+    checkIn: formatDate(booking.check_in),
+    checkOut: formatDate(booking.check_out),
+    totalDays: ensureNumber(booking.total_days, 1),
+    totalPrice: ensureNumber(booking.actual_price ?? booking.total_price),
+    createdAt: booking.created_at || '',
+    guestName: booking.guest_name || '',
+    guestPhone: booking.guest_phone || '',
+    guestIdCard: booking.guest_id_card || '',
+    specialRequest: booking.special_request || '',
+    paymentStatus: booking.payment_status || 'unpaid',
+    canCancel: ['pending', 'confirmed'].includes(status),
+    raw: booking,
+  }
+}
+
 export const createBooking = (data) => {
-  return post('/bookings', data)
+  const payload = {
+    room_id: Number(data.room_id || data.roomId),
+    check_in: data.check_in || data.checkIn,
+    check_out: data.check_out || data.checkOut,
+    guest_name: data.guest_name || data.guestName,
+    guest_phone: data.guest_phone || data.guestPhone,
+    guest_id_card: data.guest_id_card || data.guestIdCard || '',
+    special_request: data.special_request || data.specialRequest || '',
+  }
+
+  return post('/bookings', payload)
 }
 
-/**
- * 获取预订列表
- * @param {Object} params - 查询参数
- * @param {String} params.status - 预订状态（pending/confirmed/cancelled/completed）
- * @param {Number} params.page - 页码
- * @param {Number} params.pageSize - 每页数量
- */
-export const getBookingList = (params) => {
-  return get('/bookings', params)
+export const getBookingList = async (params = {}) => {
+  const result = await get('/bookings/my', {
+    page: params.page || 1,
+    page_size: params.pageSize || params.page_size || 50,
+  })
+
+  const list = (Array.isArray(result) ? result : []).map(normalizeBooking)
+
+  if (!params.status || params.status === 'all') {
+    return list
+  }
+
+  return list.filter((item) => item.status === params.status)
 }
 
-/**
- * 获取预订详情
- * @param {Number} id - 预订ID
- */
-export const getBookingDetail = (id) => {
-  return get(`/bookings/${id}`)
+export const getBookingDetail = async (id) => {
+  const result = await get(`/bookings/${id}`)
+  return normalizeBooking(result)
 }
 
-/**
- * 取消预订
- * @param {Number} id - 预订ID
- * @param {String} reason - 取消原因
- */
-export const cancelBooking = (id, reason) => {
-  return put(`/bookings/${id}/cancel`, { reason })
+export const cancelBooking = (id, reason = '') => {
+  return post(`/bookings/${id}/cancel`, { reason })
 }
 
-/**
- * 确认预订
- * @param {Number} id - 预订ID
- */
-export const confirmBooking = (id) => {
-  return put(`/bookings/${id}/confirm`)
+export const confirmBooking = async () => {
+  throw new Error('当前版本暂不支持住客端确认预订')
 }
 
-/**
- * 计算预订价格
- * @param {Object} params - 计算参数
- * @param {Number} params.hotelId - 酒店ID
- * @param {Number} params.roomTypeId - 房型ID
- * @param {String} params.checkInDate - 入住日期
- * @param {String} params.checkOutDate - 离店日期
- * @param {Number} params.roomCount - 房间数量
- */
-export const calculatePrice = (params) => {
-  return post('/bookings/calculate-price', params)
+export const calculatePrice = async () => {
+  throw new Error('当前版本暂不支持住客端预估价格接口')
 }
 
-/**
- * 支付预订
- * @param {Number} id - 预订ID
- * @param {String} paymentMethod - 支付方式（wechat/alipay/card）
- */
-export const payBooking = (id, paymentMethod) => {
-  return post(`/bookings/${id}/pay`, { paymentMethod })
+export const payBooking = async () => {
+  throw new Error('当前版本暂不支持住客端支付')
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

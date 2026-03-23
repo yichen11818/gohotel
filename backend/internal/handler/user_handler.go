@@ -26,7 +26,7 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 // @Accept json
 // @Produce json
 // @Param request body service.RegisterRequest true "注册信息"
-// @Success 200 {object} models.User
+// @Success 200 {object} utils.Response{data=models.User}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 409 {object} errors.ErrorResponse
 // @Router /api/auth/register [post]
@@ -47,9 +47,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	// 3. 返回成功响应
-	utils.SuccessWithMessage(c, "注册成功", gin.H{
-		"user": user,
-	})
+	utils.SuccessWithMessage(c, "注册成功", user)
 }
 
 // Login 用户登录
@@ -59,7 +57,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body service.LoginRequest true "登录信息"
-// @Success 200 {object} service.LoginResponse
+// @Success 200 {object} utils.Response{data=service.LoginResponse}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Router /api/auth/login [post]
@@ -90,7 +88,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body service.WeChatLoginRequest true "微信登录信息"
-// @Success 200 {object} service.LoginResponse
+// @Success 200 {object} utils.Response{data=service.LoginResponse}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 500 {object} errors.ErrorResponse
 // @Router /api/auth/wechat-login [post]
@@ -121,7 +119,7 @@ func (h *UserHandler) WeChatLogin(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} models.User
+// @Success 200 {object} utils.Response{data=models.User}
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
 // @Router /api/users/profile [get]
@@ -150,7 +148,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body object true "更新信息" example({"phone":"13800138000","real_name":"张三","avatar":"https://example.com/avatar.jpg"})
-// @Success 200 {object} models.User
+// @Success 200 {object} utils.Response{data=models.User}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 404 {object} errors.ErrorResponse
@@ -187,7 +185,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body object true "密码信息" example({"old_password":"old123456","new_password":"new123456"})
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} utils.Response
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Router /api/users/password [post]
@@ -221,7 +219,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path int true "用户 ID"
-// @Success 200 {object} models.User
+// @Success 200 {object} utils.Response{data=models.User}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
@@ -258,7 +256,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // @Param real_name query string false "真实姓名"
 // @Param role query string false "角色"
 // @Param status query string false "状态"
-// @Success 200 {array} models.User
+// @Success 200 {object} utils.PageResponse{data=[]models.User}
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
 // @Router /api/admin/users [get]
@@ -290,7 +288,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body service.AddUserRequest true "管理员信息"
-// @Success 200 {object} models.User
+// @Success 200 {object} utils.Response{data=models.User}
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse
@@ -312,9 +310,45 @@ func (h *UserHandler) AddUser(c *gin.Context) {
 	}
 
 	// 3. 返回成功响应
-	utils.SuccessWithMessage(c, "用户添加成功", gin.H{
-		"user": user,
-	})
+	utils.SuccessWithMessage(c, "用户添加成功", user)
+}
+
+// UpdateUser 管理员更新用户
+// @Summary 更新用户
+// @Description 管理员更新用户资料
+// @Tags 管理员
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path int true "用户 ID"
+// @Param request body service.UpdateUserRequest true "用户信息"
+// @Success 200 {object} utils.Response{data=models.User}
+// @Failure 400 {object} errors.ErrorResponse
+// @Failure 401 {object} errors.ErrorResponse
+// @Failure 403 {object} errors.ErrorResponse
+// @Failure 404 {object} errors.ErrorResponse
+// @Failure 409 {object} errors.ErrorResponse
+// @Router /api/admin/users/{id} [post]
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, errors.NewBadRequestError("无效的用户ID"))
+		return
+	}
+
+	var req service.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	user, err := h.userService.UpdateUser(id, &req)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	utils.SuccessWithMessage(c, "用户更新成功", user)
 }
 
 // DeleteUsers 批量删除用户
@@ -325,7 +359,7 @@ func (h *UserHandler) AddUser(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body service.DeleteUsersRequest true "删除用户信息"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} utils.Response
 // @Failure 400 {object} errors.ErrorResponse
 // @Failure 401 {object} errors.ErrorResponse
 // @Failure 403 {object} errors.ErrorResponse

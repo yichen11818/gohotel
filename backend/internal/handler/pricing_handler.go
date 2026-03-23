@@ -25,7 +25,7 @@ func NewPricingHandler(repo repository.PricingRepository) *PricingHandler {
 // @Accept json
 // @Produce json
 // @Param request body object true "创建定价规则请求 {name: string, type: string, room_type: string, start_date: string, end_date: string, adjustment: number, is_percent: boolean, priority: int}"
-// @Success 200 {object} utils.Response "创建成功"
+// @Success 200 {object} utils.Response{data=models.PricingRule} "创建成功"
 // @Failure 400 {object} utils.Response "请求参数错误"
 // @Failure 500 {object} utils.Response "服务器内部错误"
 // @Router /api/admin/pricing/rules [post]
@@ -74,7 +74,7 @@ func (h *PricingHandler) CreateRule(c *gin.Context) {
 // @Tags 定价管理
 // @Accept json
 // @Produce json
-// @Success 200 {object} utils.Response "获取成功"
+// @Success 200 {object} utils.Response{data=[]models.PricingRule} "获取成功"
 // @Failure 500 {object} utils.Response "服务器内部错误"
 // @Router /api/admin/pricing/rules [get]
 // @Security Bearer

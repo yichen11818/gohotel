@@ -7,14 +7,17 @@ export async function postAuthLogin(
   body: API.LoginRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.LoginResponse>("/api/auth/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.LoginResponse }>(
+    "/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 用户注册 新用户注册接口 POST /api/auth/register */
@@ -22,7 +25,7 @@ export async function postAuthRegister(
   body: API.RegisterRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.User>("/api/auth/register", {
+  return request<API.Response & { data?: API.User }>("/api/auth/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,12 +40,15 @@ export async function postAuthWechatLogin(
   body: API.WeChatLoginRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.LoginResponse>("/api/auth/wechat-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.LoginResponse }>(
+    "/api/auth/wechat-login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }

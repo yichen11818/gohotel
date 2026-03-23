@@ -26,7 +26,7 @@ func NewLogHandler(logService *service.LogService) *LogHandler {
 // @Accept json
 // @Produce json
 // @Param request body service.LogReportRequest true "日志数据"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} utils.Response
 // @Failure 400 {object} errors.ErrorResponse
 // @Router /api/logs/report [post]
 func (h *LogHandler) Report(c *gin.Context) {
@@ -58,7 +58,7 @@ func (h *LogHandler) Report(c *gin.Context) {
 // @Produce json
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(20)
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} utils.PageResponse{data=service.LogListResponse}
 // @Failure 400 {object} errors.ErrorResponse
 // @Security Bearer
 // @Router /api/admin/logs [get]
@@ -87,4 +87,3 @@ func getQueryInt(c *gin.Context, key string, defaultValue int) int {
 	}
 	return value
 }
-

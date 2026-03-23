@@ -16,6 +16,9 @@ type LogEntry struct {
 	Message string `json:"message" binding:"required"`
 }
 
+// LogListResponse Swagger 用日志列表响应结构
+type LogListResponse []models.Log
+
 // LogService 日志业务逻辑层
 type LogService struct {
 	logRepo *repository.LogRepository

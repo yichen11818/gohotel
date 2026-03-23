@@ -361,6 +361,7 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 				// 用户管理
 				admin.GET("/users", userHandler.ListUsers)
 				admin.GET("/users/:id", userHandler.GetUserByID)
+				admin.POST("/users/:id", userHandler.UpdateUser)
 				admin.POST("/users/user", userHandler.AddUser)
 				admin.POST("/users/batch", userHandler.DeleteUsers)
 				// 预订管理

@@ -20,6 +20,12 @@ type WorkOrderService interface {
 	ListHousekeeping(ctx context.Context, status string) ([]models.Housekeeping, error)
 }
 
+// MaintenanceListResponse Swagger 用维修列表响应结构
+type MaintenanceListResponse []models.Maintenance
+
+// HousekeepingListResponse Swagger 用清洁列表响应结构
+type HousekeepingListResponse []models.Housekeeping
+
 type workOrderService struct {
 	repo     repository.WorkOrderRepository
 	roomRepo repository.RoomRepository

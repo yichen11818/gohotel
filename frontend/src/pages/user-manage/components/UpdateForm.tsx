@@ -1,6 +1,6 @@
-// import { updateRule } from '@/services/ant-design-pro/api';
-// TODO: 等待后端提供更新用户的 API
+import { postAdminUsersId } from '@/services/api/guanliyuan';
 import {
+  ProFormDigit,
   ProFormSelect,
   ProFormText,
   StepsForm,
@@ -17,10 +17,13 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   const { onOk, values, trigger } = props;
   const [open, setOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  // TODO: 等待后端提供更新用户的 API
-  const run = async (data: any) => {
-    messageApi.warning('更新用户功能待实现');
-    return Promise.resolve();
+  const run = async (data: API.UpdateUserRequest) => {
+    if (!values.id) {
+      throw new Error('缺少用户ID');
+    }
+
+    await postAdminUsersId({ id: Number(values.id) }, data);
+    messageApi.success('更新用户成功');
   };
   const onCancel = useCallback(() => {
     setOpen(false);
@@ -30,12 +33,11 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   }, []);
   const onFinish = useCallback(
     async (values?: any) => {
-      await run({
-        data: values,
-      });
+      await run(values as API.UpdateUserRequest);
+      onOk?.();
       onCancel();
     },
-    [onCancel, run],
+    [onCancel, onOk],
   );
   return (
     <>
@@ -97,8 +99,9 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
           />
           <ProFormText name="real_name" label={'真实姓名'} width="md" />
           <ProFormText name="phone" label={'手机号'} width="md" />
+          <ProFormText name="avatar" label={'头像 URL'} width="md" />
         </StepsForm.StepForm>
-        <StepsForm.StepForm initialValues={values} title={'角色和状态'}>
+        <StepsForm.StepForm initialValues={values} title={'角色与会员信息'}>
           <ProFormSelect
             name="role"
             width="md"
@@ -117,6 +120,20 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
               blocked: '已封禁',
             }}
           />
+          <ProFormSelect
+            name="level"
+            width="md"
+            label={'会员等级'}
+            valueEnum={{
+              normal: '普通会员',
+              silver: '白银会员',
+              gold: '黄金会员',
+              platinum: '铂金会员',
+            }}
+          />
+          <ProFormDigit name="points" label={'积分'} width="md" min={0} />
+          <ProFormDigit name="balance" label={'余额'} width="md" min={0} />
+          <ProFormDigit name="total_spend" label={'累计消费'} width="md" min={0} />
         </StepsForm.StepForm>
       </StepsForm>
     </>

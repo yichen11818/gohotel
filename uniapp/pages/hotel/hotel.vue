@@ -1,240 +1,266 @@
 <template>
-  <view class="container">
-    <TnNavbar :fixed="true" :placeholder="true" title="客房列表" bg-color="transparent" :bottom-shadow="false" />
-    
-    <view class="room-list">
-      <template v-if="loading">
-        <view v-for="i in 3" :key="i" class="skeleton-card"></view>
-      </template>
-      <template v-else-if="roomList.length > 0">
-        <view v-for="(room, index) in roomList" :key="index" class="room-card" @click="handleRoomClick(room)">
-          <!-- 图片区域 -->
-          <view class="image-wrapper">
-            <image :src="room.image_url || room.image" mode="aspectFill" class="room-image"></image>
-            <view class="image-mask"></view>
-            <text class="room-name">{{ room.name }}</text>
-          </view>
-          
-          <!-- 内容区域 -->
-          <view class="content-wrapper">
-            <!-- 描述/地址行 -->
-            <view class="info-row location">
-              <text class="tn-icon-location-fill icon"></text>
-              <text class="text">{{ room.description || room.desc }}</text>
-            </view>
-            
-            <!-- 评分/标签行 -->
-            <view class="info-row scores">
-              <text class="score">{{ room.score || '5.0' }}分</text>
-              <text class="sub-text">{{ room.booked_count || '0' }}+消费</text>
-              <text class="sub-text">{{ room.comment_count || '0' }}评论</text>
-            </view>
-            
-            <!-- 价格行 -->
-            <view class="price-row">
-              <text class="currency">¥</text>
-              <text class="amount">{{ room.price }}</text>
-              <text class="suffix">起</text>
-            </view>
-          </view>
+  <scroll-view class="page" scroll-y>
+    <view class="header">
+      <view>
+        <text class="title">{{ hotelInfo.name }}</text>
+        <text class="subtitle">{{ hotelInfo.address }}</text>
+      </view>
+      <button class="mini-btn" size="mini" @click="goBack">返回</button>
+    </view>
+
+    <view class="content">
+      <view class="summary-card">
+        <view class="summary-row">
+          <text>入住</text>
+          <text>{{ checkInDate }}</text>
         </view>
-      </template>
-      <view v-else class="empty-state">
-        <text>暂无可用房型</text>
+        <view class="summary-row">
+          <text>离店</text>
+          <text>{{ checkOutDate }}</text>
+        </view>
+        <view class="summary-row">
+          <text>酒店电话</text>
+          <text>{{ hotelInfo.phone || '暂未配置' }}</text>
+        </view>
+        <view class="summary-row">
+          <text>入住 / 退房</text>
+          <text>{{ hotelInfo.checkInTime }} / {{ hotelInfo.checkOutTime }}</text>
+        </view>
+      </view>
+
+      <view class="section-title">可订房型</view>
+      <view v-if="loading" class="placeholder">正在加载房型...</view>
+      <view v-else-if="!roomList.length" class="placeholder">当前暂无可订房型</view>
+
+      <view v-for="room in roomList" :key="room.id" class="room-card" @click="handleRoomClick(room)">
+        <image class="room-image" :src="room.image" mode="aspectFill" />
+        <view class="room-body">
+          <view class="room-top">
+            <text class="room-name">{{ room.name }}</text>
+            <text class="room-price">¥{{ room.price }}/晚</text>
+          </view>
+          <text class="room-desc">{{ room.area }}㎡ · {{ room.bedType }} · 可住 {{ room.capacity }} 人</text>
+          <text class="room-text">{{ room.description }}</text>
+          <view class="tag-list">
+            <text v-for="item in room.facilities.slice(0, 4)" :key="item" class="tag">{{ item }}</text>
+          </view>
+          <button class="primary-btn" size="mini" @click.stop="handleRoomClick(room)">查看详情</button>
+        </view>
       </view>
     </view>
-  </view>
+  </scroll-view>
 </template>
 
 <script setup>
-import { hotel } from '@/api/index.js'
-import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
-import TnButton from '@/uni_modules/tuniaoui-vue3/components/button/src/button.vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { hotel } from '@/api/index.js'
 
+const hotelInfo = ref({
+  name: '七天酒店',
+  address: '欢迎入住七天酒店',
+  phone: '',
+  checkInTime: '14:00',
+  checkOutTime: '12:00',
+})
 const roomList = ref([])
 const loading = ref(false)
-const hotelId = ref(1)
+const hotelId = ref(hotel.DEFAULT_HOTEL_ID || 1)
+const checkInDate = ref('')
+const checkOutDate = ref('')
 
-onLoad((options) => {
-  if (options?.id) {
-    hotelId.value = options.id
+const formatDate = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const ensureDates = () => {
+  if (!checkInDate.value || !checkOutDate.value) {
+    const today = new Date()
+    const tomorrow = new Date()
+    tomorrow.setDate(today.getDate() + 1)
+    checkInDate.value = formatDate(today)
+    checkOutDate.value = formatDate(tomorrow)
   }
-  loadRoomTypes()
-})
+}
 
-const loadRoomTypes = async () => {
+const loadData = async () => {
   loading.value = true
   try {
-    const data = await hotel.getRoomTypes(hotelId.value)
-    roomList.value = data || []
+    const [detail, rooms] = await Promise.all([
+      hotel.getHotelDetail(hotelId.value),
+      hotel.getRoomTypes(hotelId.value),
+    ])
+    hotelInfo.value = detail
+    roomList.value = rooms
   } catch (error) {
-    console.error('Failed to load room types:', error)
+    console.error('load hotel data failed:', error)
   } finally {
     loading.value = false
   }
 }
 
 const handleRoomClick = (room) => {
-  // 跳转到房间详情页
   uni.navigateTo({
-    url: `/pages/room-detail/room-detail?id=${room.id}`
+    url: `/pages/room-detail/room-detail?id=${room.id}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
   })
 }
+
+const goBack = () => {
+  uni.navigateBack()
+}
+
+onLoad((options) => {
+  if (options?.id) {
+    hotelId.value = Number(options.id)
+  }
+  checkInDate.value = options?.checkIn || ''
+  checkOutDate.value = options?.checkOut || ''
+  ensureDates()
+  loadData()
+})
 </script>
 
-<style lang="scss" scoped>
-// 文本省略混入
-@mixin text-ellipsis-1 {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.container {
+<style scoped lang="scss">
+.page {
   min-height: 100vh;
-  background-color: #F9F9F9;
+  background: #f6f7fb;
 }
 
-.room-list {
-  padding: 32rpx;
-}
-
-.room-card {
-  background: #ffffff;
-  border-radius: 32rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.04);
-  border: 1rpx solid rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  margin-bottom: 32rpx;
-  transition: all 0.3s ease;
-  
-  &:active {
-    transform: scale(0.98);
-  }
-
-  .image-wrapper {
-    position: relative;
-    width: 100%;
-    height: 360rpx;
-    
-    .room-image {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .image-mask {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 70%;
-      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
-      z-index: 1;
-    }
-    
-    .room-name {
-      position: absolute;
-      bottom: 24rpx;
-      left: 32rpx;
-      color: #fff;
-      font-size: 36rpx;
-      font-weight: 600;
-      z-index: 2;
-      letter-spacing: 1rpx;
-    }
-  }
-  
-  .content-wrapper {
-    padding: 32rpx;
-    position: relative;
-    
-    .info-row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 12rpx;
-      
-      &.location {
-        color: #666;
-        font-size: 26rpx;
-        
-        .icon {
-          font-size: 28rpx;
-          margin-right: 8rpx;
-          color: #C29D71;
-        }
-      }
-      
-      &.scores {
-        .score {
-          color: #C29D71;
-          font-weight: 600;
-          font-size: 30rpx;
-          margin-right: 16rpx;
-        }
-        
-        .sub-text {
-          color: #999;
-          font-size: 24rpx;
-          margin-right: 16rpx;
-          background: #f5f5f5;
-          padding: 4rpx 12rpx;
-          border-radius: 4rpx;
-        }
-      }
-    }
-    
-    .price-row {
-      position: absolute;
-      right: 32rpx;
-      bottom: 32rpx;
-      display: flex;
-      align-items: baseline;
-      
-      .currency {
-        color: #333;
-        font-size: 24rpx;
-        margin-right: 4rpx;
-        font-weight: 600;
-      }
-      
-      .amount {
-        color: #333;
-        font-size: 48rpx;
-        font-weight: 700;
-        font-family: 'Din', sans-serif;
-      }
-      
-      .suffix {
-        color: #999;
-        font-size: 22rpx;
-        margin-left: 4rpx;
-      }
-    }
-  }
-}
-
-.skeleton-card {
-  height: 500rpx;
-  background: #eee;
-  border-radius: 24rpx;
-  margin-bottom: 32rpx;
-  animation: skeleton-blink 1.5s infinite;
-}
-
-@keyframes skeleton-blink {
-  0% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-  100% { opacity: 0.6; }
-}
-
-.empty-state {
+.header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 88rpx 24rpx 24rpx;
+  background: linear-gradient(180deg, #e9d7bf 0%, #f6f7fb 100%);
+}
+
+.title {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.mini-btn {
+  margin: 0;
+  background: #fff;
+  border-radius: 999rpx;
+}
+
+.content {
+  padding: 0 24rpx 32rpx;
+}
+
+.summary-card,
+.room-card {
+  margin-bottom: 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.05);
+}
+
+.summary-card {
+  padding: 28rpx;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 18rpx 0;
+  font-size: 26rpx;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.summary-row:last-child {
+  border-bottom: 0;
+}
+
+.section-title {
+  margin: 24rpx 0 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.placeholder {
+  padding: 48rpx 24rpx;
+  text-align: center;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.room-image {
+  width: 100%;
+  height: 320rpx;
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.room-body {
+  padding: 24rpx;
+}
+
+.room-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
   align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  color: #999;
-  font-size: 28rpx;
+}
+
+.room-name {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.room-price {
+  font-size: 30rpx;
+  color: #b7791f;
+  font-weight: 700;
+}
+
+.room-desc,
+.room-text {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.tag {
+  padding: 8rpx 18rpx;
+  font-size: 22rpx;
+  color: #8b5e34;
+  background: #faf4ed;
+  border-radius: 999rpx;
+}
+
+.primary-btn {
+  margin-top: 22rpx;
+  background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
+  color: #fff;
+  border-radius: 999rpx;
 }
 </style>

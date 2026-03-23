@@ -85,7 +85,7 @@ func (h *WorkOrderHandler) CompleteRepair(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param status query string false "状态筛选"
-// @Success 200 {object} utils.Response "获取成功"
+// @Success 200 {object} utils.Response{data=service.MaintenanceListResponse} "获取成功"
 // @Failure 500 {object} utils.Response "服务器内部错误"
 // @Router /api/admin/work-orders/repairs [get]
 // @Security Bearer
@@ -189,7 +189,7 @@ func (h *WorkOrderHandler) CompleteCleaning(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param status query string false "状态筛选"
-// @Success 200 {object} utils.Response "获取成功"
+// @Success 200 {object} utils.Response{data=service.HousekeepingListResponse} "获取成功"
 // @Failure 500 {object} utils.Response "服务器内部错误"
 // @Router /api/admin/work-orders/cleanings [get]
 // @Security Bearer

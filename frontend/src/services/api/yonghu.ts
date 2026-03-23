@@ -7,7 +7,7 @@ export async function postUsersPassword(
   body: Record<string, any>,
   options?: { [key: string]: any }
 ) {
-  return request<Record<string, any>>("/api/users/password", {
+  return request<API.Response>("/api/users/password", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -19,7 +19,7 @@ export async function postUsersPassword(
 
 /** 获取个人信息 获取当前登录用户的个人信息 GET /api/users/profile */
 export async function getUsersProfile(options?: { [key: string]: any }) {
-  return request<API.User>("/api/users/profile", {
+  return request<API.Response & { data?: API.User }>("/api/users/profile", {
     method: "GET",
     ...(options || {}),
   });
@@ -30,7 +30,7 @@ export async function postUsersProfile(
   body: Record<string, any>,
   options?: { [key: string]: any }
 ) {
-  return request<API.User>("/api/users/profile", {
+  return request<API.Response & { data?: API.User }>("/api/users/profile", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

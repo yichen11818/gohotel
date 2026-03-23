@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Steps,
   Form,
@@ -10,7 +10,7 @@ import {
   Tag,
   Spin,
 } from 'antd';
-import { SearchOutlined, CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
 import type { StepProps } from 'antd';
 import { getAdminBookingsSearch, postAdminBookingsIdCheckin } from '@/services/api/guanliyuan';
 
@@ -42,7 +42,7 @@ const CheckInForm: React.FC = () => {
   const steps: StepProps[] = [
     {
       title: '查询预订',
-      description: '输入预订号或客人信息',
+      description: '输入客人姓名或手机号',
     },
     {
       title: '确认信息',
@@ -184,13 +184,6 @@ const CheckInForm: React.FC = () => {
   const renderSearchStep = () => (
     <Card>
       <Form form={form} layout="vertical" className="search-form">
-        <Form.Item
-          name="bookingCode"
-          label="预订号"
-          rules={[{ required: false }]}
-        >
-          <Input prefix={<SearchOutlined />} placeholder="暂不支持通过预订号查询" disabled />
-        </Form.Item>
         
         <Form.Item
           name="guestName"

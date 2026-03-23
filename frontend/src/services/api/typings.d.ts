@@ -412,6 +412,32 @@ declare namespace API {
     updated_at?: string;
   };
 
+  type Housekeeping = {
+    created_at?: string;
+    end_time?: string;
+    id?: number;
+    room?: Room;
+    room_id?: number;
+    /** 清洁人员 ID */
+    staff_id?: number;
+    start_time?: string;
+    /** 状态：pending, in_progress, completed */
+    status?: string;
+    /** 类型：daily(续住清), checkout(退房清), deep(深清) */
+    type?: string;
+    updated_at?: string;
+  };
+
+  type InventoryGridResponse = true;
+
+  type Log = {
+    created_at?: string;
+    id?: number;
+    level?: string;
+    message?: string;
+    updated_at?: string;
+  };
+
   type LogEntry = {
     level: "debug" | "info" | "warn" | "error";
     message: string;
@@ -429,6 +455,26 @@ declare namespace API {
 
   type LogReportRequest = {
     logs: LogEntry[];
+  };
+
+  type Maintenance = {
+    created_at?: string;
+    /** 问题描述 */
+    description?: string;
+    id?: number;
+    /** 维修备注 */
+    remark?: string;
+    /** 报修人 (员工 ID) */
+    reporter_id?: number;
+    room?: Room;
+    room_id?: number;
+    /** 状态：pending, in_progress, completed, cancelled */
+    status?: string;
+    /** 报修类型：plumbing, electrical, furniture, etc. */
+    type?: string;
+    updated_at?: string;
+    /** 维修人 (员工 ID) */
+    worker_id?: number;
   };
 
   type Notice = {
@@ -450,6 +496,23 @@ declare namespace API {
     title?: string;
     /** 更新时间 */
     updated_at?: string;
+  };
+
+  type PageInfo = {
+    /** 当前页码 */
+    page?: number;
+    /** 每页数量 */
+    page_size?: number;
+    /** 总记录数 */
+    total?: number;
+    /** 总页数 */
+    total_pages?: number;
+  };
+
+  type PageResponse = {
+    data?: any;
+    page?: PageInfo;
+    success?: boolean;
   };
 
   type postAdminBannersId_openAPI_deleteParams = {
@@ -507,6 +570,11 @@ declare namespace API {
     id: string;
   };
 
+  type postAdminUsersIdParams = {
+    /** 用户 ID */
+    id: number;
+  };
+
   type postAdminWorkOrdersCleaningIdAssignParams = {
     /** 工单ID */
     id: number;
@@ -535,6 +603,25 @@ declare namespace API {
   type postRoomsIdParams = {
     /** 房间 ID */
     id: number;
+  };
+
+  type PricingRule = {
+    /** 调整金额 (+ 为涨价, - 为降价) */
+    adjustment?: number;
+    created_at?: string;
+    end_date?: string;
+    id?: number;
+    /** 是否按百分比调整 */
+    is_percent?: boolean;
+    name?: string;
+    /** 优先级 (数字越大越高) */
+    priority?: number;
+    /** 适用房型 (空表示全部) */
+    room_type?: string;
+    start_date?: string;
+    /** 类型：holiday, weekend, special */
+    type?: string;
+    updated_at?: string;
   };
 
   type RegisterRequest = {
@@ -599,6 +686,22 @@ declare namespace API {
     width?: number;
   };
 
+  type RoomInventory = {
+    /** 已售数量 */
+    booked_count?: number;
+    created_at?: string;
+    /** 日期 */
+    date?: string;
+    id?: number;
+    /** 当日价格 */
+    price?: number;
+    /** 房型 */
+    room_type?: string;
+    /** 总量 */
+    total_count?: number;
+    updated_at?: string;
+  };
+
   type SaveHotelSettingsRequest = {
     hotel_id: number;
     settings: Record<string, any>;
@@ -638,6 +741,20 @@ declare namespace API {
     width?: number;
   };
 
+  type UpdateUserRequest = {
+    avatar?: string;
+    balance?: number;
+    email: string;
+    level?: string;
+    phone?: string;
+    points?: number;
+    real_name?: string;
+    role?: string;
+    status?: string;
+    total_spend?: number;
+    username: string;
+  };
+
   type User = {
     /** 头像 URL */
     avatar?: string;
@@ -653,7 +770,7 @@ declare namespace API {
     id?: number;
     /** 会员等级：normal, silver, gold, platinum */
     level?: string;
-    /** 微信 OpenID */
+    /** 微信 OpenID（仅微信登录用户有值） */
     open_id?: string;
     /** 手机号（唯一，可为空） */
     phone?: string;

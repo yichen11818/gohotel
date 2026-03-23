@@ -8,7 +8,7 @@ export async function getAdminLogs(
   params: API.getAdminLogsParams,
   options?: { [key: string]: any }
 ) {
-  return request<Record<string, any>>("/api/admin/logs", {
+  return request<API.PageResponse & { data?: API.Log[] }>("/api/admin/logs", {
     method: "GET",
     params: {
       // page has a default value: 1
@@ -26,7 +26,7 @@ export async function postLogsReport(
   body: API.LogReportRequest,
   options?: { [key: string]: any }
 ) {
-  return request<Record<string, any>>("/api/logs/report", {
+  return request<API.Response>("/api/logs/report", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

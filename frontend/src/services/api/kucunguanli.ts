@@ -8,13 +8,16 @@ export async function getAdminInventoryGrid(
   params: API.getAdminInventoryGridParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.Response>("/api/admin/inventory/grid", {
-    method: "GET",
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.InventoryGridResponse }>(
+    "/api/admin/inventory/grid",
+    {
+      method: "GET",
+      params: {
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 初始化库存 初始化房型库存 POST /api/admin/inventory/init */

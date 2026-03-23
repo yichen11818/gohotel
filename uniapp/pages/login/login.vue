@@ -1,18 +1,14 @@
 <template>
   <view class="container">
-    <!-- 顶部装饰背景 -->
     <view class="header-bg">
       <view class="gradient-layer"></view>
     </view>
 
-    <!-- 返回按钮 -->
     <view class="back-btn" @click="goBack">
       <TnIcon name="left" color="#333" size="40" />
     </view>
 
-    <!-- 主内容区 -->
     <view class="main-content">
-      <!-- Logo区域 -->
       <view class="logo-section">
         <view class="logo-wrapper">
           <image class="logo" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=200&fit=crop" mode="aspectFill"></image>
@@ -21,52 +17,39 @@
         <text class="brand-slogan">品质生活，从这里开始</text>
       </view>
 
-      <!-- 登录表单 -->
       <view class="login-form">
-        <!-- 手机号输入 -->
         <view class="input-group">
           <view class="input-icon">
-            <TnIcon name="phone" color="#C29D71" size="40" />
+            <TnIcon name="people" color="#C29D71" size="40" />
           </view>
-          <input 
-            v-model="phone" 
-            type="number" 
-            placeholder="请输入手机号" 
-            maxlength="11"
+          <input
+            v-model="username"
+            type="text"
+            placeholder="请输入用户名"
             class="input-field"
           />
-          <view v-if="phone" class="clear-btn" @click="phone = ''">
+          <view v-if="username" class="clear-btn" @click="username = ''">
             <TnIcon name="close-circle-fill" color="#ccc" size="32" />
           </view>
         </view>
 
-        <!-- 验证码输入 -->
         <view class="input-group">
           <view class="input-icon">
-            <TnIcon name="shield" color="#C29D71" size="40" />
+            <TnIcon name="lock" color="#C29D71" size="40" />
           </view>
-          <input 
-            v-model="code" 
-            type="number" 
-            placeholder="请输入验证码" 
-            maxlength="6"
+          <input
+            v-model="password"
+            password
+            placeholder="请输入密码"
             class="input-field"
           />
-          <view 
-            class="code-btn" 
-            :class="{ disabled: countdown > 0 }"
-            @click="sendCode"
-          >
-            <text>{{ countdown > 0 ? `${countdown}s` : '获取验证码' }}</text>
-          </view>
         </view>
 
-        <!-- 登录按钮 -->
         <view class="login-btn-wrapper">
-          <TnButton 
-            shape="round" 
-            size="xl" 
-            width="100%" 
+          <TnButton
+            shape="round"
+            size="xl"
+            width="100%"
             height="100rpx"
             bg-color="linear-gradient(135deg, #D4B184 0%, #C29D71 50%, #B88A5E 100%)"
             text-color="#FFFFFF"
@@ -77,7 +60,6 @@
           </TnButton>
         </view>
 
-        <!-- 协议 -->
         <view class="agreement">
           <view class="checkbox" :class="{ checked: agreed }" @click="agreed = !agreed">
             <TnIcon v-if="agreed" name="check" color="#fff" size="20" />
@@ -89,15 +71,13 @@
             <text class="link" @click.stop="goToPrivacy">《隐私政策》</text>
           </text>
         </view>
-        
-        <!-- 注册链接 -->
+
         <view class="register-link">
-            <text>还没有账号？</text>
-            <text class="link" @click="goToRegister">立即注册</text>
+          <text>还没有账号？</text>
+          <text class="link" @click="goToRegister">立即注册</text>
         </view>
       </view>
 
-      <!-- 其他登录方式 -->
       <view class="other-login">
         <view class="divider">
           <view class="line"></view>
@@ -106,7 +86,7 @@
         </view>
 
         <view class="social-login">
-          <view class="social-item wechat" @click="wechatLogin">
+          <view class="social-item wechat" @click="handleWechatLogin">
             <TnIcon name="logo-wechat" color="#07C160" size="56" />
           </view>
         </view>
@@ -116,131 +96,96 @@
 </template>
 
 <script setup>
-import { login, sendVerifyCode } from '@/api/user.js'
-import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { login, wechatLogin } from '@/api/user.js'
+import { TOKEN_KEY } from '@/config/api.config.js'
 import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
 import TnButton from '@/uni_modules/tuniaoui-vue3/components/button/src/button.vue'
 
-const phone = ref('')
-const code = ref('')
-const countdown = ref(0)
+const username = ref('')
+const password = ref('')
 const agreed = ref(false)
 
-// 是否可以登录
 const canLogin = computed(() => {
-  return phone.value.length === 11 && code.value.length >= 4 && agreed.value
+  return username.value.trim().length >= 3 && password.value.length >= 6 && agreed.value
 })
 
-// 发送验证码
-const sendCode = async () => {
-  if (countdown.value > 0) return
-  
-  if (phone.value.length !== 11) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-    return
-  }
-  
-  try {
-    uni.showLoading({ title: '发送中...' })
-    await sendVerifyCode(phone.value, 'login')
-    uni.hideLoading()
-    uni.showToast({ title: '验证码已发送', icon: 'success' })
-    countdown.value = 60
-    
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
-  } catch (error) {
-    uni.hideLoading()
-  }
-}
-
-// 登录
 const handleLogin = async () => {
   if (!canLogin.value) return
-  
+
   try {
     uni.showLoading({ title: '登录中...' })
-    
-    const result = await login({
-      phone: phone.value,
-      code: code.value
+
+    await login({
+      username: username.value.trim(),
+      password: password.value,
     })
-    
+
     uni.hideLoading()
     uni.showToast({ title: '登录成功', icon: 'success' })
-    
+
     setTimeout(() => {
       uni.navigateBack()
-    }, 1500)
+    }, 1200)
   } catch (error) {
     uni.hideLoading()
   }
 }
 
-// 微信登录
-const wechatLogin = () => {
+const handleWechatLogin = () => {
   if (!agreed.value) {
     uni.showToast({ title: '请先同意用户协议', icon: 'none' })
     return
   }
-  
+
   // #ifdef MP-WEIXIN
   uni.login({
     provider: 'weixin',
     success: (loginRes) => {
       uni.getUserProfile({
         desc: '用于完善用户资料',
-        success: (res) => {
-          // 调用后端接口进行登录
-          handleRealWechatLogin(loginRes.code, res.userInfo)
+        success: async (res) => {
+          try {
+            uni.showLoading({ title: '登录中...' })
+            await wechatLogin({
+              code: loginRes.code,
+              nickname: res.userInfo.nickName,
+              avatar: res.userInfo.avatarUrl,
+            })
+            uni.hideLoading()
+            uni.showToast({ title: '登录成功', icon: 'success' })
+            setTimeout(() => uni.navigateBack(), 1200)
+          } catch (error) {
+            uni.hideLoading()
+          }
         }
       })
     }
   })
   // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({ title: '请在微信小程序环境中使用微信登录', icon: 'none' })
+  // #endif
 }
 
-const handleRealWechatLogin = async (code, userInfo) => {
-  try {
-    uni.showLoading({ title: '登录中...' })
-    const result = await post('/auth/wechat-login', {
-      code,
-      nickname: userInfo.nickName,
-      avatar: userInfo.avatarUrl
-    })
-    
-    if (result.token) {
-      uni.setStorageSync(TOKEN_KEY, result.token)
-    }
-    if (result.userInfo) {
-      uni.setStorageSync(USER_INFO_KEY, result.userInfo)
-    }
-    
-    uni.hideLoading()
-    uni.showToast({ title: '登录成功', icon: 'success' })
-    setTimeout(() => uni.navigateBack(), 1500)
-  } catch (error) {
-    uni.hideLoading()
-  }
-}
-
-// 返回
 const goBack = () => {
   uni.navigateBack()
 }
 
-// 用户协议
+const goToRegister = () => {
+  uni.navigateTo({
+    url: '/pages/register/register'
+  })
+}
+
 const goToUserAgreement = () => {
   uni.navigateTo({
     url: '/pages/agreement/agreement'
   })
 }
 
-// 隐私政策
 const goToPrivacy = () => {
   uni.navigateTo({
     url: '/pages/privacy/privacy'
@@ -248,7 +193,6 @@ const goToPrivacy = () => {
 }
 
 onLoad(() => {
-  // 检查是否已登录
   const token = uni.getStorageSync(TOKEN_KEY)
   if (token) {
     uni.navigateBack()
@@ -272,7 +216,7 @@ onLoad(() => {
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
-  
+
   .gradient-layer {
     width: 100%;
     height: 100%;
@@ -293,7 +237,7 @@ onLoad(() => {
   border-radius: 50%;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
-  
+
   &:active {
     transform: scale(0.9);
   }
@@ -307,37 +251,35 @@ onLoad(() => {
 }
 
 .logo-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  text-align: center;
   margin-bottom: 80rpx;
-  
-  .logo-wrapper {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 32rpx;
-    overflow: hidden;
-    box-shadow: 0 16rpx 48rpx rgba(194, 157, 113, 0.3);
-    margin-bottom: 32rpx;
-    
-    .logo {
-      width: 100%;
-      height: 100%;
-    }
-  }
-  
-  .brand-name {
-    font-size: 48rpx;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 12rpx;
-    letter-spacing: 2rpx;
-  }
-  
-  .brand-slogan {
-    font-size: 26rpx;
-    color: #999;
-  }
+}
+
+.logo-wrapper {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 32rpx rgba(194, 157, 113, 0.2);
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-name {
+  display: block;
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.brand-slogan {
+  font-size: 28rpx;
+  color: #999;
 }
 
 .login-form {
@@ -352,150 +294,108 @@ onLoad(() => {
   border-radius: 20rpx;
   padding: 0 32rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  
-  .input-icon {
-    margin-right: 20rpx;
-  }
-  
-  .input-field {
-    flex: 1;
-    height: 100%;
-    font-size: 30rpx;
-    color: #333;
-  }
-  
-  .clear-btn {
-    padding: 10rpx;
-    
-    &:active {
-      opacity: 0.6;
-    }
-  }
-  
-  .code-btn {
-    padding: 16rpx 24rpx;
-    background: linear-gradient(135deg, rgba(194, 157, 113, 0.15) 0%, rgba(194, 157, 113, 0.08) 100%);
-    border-radius: 100rpx;
-    
-    text {
-      font-size: 26rpx;
-      color: #C29D71;
-      font-weight: 500;
-    }
-    
-    &.disabled {
-      opacity: 0.6;
-    }
-    
-    &:active:not(.disabled) {
-      transform: scale(0.95);
-    }
-  }
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.input-icon {
+  margin-right: 20rpx;
+}
+
+.input-field {
+  flex: 1;
+  height: 100%;
+  font-size: 30rpx;
+  color: #333;
+}
+
+.clear-btn {
+  padding: 8rpx;
 }
 
 .login-btn-wrapper {
-  margin-top: 48rpx;
-  box-shadow: 0 16rpx 32rpx rgba(194, 157, 113, 0.35);
-  border-radius: 100rpx;
-  
-  .btn-text {
-    font-size: 36rpx;
-    font-weight: 700;
-    letter-spacing: 4rpx;
-  }
+  margin: 48rpx 0 32rpx;
+}
+
+.btn-text {
+  font-size: 32rpx;
+  font-weight: 600;
 }
 
 .agreement {
   display: flex;
   align-items: flex-start;
-  margin-top: 32rpx;
-  padding: 0 8rpx;
-  
-  .checkbox {
-    width: 36rpx;
-    height: 36rpx;
-    border: 2rpx solid #ddd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12rpx;
-    margin-top: 4rpx;
-    transition: all 0.3s ease;
-    
-    &.checked {
-      background: linear-gradient(135deg, #D4B184 0%, #C29D71 100%);
-      border-color: #C29D71;
-    }
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6rpx;
+
+  &.checked {
+    background: #C29D71;
+    border-color: #C29D71;
   }
-  
-  .agreement-text {
-    flex: 1;
-    font-size: 24rpx;
-    color: #999;
-    line-height: 1.6;
-    
-    .link {
-      color: #C29D71;
-    }
-  }
+}
+
+.agreement-text {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #999;
+}
+
+.link {
+  color: #C29D71;
 }
 
 .register-link {
-    margin-top: 20rpx;
-    text-align: center;
-    font-size: 26rpx;
-    color: #999;
-    
-    .link {
-        color: #C29D71;
-        margin-left: 10rpx;
-        font-weight: 500;
-    }
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
 }
 
 .other-login {
-  .divider {
-    display: flex;
-    align-items: center;
-    margin-bottom: 48rpx;
-    
-    .line {
-      flex: 1;
-      height: 1rpx;
-      background: linear-gradient(to right, transparent, #E5E5E5, transparent);
-    }
-    
-    .text {
-      padding: 0 24rpx;
-      font-size: 24rpx;
-      color: #999;
-    }
+  margin-top: 80rpx;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 32rpx;
+
+  .line {
+    flex: 1;
+    height: 1rpx;
+    background: #e8e8e8;
   }
-  
-  .social-login {
-    display: flex;
-    justify-content: center;
-    gap: 48rpx;
-  }
-  
-  .social-item {
-    width: 100rpx;
-    height: 100rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    
-    &:active {
-      transform: scale(0.9);
-      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-    }
+
+  .text {
+    font-size: 24rpx;
+    color: #999;
   }
 }
-</style>
 
+.social-login {
+  display: flex;
+  justify-content: center;
+}
+
+.social-item {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+</style>

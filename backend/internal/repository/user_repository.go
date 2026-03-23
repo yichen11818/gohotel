@@ -36,6 +36,26 @@ func (r *UserRepository) ExistsByEmail(email string) (bool, error) {
 	return count > 0, err
 }
 
+// ExistsByUsernameExcludingUser 检查用户名是否已被其他用户使用
+func (r *UserRepository) ExistsByUsernameExcludingUser(username string, excludeUserID int64) (bool, error) {
+	if username == "" {
+		return false, nil
+	}
+	var count int64
+	err := r.db.Model(&models.User{}).Where("username = ? AND id != ?", username, excludeUserID).Count(&count).Error
+	return count > 0, err
+}
+
+// ExistsByEmailExcludingUser 检查邮箱是否已被其他用户使用
+func (r *UserRepository) ExistsByEmailExcludingUser(email string, excludeUserID int64) (bool, error) {
+	if email == "" {
+		return false, nil
+	}
+	var count int64
+	err := r.db.Model(&models.User{}).Where("email = ? AND id != ?", email, excludeUserID).Count(&count).Error
+	return count > 0, err
+}
+
 // ExistsByPhone 检查手机号是否已存在
 func (r *UserRepository) ExistsByPhone(phone string) (bool, error) {
 	if phone == "" {
@@ -122,6 +142,9 @@ func (r *UserRepository) FindByPhone(phone string) (*models.User, error) {
 
 // FindByOpenID 根据微信 OpenID 查找用户
 func (r *UserRepository) FindByOpenID(openID string) (*models.User, error) {
+	if openID == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
 	var user models.User
 	err := r.db.Where("open_id = ?", openID).First(&user).Error
 	if err != nil {

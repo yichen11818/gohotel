@@ -15,6 +15,9 @@ type InventoryService interface {
 	GetInventoryGrid(ctx context.Context, startDate, endDate time.Time) (map[string][]models.RoomInventory, error)
 }
 
+// InventoryGridResponse Swagger 用库存网格响应结构
+type InventoryGridResponse map[string][]models.RoomInventory
+
 type inventoryService struct {
 	repo        repository.InventoryRepository
 	pricingRepo repository.PricingRepository

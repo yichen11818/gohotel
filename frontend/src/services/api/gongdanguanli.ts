@@ -62,13 +62,16 @@ export async function getAdminWorkOrdersCleanings(
   params: API.getAdminWorkOrdersCleaningsParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.Response>("/api/admin/work-orders/cleanings", {
-    method: "GET",
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.Housekeeping[] }>(
+    "/api/admin/work-orders/cleanings",
+    {
+      method: "GET",
+      params: {
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 创建维修请求 创建新的维修请求 POST /api/admin/work-orders/repair */
@@ -114,11 +117,14 @@ export async function getAdminWorkOrdersRepairs(
   params: API.getAdminWorkOrdersRepairsParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.Response>("/api/admin/work-orders/repairs", {
-    method: "GET",
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.Maintenance[] }>(
+    "/api/admin/work-orders/repairs",
+    {
+      method: "GET",
+      params: {
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
 }

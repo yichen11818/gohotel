@@ -1,5 +1,5 @@
 import { AvatarDropdown, AvatarName, Footer, Question } from '@/components';
-import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
+import { getUsersProfile } from '@/services/api/yonghu';
 import { LinkOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
@@ -36,34 +36,36 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    // 从 localStorage 获取 token
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       return undefined;
     }
-    
-    // TODO: 等后端提供 /api/auth/me 接口后，改用真实接口获取用户信息
-    // 目前从 localStorage 读取登录时保存的用户信息
-    const userInfoStr = localStorage.getItem('userInfo');
-    if (userInfoStr) {
-      try {
-        const userInfo = JSON.parse(userInfoStr);
-        return {
-          name: userInfo.username || userInfo.real_name || '用户',
-          avatar: userInfo.avatar || 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
-          userid: userInfo.id?.toString() || '',
-          email: userInfo.email,
-          phone: userInfo.phone,
-          role: userInfo.role,
-        } as API.CurrentUser;
-      } catch (error) {
-        console.error('解析用户信息失败:', error);
+
+    try {
+      const response = await getUsersProfile();
+      const userInfo = response?.data;
+
+      if (!response?.success || !userInfo) {
         return undefined;
       }
+
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+
+      return {
+        name: userInfo.username || userInfo.real_name || '用户',
+        avatar:
+          userInfo.avatar ||
+          'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
+        userid: userInfo.id?.toString() || '',
+        email: userInfo.email,
+        phone: userInfo.phone,
+        role: userInfo.role,
+      } as API.CurrentUser;
+    } catch (error) {
+      console.error('获取当前用户信息失败:', error);
+      return undefined;
     }
-    
-    return undefined;
   };
   
   // 如果不是登录页面，执行

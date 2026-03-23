@@ -10,14 +10,14 @@
     {
       "path": "pages/hotel/hotel",
       "style": {
-        "navigationBarTitleText": "酒店",
+        "navigationBarTitleText": "房型预订",
         "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/service/service",
       "style": {
-        "navigationBarTitleText": "服务",
+        "navigationBarTitleText": "酒店服务",
         "navigationStyle": "custom"
       }
     },
@@ -36,30 +36,9 @@
       }
     },
     {
-      "path": "pages/wallet/wallet",
-      "style": {
-        "navigationBarTitleText": "我的钱包",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/settings/settings",
       "style": {
         "navigationBarTitleText": "设置",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/coupons/coupons",
-      "style": {
-        "navigationBarTitleText": "优惠券",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/points/points",
-      "style": {
-        "navigationBarTitleText": "我的积分",
         "navigationStyle": "custom"
       }
     },
@@ -99,9 +78,37 @@
       }
     },
     {
-      "path": "pages/pay-result/pay-result",
+      "path": "pages/profile/profile",
       "style": {
-        "navigationBarTitleText": "支付结果",
+        "navigationBarTitleText": "个人资料",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/security/security",
+      "style": {
+        "navigationBarTitleText": "修改密码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/about/about",
+      "style": {
+        "navigationBarTitleText": "关于我们",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/privacy/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私政策",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/agreement/agreement",
+      "style": {
+        "navigationBarTitleText": "用户协议",
         "navigationStyle": "custom"
       }
     }
@@ -152,4 +159,3 @@
     }
   }
 }
-

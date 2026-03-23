@@ -1,16 +1,12 @@
 import { getAdminBookings, postAdminBookingsIdConfirm, postAdminBookingsIdCheckin, postAdminBookingsIdCheckout } from '@/services/api/guanliyuan';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
-  FooterToolbar,
   PageContainer,
   ProDescriptions,
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, Drawer, message, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
-import { request } from '@umijs/max';
-import CreateForm from './components/CreateForm';
-import UpdateForm from './components/UpdateForm';
 
 // 定义订单接口类型
 interface BookingType {
@@ -50,7 +46,6 @@ const TableList: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<BookingType>();
-  const [selectedRowsState, setSelectedRows] = useState<BookingType[]>([]);
 
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -340,41 +335,9 @@ const TableList: React.FC = () => {
           labelWidth: 120,
         }}
         scroll={{ x: 1800 }}
-        toolBarRender={() => [<CreateForm key="create" reload={actionRef.current?.reload} />]}
         request={fetchBookings}
         columns={columns}
-        rowSelection={{
-          onChange: (_, selectedRows) => {
-            setSelectedRows(selectedRows);
-          },
-        }}
       />
-      {/* 批量删除 */}
-      {selectedRowsState?.length > 0 && (
-        <FooterToolbar
-          extra={
-            <div>
-              已选择{' '}
-              <a
-                style={{
-                  fontWeight: 600,
-                }}
-              >
-                {selectedRowsState.length}
-              </a>{' '}
-              项
-            </div>
-          }
-        >
-          <Button
-            onClick={() => {
-              messageApi.warning('批量删除功能待实现');
-            }}
-          >
-            批量删除
-          </Button>
-        </FooterToolbar>
-      )}
 
       {/* 详情 */}
       <Drawer

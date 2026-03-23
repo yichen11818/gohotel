@@ -43,6 +43,21 @@ type AddUserRequest struct {
 	Role     string `json:"role"`
 }
 
+// UpdateUserRequest 管理员更新用户请求结构
+type UpdateUserRequest struct {
+	Username   string  `json:"username" binding:"required,min=3,max=20"`
+	Email      string  `json:"email" binding:"required,email"`
+	Phone      string  `json:"phone"`
+	RealName   string  `json:"real_name"`
+	Avatar     string  `json:"avatar"`
+	Role       string  `json:"role"`
+	Status     string  `json:"status"`
+	Level      string  `json:"level"`
+	Points     int     `json:"points"`
+	Balance    float64 `json:"balance"`
+	TotalSpend float64 `json:"total_spend"`
+}
+
 // LoginRequest 登录请求结构
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -53,6 +68,11 @@ type LoginRequest struct {
 type LoginResponse struct {
 	User  *models.User `json:"user"`
 	Token string       `json:"token"`
+}
+
+// UserPayload 通用用户载荷
+type UserPayload struct {
+	User *models.User `json:"user"`
 }
 
 // WeChatLoginRequest 微信登录请求结构
@@ -243,7 +263,7 @@ func (s *UserService) WeChatLogin(req *WeChatLoginRequest) (*LoginResponse, erro
 			Avatar:     req.Avatar,
 			Role:       "user",
 			Status:     "active",
-			OpenID:     wxResp.OpenID,
+			OpenID:     &wxResp.OpenID,
 			FirstLogin: true,
 		}
 
@@ -423,6 +443,72 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 	// 6. 保存到数据库
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, errors.NewDatabaseError("create admin user", err)
+	}
+
+	return user, nil
+}
+
+// UpdateUser 管理员更新用户
+func (s *UserService) UpdateUser(userID int64, req *UpdateUserRequest) (*models.User, error) {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.NewNotFoundError("用户不存在")
+		}
+		return nil, errors.NewDatabaseError("find user", err)
+	}
+
+	exists, err := s.userRepo.ExistsByUsernameExcludingUser(req.Username, userID)
+	if err != nil {
+		return nil, errors.NewDatabaseError("check username", err)
+	}
+	if exists {
+		return nil, errors.NewConflictError("用户名已存在")
+	}
+
+	exists, err = s.userRepo.ExistsByEmailExcludingUser(req.Email, userID)
+	if err != nil {
+		return nil, errors.NewDatabaseError("check email", err)
+	}
+	if exists {
+		return nil, errors.NewConflictError("邮箱已被使用")
+	}
+
+	if req.Phone != "" {
+		exists, err = s.userRepo.ExistsByPhoneExcludingUser(req.Phone, userID)
+		if err != nil {
+			return nil, errors.NewDatabaseError("check phone", err)
+		}
+		if exists {
+			return nil, errors.NewConflictError("手机号已被使用")
+		}
+	}
+
+	user.Username = req.Username
+	user.Email = req.Email
+	user.RealName = req.RealName
+	user.Avatar = req.Avatar
+	if req.Role != "" {
+		user.Role = req.Role
+	}
+	if req.Status != "" {
+		user.Status = req.Status
+	}
+	if req.Level != "" {
+		user.Level = req.Level
+	}
+	user.Points = req.Points
+	user.Balance = req.Balance
+	user.TotalSpend = req.TotalSpend
+	if req.Phone != "" {
+		phone := req.Phone
+		user.Phone = &phone
+	} else {
+		user.Phone = nil
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.NewDatabaseError("update user", err)
 	}
 
 	return user, nil

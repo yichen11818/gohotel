@@ -1,410 +1,236 @@
 <template>
-  <view class="container">
-    <!-- 导航栏 -->
-    <TnNavbar fixed :bottom-shadow="true" bg-color="#ffffff" :placeholder="true">
-      <template #back>
-        <view class="navbar-content">
-          <view class="back-btn" @click="goBack">
-            <TnIcon name="left" color="#333" size="40" />
-          </view>
-          <text class="navbar-title">我的订单</text>
-        </view>
-      </template>
-    </TnNavbar>
-
-    <!-- 标签页 -->
+  <view class="page">
     <view class="tabs">
-      <view 
-        v-for="(tab, index) in tabs" 
-        :key="index"
+      <view
+        v-for="tab in tabs"
+        :key="tab.value"
         class="tab-item"
         :class="{ active: currentTab === tab.value }"
         @click="switchTab(tab.value)"
       >
-        <text class="tab-text">{{ tab.label }}</text>
-        <view v-if="currentTab === tab.value" class="tab-indicator"></view>
+        <text>{{ tab.label }}</text>
       </view>
     </view>
 
-    <!-- 订单列表 -->
-    <scroll-view class="order-list" scroll-y>
-      <template v-if="orderList.length > 0">
-        <view 
-          v-for="order in orderList" 
-          :key="order.id"
-          class="order-card"
-          @click="goToOrderDetail(order.id)"
-        >
-          <view class="order-header">
-            <text class="order-number">订单号: {{ order.orderNo }}</text>
-            <text class="order-status" :class="order.statusClass">{{ order.statusText }}</text>
-          </view>
-          
-          <view class="order-content">
-            <image class="hotel-image" :src="order.hotelImage" mode="aspectFill"></image>
-            <view class="order-info">
-              <text class="hotel-name">{{ order.hotelName }}</text>
-              <text class="room-type">{{ order.roomType }}</text>
-              <text class="date-info">{{ order.checkIn }} 至 {{ order.checkOut }}</text>
-            </view>
-          </view>
-          
-          <view class="order-footer">
-            <view class="price-info">
-              <text class="price-label">实付金额:</text>
-              <text class="price-value">¥{{ order.totalPrice }}</text>
-            </view>
-            <view class="order-actions">
-              <view 
-                v-for="action in order.actions" 
-                :key="action.type"
-                class="action-btn"
-                :class="action.type"
-                @click.stop="handleAction(action.type, order)"
-              >
-                <text>{{ action.text }}</text>
-              </view>
-            </view>
+    <scroll-view class="list" scroll-y>
+      <view v-if="loading" class="placeholder">正在加载订单...</view>
+      <view v-else-if="!orderList.length" class="placeholder">暂无订单</view>
+
+      <view v-for="order in orderList" :key="order.id" class="order-card" @click="goToOrderDetail(order.id)">
+        <view class="order-header">
+          <text class="order-no">订单号 {{ order.orderNo }}</text>
+          <text class="status" :class="order.statusClass">{{ order.statusText }}</text>
+        </view>
+        <view class="order-body">
+          <image class="order-image" :src="order.roomImage" mode="aspectFill" />
+          <view class="order-info">
+            <text class="room-name">{{ order.roomName }}</text>
+            <text class="room-meta">{{ order.checkIn }} 至 {{ order.checkOut }}</text>
+            <text class="room-meta">{{ order.totalDays }} 晚 · {{ order.roomNumber || '待分配房号' }}</text>
           </view>
         </view>
-      </template>
-      
-      <!-- 空状态 -->
-      <TnEmpty v-else description="暂无订单" :show-image="true" />
-      
-      <view class="bottom-placeholder"></view>
+        <view class="order-footer">
+          <text class="amount">¥{{ order.totalPrice }}</text>
+          <button v-if="order.canCancel" class="ghost-btn" size="mini" @click.stop="handleCancel(order)">取消订单</button>
+        </view>
+      </view>
+      <view class="bottom-space"></view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { booking } from '@/api/index.js'
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import TnNavbar from '@/uni_modules/tuniaoui-vue3/components/navbar/src/navbar.vue'
-import TnIcon from '@/uni_modules/tuniaoui-vue3/components/icon/src/icon.vue'
-import TnEmpty from '@/uni_modules/tuniaoui-vue3/components/empty/src/empty.vue'
 
-// 标签页配置
 const tabs = [
   { label: '全部', value: 'all' },
-  { label: '待付款', value: 'pending' },
+  { label: '待确认', value: 'pending' },
   { label: '待入住', value: 'confirmed' },
-  { label: '已完成', value: 'completed' },
-  { label: '已取消', value: 'cancelled' }
+  { label: '入住中', value: 'checkin' },
+  { label: '已完成', value: 'checkout' },
+  { label: '已取消', value: 'cancelled' },
 ]
 
 const currentTab = ref('all')
 const orderList = ref([])
 const loading = ref(false)
 
-onLoad((options) => {
-  if (options?.type) {
-    currentTab.value = options.type
-  }
-  loadOrders()
-})
-
-// 切换标签
-const switchTab = (value) => {
-  currentTab.value = value
-  loadOrders()
-}
-
-// 加载订单
 const loadOrders = async () => {
   loading.value = true
   try {
-    const params = {
-      status: currentTab.value === 'all' ? undefined : currentTab.value,
+    orderList.value = await booking.getBookingList({
+      status: currentTab.value,
       page: 1,
-      pageSize: 20
-    }
-    const data = await booking.getBookingList(params)
-    orderList.value = data || []
+      pageSize: 50,
+    })
   } catch (error) {
-    console.error('Failed to load orders:', error)
+    console.error('load orders failed:', error)
   } finally {
     loading.value = false
   }
 }
 
-// 返回
-const goBack = () => {
-  uni.navigateBack()
+const switchTab = (value) => {
+  currentTab.value = value
+  loadOrders()
 }
 
-// 前往订单详情
-const goToOrderDetail = (orderId) => {
-  uni.navigateTo({
-    url: `/pages/order-detail/order-detail?id=${orderId}`
+const goToOrderDetail = (id) => {
+  uni.navigateTo({ url: `/pages/order-detail/order-detail?id=${id}` })
+}
+
+const handleCancel = (order) => {
+  uni.showModal({
+    title: '取消订单',
+    content: '确定要取消这笔订单吗？',
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        uni.showLoading({ title: '处理中...' })
+        await booking.cancelBooking(order.id, '用户主动取消')
+        uni.hideLoading()
+        uni.showToast({ title: '订单已取消', icon: 'success' })
+        loadOrders()
+      } catch (_error) {
+        uni.hideLoading()
+      }
+    },
   })
 }
 
-// 处理操作
-const handleAction = (type, order) => {
-  switch (type) {
-    case 'pay':
-      // 支付
-      uni.showToast({ title: '前往支付', icon: 'none' })
-      break
-    case 'cancel':
-      // 取消订单
-      uni.showModal({
-        title: '提示',
-        content: '确定要取消订单吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showToast({ title: '订单已取消', icon: 'success' })
-          }
-        }
-      })
-      break
-    case 'delete':
-      // 删除订单
-      uni.showModal({
-        title: '提示',
-        content: '确定要删除订单吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showToast({ title: '订单已删除', icon: 'success' })
-          }
-        }
-      })
-      break
+onLoad((options) => {
+  if (options?.type) {
+    currentTab.value = options.type
   }
-}
+})
+
+onShow(() => {
+  loadOrders()
+})
 </script>
 
-<style lang="scss" scoped>
-.container {
+<style scoped lang="scss">
+.page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: #f6f7fb;
 }
 
-.navbar-content {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60rpx;
-  height: 60rpx;
-  
-  &:active {
-    opacity: 0.6;
-  }
-}
-
-.navbar-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #333;
-}
-
-/* 标签页 */
 .tabs {
   display: flex;
+  gap: 16rpx;
+  padding: 28rpx 24rpx 16rpx;
+  overflow-x: auto;
+  white-space: nowrap;
   background: #fff;
-  padding: 0 24rpx;
-  position: sticky;
-  top: 88rpx;
-  z-index: 10;
 }
 
 .tab-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24rpx 0;
-  position: relative;
-  
-  &:active {
-    opacity: 0.7;
-  }
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 999rpx;
 }
 
-.tab-text {
-  font-size: 28rpx;
-  color: #666;
-  font-weight: 500;
-  transition: all 0.3s ease;
+.tab-item.active {
+  color: #fff;
+  background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
 }
 
-.tab-item.active .tab-text {
-  color: #C29D71;
-  font-weight: 700;
-  font-size: 32rpx;
-}
-
-.tab-indicator {
-  position: absolute;
-  bottom: 0;
-  width: 40rpx;
-  height: 6rpx;
-  background: linear-gradient(90deg, #D4B184 0%, #C29D71 100%);
-  border-radius: 3rpx;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    width: 0;
-  }
-  to {
-    width: 40rpx;
-  }
-}
-
-/* 订单列表 */
-.order-list {
-  height: calc(100vh - 88rpx - 96rpx);
+.list {
+  height: calc(100vh - 112rpx);
   padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.placeholder {
+  padding: 80rpx 24rpx;
+  text-align: center;
+  color: #6b7280;
+  font-size: 26rpx;
 }
 
 .order-card {
-  background: #fff;
-  border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  
-  &:active {
-    transform: scale(0.98);
-  }
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.05);
 }
 
-.order-header {
+.order-header,
+.order-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #F0F0F0;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.order-number {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.order-status {
-  font-size: 26rpx;
+.order-no,
+.room-name {
+  font-size: 28rpx;
   font-weight: 600;
-  
-  &.pending {
-    color: #FF9500;
-  }
-  
-  &.checkin {
-    color: #5AC8FA;
-  }
-  
-  &.completed {
-    color: #34C759;
-  }
-  
-  &.cancelled {
-    color: #FF3B30;
-  }
+  color: #111827;
 }
 
-.order-content {
+.status {
+  font-size: 24rpx;
+}
+
+.status.pending,
+.status.confirmed,
+.status.checkin {
+  color: #b7791f;
+}
+
+.status.checkout {
+  color: #059669;
+}
+
+.status.cancelled {
+  color: #dc2626;
+}
+
+.order-body {
   display: flex;
   gap: 20rpx;
-  margin-bottom: 20rpx;
+  margin-top: 20rpx;
 }
 
-.hotel-image {
-  width: 160rpx;
-  height: 120rpx;
-  border-radius: 12rpx;
+.order-image {
+  width: 180rpx;
+  height: 140rpx;
+  border-radius: 16rpx;
+  background: #f3f4f6;
 }
 
 .order-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
 }
 
-.hotel-name {
+.room-meta,
+.amount {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #4b5563;
+}
+
+.amount {
   font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.room-type {
-  font-size: 26rpx;
-  color: #666;
-}
-
-.date-info {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 20rpx;
-  border-top: 1rpx solid #F0F0F0;
-}
-
-.price-info {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.price-label {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.price-value {
-  font-size: 32rpx;
+  color: #b7791f;
   font-weight: 700;
-  color: #C29D71;
 }
 
-.order-actions {
-  display: flex;
-  gap: 16rpx;
+.ghost-btn {
+  margin: 0;
+  border-radius: 999rpx;
 }
 
-.action-btn {
-  padding: 12rpx 32rpx;
-  border-radius: 100rpx;
-  font-size: 26rpx;
-  transition: all 0.3s ease;
-  
-  &.pay {
-    background: linear-gradient(135deg, #D4B184 0%, #C29D71 100%);
-    color: #fff;
-  }
-  
-  &.cancel,
-  &.delete {
-    background: #F5F5F5;
-    color: #666;
-  }
-  
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.bottom-placeholder {
-  height: 40rpx;
+.bottom-space {
+  height: 24rpx;
 }
 </style>
-
-
-

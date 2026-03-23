@@ -16,7 +16,7 @@ type User struct {
 	RealName   string          `gorm:"size:50" json:"real_name"`                        // 真实姓名
 	Avatar     string          `gorm:"size:255" json:"avatar"`                          // 头像 URL
 	Role       string          `gorm:"default:'user';size:20" json:"role"`              // 角色：user, admin
-	OpenID     string          `gorm:"unique;size:100" json:"open_id"`                  // 微信 OpenID
+	OpenID     *string         `gorm:"unique;size:100" json:"open_id,omitempty"`        // 微信 OpenID（仅微信登录用户有值）
 	Status     string          `gorm:"default:'active';size:20" json:"status"`          // 状态：active, blocked
 	Level      string          `gorm:"default:'normal';size:20" json:"level"`           // 会员等级：normal, silver, gold, platinum
 	Points     int             `gorm:"default:0" json:"points"`                         // 积分

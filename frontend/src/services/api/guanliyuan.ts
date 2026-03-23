@@ -215,7 +215,7 @@ export async function getAdminUsers(
   params: API.getAdminUsersParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.User[]>("/api/admin/users", {
+  return request<API.PageResponse & { data?: API.User[] }>("/api/admin/users", {
     method: "GET",
     params: {
       // page has a default value: 1
@@ -236,11 +236,36 @@ export async function getAdminUsersId(
   options?: { [key: string]: any }
 ) {
   const { id: param0, ...queryParams } = params;
-  return request<API.User>(`/api/admin/users/${param0}`, {
-    method: "GET",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.Response & { data?: API.User }>(
+    `/api/admin/users/${param0}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
+/** 更新用户 管理员更新用户资料 POST /api/admin/users/${param0} */
+export async function postAdminUsersId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminUsersIdParams,
+  body: API.UpdateUserRequest,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<API.Response & { data?: API.User }>(
+    `/api/admin/users/${param0}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 批量删除用户 管理员批量删除用户账户 POST /api/admin/users/batch */
@@ -248,7 +273,7 @@ export async function postAdminUsersBatch(
   body: API.DeleteUsersRequest,
   options?: { [key: string]: any }
 ) {
-  return request<Record<string, any>>("/api/admin/users/batch", {
+  return request<API.Response>("/api/admin/users/batch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -263,7 +288,7 @@ export async function postAdminUsersUser(
   body: API.AddUserRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.User>("/api/admin/users/user", {
+  return request<API.Response & { data?: API.User }>("/api/admin/users/user", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
