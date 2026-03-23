@@ -116,6 +116,11 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const normalizeDateParam = (value) => {
+  if (!value) return ''
+  return String(value).slice(0, 10)
+}
+
 const ensureDates = () => {
   if (!checkInDate.value || !checkOutDate.value) {
     const today = new Date()
@@ -195,7 +200,7 @@ const handleSubmit = async () => {
         url: `/pages/order-detail/order-detail?id=${result.id}`,
       })
     }, 800)
-  } catch (error) {
+  } catch (_error) {
     uni.hideLoading()
   } finally {
     submitting.value = false
@@ -206,8 +211,8 @@ onLoad((options) => {
   if (options?.roomId) {
     loadRoomInfo(options.roomId)
   }
-  checkInDate.value = options?.checkIn || ''
-  checkOutDate.value = options?.checkOut || ''
+  checkInDate.value = normalizeDateParam(options?.checkIn)
+  checkOutDate.value = normalizeDateParam(options?.checkOut)
   ensureDates()
   fillGuestInfo()
 })

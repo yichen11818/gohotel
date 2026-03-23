@@ -2,7 +2,7 @@
  * 酒店与房间相关 API（按当前后端真实能力适配为单酒店模型）
  */
 
-import { get } from '@/utils/request.js'
+import { get, post } from '@/utils/request.js'
 
 export const DEFAULT_HOTEL_ID = 1
 
@@ -18,7 +18,7 @@ const DEFAULT_HOTEL = {
   checkOutTime: '12:00',
   serviceTime: '24小时服务',
   coverImages: [],
-  notices: []
+  notices: [],
 }
 
 const ensureArray = (value) => {
@@ -94,6 +94,32 @@ const normalizeSettings = (settings = {}, hotelId = DEFAULT_HOTEL_ID) => {
   }
 }
 
+// === 原始房间接口 ===
+
+export const getRoomList = (params = {}) => {
+  return get('/rooms', params)
+}
+
+export const getAvailableRooms = (params = {}) => {
+  return get('/rooms/available', params)
+}
+
+export const getRoomsByFloor = (floor, params = {}) => {
+  return get(`/rooms/floor/${floor}`, params)
+}
+
+export const searchRoomsByType = (params = {}) => {
+  const payload = { ...params }
+
+  if (!payload.type && payload.room_type) {
+    payload.type = payload.room_type
+  }
+
+  delete payload.room_type
+
+  return get('/rooms/search/type', payload)
+}
+
 export const getPublicSettings = async (hotelId = DEFAULT_HOTEL_ID) => {
   const result = await get('/settings/public', { hotel_id: hotelId })
   return normalizeSettings(result, hotelId)
@@ -135,12 +161,12 @@ export const getRoomTypes = async (_hotelId = DEFAULT_HOTEL_ID, params = {}) => 
     page_size: params.pageSize || params.page_size || 50,
   }
 
-  const result = params.type
-    ? await get('/rooms/search/type', {
+  const result = params.type || params.room_type
+    ? await searchRoomsByType({
         ...requestParams,
-        type: params.type,
+        type: params.type || params.room_type,
       })
-    : await get('/rooms/available', requestParams)
+    : await getAvailableRooms(requestParams)
 
   return (Array.isArray(result) ? result : []).map(normalizeRoom)
 }
@@ -148,6 +174,50 @@ export const getRoomTypes = async (_hotelId = DEFAULT_HOTEL_ID, params = {}) => 
 export const getRoomDetail = async (id) => {
   const result = await get(`/rooms/${id}`)
   return normalizeRoom(result)
+}
+
+// === 管理员房间接口 ===
+
+export const createRoom = (data) => {
+  return post('/rooms', data)
+}
+
+export const updateRoom = (id, data) => {
+  return post(`/rooms/${id}`, data)
+}
+
+export const deleteRoom = (id) => {
+  return post(`/rooms/${id}/delete`)
+}
+
+export const batchCreateRooms = (data) => {
+  return post('/rooms/batch', data)
+}
+
+// === 管理员设施接口 ===
+
+export const getFacilities = (params = {}) => {
+  return get('/admin/facilities', params)
+}
+
+export const getFacilitiesByFloor = (floor) => {
+  return get(`/admin/facilities/floor/${floor}`)
+}
+
+export const getFacilityDetail = (id) => {
+  return get(`/admin/facilities/${id}`)
+}
+
+export const createFacility = (data) => {
+  return post('/admin/facilities', data)
+}
+
+export const updateFacility = (id, data) => {
+  return post(`/admin/facilities/${id}`, data)
+}
+
+export const batchUpdateFacilities = (data) => {
+  return post('/admin/facilities/batch', data)
 }
 
 export const getHotelFacilities = async (hotelId = DEFAULT_HOTEL_ID) => {

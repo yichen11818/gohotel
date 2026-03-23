@@ -103,11 +103,15 @@ export const createBooking = (data) => {
   return post('/bookings', payload)
 }
 
-export const getBookingList = async (params = {}) => {
-  const result = await get('/bookings/my', {
+export const getMyBookings = (params = {}) => {
+  return get('/bookings/my', {
     page: params.page || 1,
-    page_size: params.pageSize || params.page_size || 50,
+    page_size: params.page_size || params.pageSize || 50,
   })
+}
+
+export const getBookingList = async (params = {}) => {
+  const result = await getMyBookings(params)
 
   const list = (Array.isArray(result) ? result : []).map(normalizeBooking)
 
@@ -123,8 +127,12 @@ export const getBookingDetail = async (id) => {
   return normalizeBooking(result)
 }
 
-export const cancelBooking = (id, reason = '') => {
-  return post(`/bookings/${id}/cancel`, { reason })
+export const cancelBooking = (id, data = '') => {
+  const payload = typeof data === 'string'
+    ? { reason: data }
+    : { reason: data?.reason || '' }
+
+  return post(`/bookings/${id}/cancel`, payload)
 }
 
 export const confirmBooking = async () => {
@@ -137,4 +145,61 @@ export const calculatePrice = async () => {
 
 export const payBooking = async () => {
   throw new Error('当前版本暂不支持住客端支付')
+}
+
+// === 管理员相关API ===
+
+/**
+ * 获取所有预订（管理员）
+ * @param {Object} params - 查询参数
+ * @param {Number} params.page - 页码，默认1
+ * @param {Number} params.page_size - 每页数量，默认10
+ */
+export const getAllBookings = (params = {}) => {
+  return get('/admin/bookings', params)
+}
+
+/**
+ * 根据房间号和状态获取预订列表（管理员）
+ * @param {Object} params - 查询参数
+ * @param {String} params.room_number - 房间号
+ * @param {String} params.status - 预订状态
+ */
+export const getBookingsByRoom = (params) => {
+  return get('/admin/bookings/room', params)
+}
+
+/**
+ * 通过客人信息搜索预订（管理员）
+ * @param {Object} params - 搜索参数
+ * @param {String} params.guest_name - 客人姓名
+ * @param {String} params.guest_phone - 客人手机号
+ * @param {String} params.status - 预订状态
+ */
+export const searchBookings = (params) => {
+  return get('/admin/bookings/search', params)
+}
+
+/**
+ * 确认预订（管理员）
+ * @param {Number} id - 预订ID
+ */
+export const confirmBookingAdmin = (id) => {
+  return post(`/admin/bookings/${id}/confirm`)
+}
+
+/**
+ * 办理入住（管理员）
+ * @param {Number} id - 预订ID
+ */
+export const checkinBooking = (id) => {
+  return post(`/admin/bookings/${id}/checkin`)
+}
+
+/**
+ * 办理退房（管理员）
+ * @param {Number} id - 预订ID
+ */
+export const checkoutBooking = (id) => {
+  return post(`/admin/bookings/${id}/checkout`)
 }

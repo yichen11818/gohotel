@@ -94,7 +94,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { banner, hotel } from '@/api/index.js'
-import { TOKEN_KEY } from '@/config/api.config.js'
+import { API_BASE_URL, TOKEN_KEY } from '@/config/api.config.js'
 
 const hotelId = ref(hotel.DEFAULT_HOTEL_ID || 1)
 const hotelInfo = ref({
@@ -109,6 +109,7 @@ const hotelInfo = ref({
   checkInTime: '14:00',
   checkOutTime: '12:00',
   intro: '',
+  coverImages: [],
 })
 const bannerImages = ref(['https://dummyimage.com/1200x720/f3ede5/8b6b47&text=GoHotel'])
 const notices = ref([])
@@ -146,6 +147,16 @@ const ensureDates = () => {
   checkOutDate.value = formatDate(tomorrow)
 }
 
+const normalizeAssetUrl = (url) => {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('//')) return `https:${url}`
+  const firstSegment = String(url).split('/')[0]
+  if (firstSegment.includes('.') || firstSegment.includes(':')) return `http://${url}`
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`
+  return `${API_BASE_URL}/${url}`
+}
+
 const loadData = async () => {
   try {
     const [hotelRes, bannerRes] = await Promise.all([
@@ -156,8 +167,18 @@ const loadData = async () => {
     hotelInfo.value = hotelRes
     notices.value = hotelRes.notices || []
 
-    if (Array.isArray(bannerRes) && bannerRes.length > 0) {
-      bannerImages.value = bannerRes.map((item) => item.image_url).filter(Boolean)
+    const normalizedBanners = (Array.isArray(bannerRes) ? bannerRes : [])
+      .map((item) => normalizeAssetUrl(item?.image_url || item?.temp_url || item?.image))
+      .filter(Boolean)
+
+    if (normalizedBanners.length > 0) {
+      bannerImages.value = normalizedBanners
+      return
+    }
+
+    const coverImages = (hotelRes.coverImages || []).map(normalizeAssetUrl).filter(Boolean)
+    if (coverImages.length > 0) {
+      bannerImages.value = coverImages
     }
   } catch (error) {
     console.error('load home data failed:', error)
@@ -188,7 +209,7 @@ const onCheckOutChange = (event) => {
 
 const goToHotel = () => {
   uni.navigateTo({
-    url: `/pages/hotel/hotel?checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
+    url: `/pages/hotel/hotel?id=${hotelId.value}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
   })
 }
 
@@ -207,18 +228,27 @@ const goToOrders = () => {
 }
 
 const callHotel = () => {
-  if (!hotelInfo.value.phone) {
+  const phone = String(hotelInfo.value.phone || '').trim()
+  if (!phone) {
     uni.showToast({ title: '暂未配置联系电话', icon: 'none' })
     return
   }
 
-  uni.makePhoneCall({ phoneNumber: hotelInfo.value.phone })
+  uni.makePhoneCall({ phoneNumber: phone })
 }
 
 const openMap = () => {
+  const latitude = Number(hotelInfo.value.latitude)
+  const longitude = Number(hotelInfo.value.longitude)
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    uni.showToast({ title: '暂未配置地图坐标', icon: 'none' })
+    return
+  }
+
   uni.openLocation({
-    latitude: Number(hotelInfo.value.latitude),
-    longitude: Number(hotelInfo.value.longitude),
+    latitude,
+    longitude,
     name: hotelInfo.value.name,
     address: hotelInfo.value.address,
   })
