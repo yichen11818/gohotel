@@ -1,1 +1,1 @@
-../main.js
+export { createApp } from '../main.js'

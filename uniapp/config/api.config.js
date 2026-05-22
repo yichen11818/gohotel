@@ -2,14 +2,35 @@
  * API配置文件
  */
 
-// 开发环境API地址
-const DEV_API_URL = 'http://127.0.0.1:19999'
+import { getEnvString, IS_DEV } from '@/utils/env.js'
 
-// 生产环境API地址
-const PROD_API_URL = 'http://192.168.1.10:19999'
+// 默认 API 地址留空，H5 开发环境走同源 /api + Vite 代理。
+// 生产/真机环境可通过 UNI_APP_API_BASE_URL 或本地存储覆盖为完整域名。
+const DEFAULT_API_URL = ''
+export const API_BASE_URL_STORAGE_KEY = 'gohotel_api_base_url'
 
-// 根据环境选择API地址
-export const API_BASE_URL = process.env.NODE_ENV === 'production' ? PROD_API_URL : DEV_API_URL
+const normalizeApiBaseUrl = (value) => {
+  if (typeof value !== 'string') return ''
+  return value.trim().replace(/\/+$/, '')
+}
+
+const getStoredApiBaseUrl = () => {
+  try {
+    if (typeof uni === 'undefined' || typeof uni.getStorageSync !== 'function') {
+      return ''
+    }
+    return normalizeApiBaseUrl(uni.getStorageSync(API_BASE_URL_STORAGE_KEY))
+  } catch (_error) {
+    return ''
+  }
+}
+
+const ENV_API_URL = normalizeApiBaseUrl(
+  getEnvString(['UNI_APP_API_BASE_URL', 'VITE_UNI_APP_API_BASE_URL'], '')
+)
+
+// 根据环境选择 API 地址，优先使用可配置值
+export const API_BASE_URL = getStoredApiBaseUrl() || ENV_API_URL || DEFAULT_API_URL
 
 // API版本
 export const API_VERSION = '/api'
@@ -31,6 +52,5 @@ export const HEADERS = {
   'Content-Type': 'application/json',
 }
 
-// 是否显示请求日志
-export const SHOW_REQUEST_LOG = process.env.NODE_ENV === 'development'
-
+// 开发环境默认关闭逐条请求日志，避免后端不可达时刷屏影响调试。
+export const SHOW_REQUEST_LOG = false

@@ -5,6 +5,7 @@
 
 import { getStorage, setStorage } from './storage.js'
 import { post } from './request.js'
+import { IS_PROD } from './env.js'
 
 // 日志级别
 export const LogLevel = {
@@ -27,16 +28,16 @@ const LogLevelNames = {
 // 日志配置
 const config = {
   // 当前环境的日志级别
-  level: process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG,
+  level: IS_PROD ? LogLevel.INFO : LogLevel.DEBUG,
   
   // 是否启用控制台输出
-  enableConsole: process.env.NODE_ENV !== 'production',
+  enableConsole: !IS_PROD,
   
   // 是否启用本地存储
   enableStorage: true,
   
   // 是否启用远程上报
-  enableReport: true,
+  enableReport: IS_PROD,
   
   // 本地存储的最大日志条数
   maxStorageSize: 100,

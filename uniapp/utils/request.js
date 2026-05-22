@@ -9,6 +9,8 @@ import logger from './logger.js'
 import { apiMonitor } from './performance.js'
 import errorHandler from './error-handler.js'
 
+const isLogReportRequest = (url = '') => typeof url === 'string' && url.includes('/logs/report')
+
 /**
  * 请求拦截器
  */
@@ -23,7 +25,7 @@ const requestInterceptor = (config) => {
   }
 
   // 打印请求日志
-  if (SHOW_REQUEST_LOG) {
+  if (SHOW_REQUEST_LOG && !config.skipRequestLog && !isLogReportRequest(config.url)) {
     console.log('=== 请求开始 ===')
     console.log('URL:', config.url)
     console.log('Method:', config.method)
@@ -41,7 +43,7 @@ const responseInterceptor = (response) => {
   const { statusCode, data } = response
 
   // 打印响应日志
-  if (SHOW_REQUEST_LOG) {
+  if (SHOW_REQUEST_LOG && !response.config?.skipRequestLog && !isLogReportRequest(response.config?.url)) {
     console.log('=== 响应结束 ===')
     console.log('Status:', statusCode)
     console.log('Data:', data)
@@ -180,7 +182,10 @@ const request = (options) => {
     },
     timeout: options.timeout || REQUEST_TIMEOUT,
     dataType: 'json',
-    responseType: 'text'
+    responseType: 'text',
+    skipRequestLog: Boolean(options.skipRequestLog),
+    skipErrorLogging: Boolean(options.skipErrorLogging),
+    skipGlobalErrorHandler: Boolean(options.skipGlobalErrorHandler)
   }
 
   // 执行请求拦截器
@@ -202,7 +207,9 @@ const request = (options) => {
         perfMonitor.end(response.statusCode, dataSize)
 
         // 记录响应日志
-        logger.logResponse(config.url, config.method, response.statusCode, response.data, duration)
+        if (!config.skipRequestLog && !isLogReportRequest(config.url)) {
+          logger.logResponse(config.url, config.method, response.statusCode, response.data, duration)
+        }
 
         // 执行响应拦截器
         responseInterceptor(response)
@@ -213,26 +220,30 @@ const request = (options) => {
         const duration = Date.now() - startTime
 
         // 记录错误日志
-        logger.error('请求失败', {
-          url: config.url,
-          method: config.method,
-          error: error.errMsg,
-          duration: `${duration}ms`
-        })
+        if (!config.skipErrorLogging && !isLogReportRequest(config.url)) {
+          logger.error('请求失败', {
+            url: config.url,
+            method: config.method,
+            error: error.errMsg,
+            duration: `${duration}ms`
+          })
+        }
 
         // 统一错误处理
-        errorHandler.handleError(error, 'network', {
-          url: config.url,
-          method: config.method
-        })
+        if (!config.skipGlobalErrorHandler && !isLogReportRequest(config.url)) {
+          errorHandler.handleError(error, 'network', {
+            url: config.url,
+            method: config.method
+          })
+        }
 
         // 网络错误处理
-        if (error.errMsg.includes('timeout')) {
+        if (!isLogReportRequest(config.url) && error.errMsg.includes('timeout')) {
           uni.showToast({
             title: '请求超时',
             icon: 'none'
           })
-        } else if (error.errMsg.includes('fail')) {
+        } else if (!isLogReportRequest(config.url) && error.errMsg.includes('fail')) {
           uni.showToast({
             title: '网络连接失败',
             icon: 'none'

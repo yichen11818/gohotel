@@ -3,6 +3,7 @@
  */
 
 import logger from './logger.js'
+import { IS_PROD } from './env.js'
 
 /**
  * 错误处理类
@@ -124,7 +125,7 @@ class ErrorHandler {
    */
   showErrorTip(errorInfo) {
     // 生产环境显示友好提示
-    if (process.env.NODE_ENV === 'production') {
+    if (IS_PROD) {
       const userFriendlyMessages = {
         'network': '网络连接失败，请检查网络设置',
         'timeout': '请求超时，请稍后重试',
