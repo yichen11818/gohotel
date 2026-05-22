@@ -1,16 +1,48 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { Card, message, Tag, Button, Modal, Form, Input, Select, Popconfirm } from 'antd';
-import React, { useRef, useState } from 'react';
+import { message, Button, Modal, Form, Input, Select } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import { getAdminWorkOrdersRepairs as listMaintenance, postAdminWorkOrdersRepairIdComplete as completeRepair, postAdminWorkOrdersRepair as createRepairRequest } from '@/services/api/gongdanguanli';
+import { getRooms } from '@/services/api/fangjian';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 const RepairManage: React.FC = () => {
-  const actionRef = useRef<ActionType>(undefined);
+  const actionRef = useRef<ActionType | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
   const [completeModalVisible, setCompleteModalVisible] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<API.Maintenance>();
+  const [roomOptions, setRoomOptions] = useState<{ label: string; value: number }[]>([]);
+  const [roomOptionsLoading, setRoomOptionsLoading] = useState(false);
   const [form] = Form.useForm();
   const [completeForm] = Form.useForm();
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      setRoomOptionsLoading(true);
+      try {
+        const response = await getRooms({ page_size: 200 } as API.getRoomsParams);
+        const roomList = Array.isArray(response)
+          ? response
+          : ((response as any)?.data ?? []);
+
+        setRoomOptions(
+          roomList
+            .filter((room: API.Room) => room.id !== undefined && room.id !== null)
+            .map((room: API.Room) => ({
+              label: `${room.room_number} · ${room.room_type || '未设置房型'} · ${room.floor ?? '-'}楼`,
+              value: Number(room.id),
+            }))
+            .filter((option: { label: string; value: number }) => Number.isFinite(option.value)),
+        );
+      } catch (error) {
+        message.error(getBackendErrorMessage(error, '加载房间数据失败'));
+      } finally {
+        setRoomOptionsLoading(false);
+      }
+    };
+
+    void loadRooms();
+  }, []);
 
   const columns: ProColumns<API.Maintenance>[] = [
     {
@@ -84,28 +116,33 @@ const RepairManage: React.FC = () => {
 
   const handleCreate = async (values: any) => {
     try {
-      const res = await createRepairRequest(values);
+      const res = await createRepairRequest({
+        ...values,
+        room_id: Number(values.room_id),
+      });
       if (res.success) {
         message.success('报修申请已提交');
         setCreateModalVisible(false);
+        form.resetFields();
         actionRef.current?.reload();
       }
     } catch (error) {
-      message.error('提交失败');
+      message.error(getBackendErrorMessage(error, '提交失败'));
     }
   };
 
   const handleComplete = async (values: any) => {
     if (!currentRow?.id) return;
     try {
-      const res = await completeRepair({ id: currentRow.id }, values);
+      const res = await completeRepair({ id: Number(currentRow.id) }, values);
       if (res.success) {
         message.success('维修任务已完成');
         setCompleteModalVisible(false);
+        completeForm.resetFields();
         actionRef.current?.reload();
       }
     } catch (error) {
-      message.error('操作失败');
+      message.error(getBackendErrorMessage(error, '操作失败'));
     }
   };
 
@@ -134,15 +171,24 @@ const RepairManage: React.FC = () => {
       <Modal
         title="新建报修"
         open={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
+        onCancel={() => {
+          setCreateModalVisible(false);
+          form.resetFields();
+        }}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} onFinish={handleCreate} layout="vertical">
-          <Form.Item name="room_id" label="房间ID" rules={[{ required: true }]}>
-            <Input placeholder="输入房间ID" />
+          <Form.Item name="room_id" label="房间" rules={[{ required: true, message: '请选择房间' }]}>
+            <Select
+              showSearch
+              placeholder="请选择房间"
+              options={roomOptions}
+              loading={roomOptionsLoading}
+              optionFilterProp="label"
+            />
           </Form.Item>
-          <Form.Item name="type" label="报修类型" rules={[{ required: true }]}>
+          <Form.Item name="type" label="报修类型" rules={[{ required: true, message: '请选择报修类型' }]}>
             <Select>
               <Select.Option value="plumbing">水路</Select.Option>
               <Select.Option value="electrical">电路</Select.Option>
@@ -162,7 +208,7 @@ const RepairManage: React.FC = () => {
         open={completeModalVisible}
         onCancel={() => setCompleteModalVisible(false)}
         onOk={() => completeForm.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={completeForm} onFinish={handleComplete} layout="vertical">
           <Form.Item name="remark" label="维修备注">

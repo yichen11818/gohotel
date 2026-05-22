@@ -1,4 +1,5 @@
 import { getAdminUsers, postAdminUsersBatch } from '@/services/api/guanliyuan';
+import { useModel } from '@umijs/max';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
@@ -6,11 +7,13 @@ import {
   ProDescriptions,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer, message } from 'antd';
+import { Button, Drawer, Modal, Space, Tag, message } from 'antd';
 import React, { useRef, useState } from 'react';
+import { getBackendErrorMessage } from '@/utils/backendError';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 const TableList: React.FC = () => {
+  const { initialState } = useModel('@@initialState');
   const actionRef = useRef<ActionType | null>(null);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<API.User>();
@@ -22,6 +25,57 @@ const TableList: React.FC = () => {
    * */
 
   const [messageApi, contextHolder] = message.useMessage();
+  const currentUserId = String(initialState?.currentUser?.userid || '');
+
+  const isCurrentUser = (record?: Partial<API.User>) =>
+    currentUserId !== '' && String(record?.id || '') === currentUserId;
+
+  const handleDeleteUsers = async (rows: API.User[]) => {
+    const rowsToDelete = rows.filter((row) => !isCurrentUser(row));
+    const userIds = rowsToDelete
+      .map((row) => row.id?.toString())
+      .filter((id): id is string => Boolean(id));
+
+    if (!userIds.length) {
+      messageApi.warning('请选择可删除的用户');
+      return false;
+    }
+
+    try {
+      await postAdminUsersBatch({ user_ids: userIds });
+      messageApi.success(rowsToDelete.length > 1 ? '批量删除成功' : '删除成功');
+      setSelectedRows((prev) =>
+        prev.filter((row) => !userIds.includes(String(row.id || ''))),
+      );
+      actionRef.current?.reload?.();
+      return true;
+    } catch (error) {
+      messageApi.error(getBackendErrorMessage(error, '删除失败，请重试'));
+      return false;
+    }
+  };
+
+  const confirmDeleteUsers = (rows: API.User[]) => {
+    const containsCurrentUser = rows.some((row) => isCurrentUser(row));
+    const deletableRows = rows.filter((row) => !isCurrentUser(row));
+
+    Modal.confirm({
+      title: rows.length > 1 ? '确认批量删除这些用户吗？' : '确认删除该用户吗？',
+      content: containsCurrentUser
+        ? '已自动排除当前登录账号，其他选中用户会被删除。'
+        : '删除后将无法恢复，请谨慎操作。',
+      okText: '确认删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        if (!deletableRows.length) {
+          messageApi.warning('当前登录账号不能删除');
+          return;
+        }
+        await handleDeleteUsers(deletableRows);
+      },
+    });
+  };
   
   const columns: ProColumns<API.User>[] = [
     {
@@ -35,14 +89,17 @@ const TableList: React.FC = () => {
       dataIndex: 'username',
       render: (dom, entity) => {
         return (
-          <a
-            onClick={() => {
-              setCurrentRow(entity);
-              setShowDetail(true);
-            }}
-          >
-            {dom}
-          </a>
+          <Space size={8}>
+            <a
+              onClick={() => {
+                setCurrentRow(entity);
+                setShowDetail(true);
+              }}
+            >
+              {dom}
+            </a>
+            {isCurrentUser(entity) ? <Tag color="blue">当前账号</Tag> : null}
+          </Space>
         );
       },
     },
@@ -131,9 +188,26 @@ const TableList: React.FC = () => {
         <UpdateForm
           trigger={<a>编辑</a>}
           key="edit"
-          onOk={actionRef.current?.reload}
+          onOk={() => actionRef.current?.reload?.()}
           values={record}
         />,
+        isCurrentUser(record) ? (
+          <a
+            key="current"
+            style={{ color: '#bfbfbf', cursor: 'not-allowed' }}
+            onClick={(event) => event.preventDefault()}
+          >
+            当前账号
+          </a>
+        ) : (
+          <a
+            key="delete"
+            style={{ color: '#cf1322' }}
+            onClick={() => confirmDeleteUsers([record])}
+          >
+            删除
+          </a>
+        ),
       ],
     },
   ];
@@ -175,7 +249,7 @@ const TableList: React.FC = () => {
         total: 0,
       };
     } catch (error) {
-      messageApi.error('获取用户列表失败');
+      messageApi.error(getBackendErrorMessage(error, '获取用户列表失败'));
       return {
         data: [],
         success: false,
@@ -193,10 +267,25 @@ const TableList: React.FC = () => {
         search={{
           labelWidth: 120,
         }}
-        toolBarRender={() => [<CreateForm key="create" reload={actionRef.current?.reload} />]}
+        toolBarRender={() => [
+          <CreateForm key="create" reload={() => actionRef.current?.reload?.()} />,
+          <Button
+            key="batchDelete"
+            danger
+            disabled={selectedRowsState.length === 0}
+            onClick={() => confirmDeleteUsers(selectedRowsState)}
+          >
+            {selectedRowsState.length > 0
+              ? `批量删除 (${selectedRowsState.length})`
+              : '批量删除'}
+          </Button>,
+        ]}
         request={fetchUsers}
         columns={columns}
         rowSelection={{
+          getCheckboxProps: (record) => ({
+            disabled: isCurrentUser(record),
+          }),
           onChange: (_, selectedRows) => {
             setSelectedRows(selectedRows);
           },
@@ -220,33 +309,7 @@ const TableList: React.FC = () => {
         >
           <Button
             danger
-            onClick={async () => {
-              try {
-                // 获取选中用户的ID列表，并转换为字符串，过滤掉可能的undefined值
-                const userIds = selectedRowsState
-                  .map(row => row.id?.toString())
-                  .filter((id): id is string => id !== undefined && id !== null);
-                
-                // 确保有有效ID再调用API
-                if (userIds.length === 0) {
-                  messageApi.warning('未找到有效的用户ID');
-                  return;
-                }
-                
-                // 调用删除API
-                await postAdminUsersBatch({ user_ids: userIds });
-                // 显示成功消息
-                messageApi.success('删除成功');
-                // 刷新表格数据
-                actionRef.current?.reload();
-                // 清空选中状态
-                setSelectedRows([]);
-              } catch (error) {
-                // 显示错误消息
-                messageApi.error('删除失败，请重试');
-                console.error('删除用户失败:', error);
-              }
-            }}
+            onClick={() => confirmDeleteUsers(selectedRowsState)}
           >
             批量删除
           </Button>

@@ -6,6 +6,7 @@ import { message, Popconfirm } from 'antd';
 import React, { useRef, useState } from 'react';
 import CreateNoticeForm from './components/CreateNoticeForm';
 import EditNoticeForm from './components/EditNoticeForm';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 const NoticeManage: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
@@ -115,7 +116,8 @@ const NoticeManage: React.FC = () => {
                 actionRef.current?.reload();
               }
             } catch (error) {
-              messageApi.error('删除失败');
+              const errorMessage = getBackendErrorMessage(error, '删除失败');
+              messageApi.error(errorMessage);
               console.error('删除公告失败:', error);
             }
           }}
@@ -158,7 +160,8 @@ const NoticeManage: React.FC = () => {
         total: 0,
       };
     } catch (error) {
-      messageApi.error('获取公告列表失败');
+      const errorMessage = getBackendErrorMessage(error, '获取公告列表失败');
+      messageApi.error(errorMessage);
       console.error('获取公告列表失败:', error);
       return {
         data: [],

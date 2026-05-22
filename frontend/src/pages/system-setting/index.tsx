@@ -3,6 +3,7 @@ import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, TimePicke
 import React from 'react';
 import dayjs from 'dayjs';
 import { getAdminHotels, getAdminSettings, postAdminHotels, postAdminSettingsSave } from '@/services/api/jiudianguanli';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 const SystemSetting: React.FC = () => {
   const [hotels, setHotels] = React.useState<API.Hotel[]>([]);
@@ -34,8 +35,8 @@ const SystemSetting: React.FC = () => {
       if (nextId !== undefined) {
         setSelectedHotelId(nextId);
       }
-    } catch (_e) {
-      message.error('加载酒店列表失败');
+    } catch (error) {
+      message.error(getBackendErrorMessage(error, '加载酒店列表失败'));
     } finally {
       setHotelsLoading(false);
     }
@@ -59,8 +60,8 @@ const SystemSetting: React.FC = () => {
         ...settings,
         booking_rules,
       });
-    } catch (_e) {
-      message.error('加载设置失败');
+    } catch (error) {
+      message.error(getBackendErrorMessage(error, '加载设置失败'));
     } finally {
       setSettingsLoading(false);
     }
@@ -101,8 +102,8 @@ const SystemSetting: React.FC = () => {
       });
       message.success('保存成功');
       await loadSettings(selectedHotelId);
-    } catch (_e) {
-      message.error('保存失败');
+    } catch (error) {
+      message.error(getBackendErrorMessage(error, '保存失败'));
     }
   };
 
@@ -121,12 +122,12 @@ const SystemSetting: React.FC = () => {
       message.success('创建成功');
       setCreateHotelVisible(false);
       await loadHotels();
-      const newId = Number(created?.id);
+      const newId = Number(created?.data?.id ?? created?.id);
       if (!Number.isNaN(newId) && newId > 0) {
         setSelectedHotelId(newId);
       }
-    } catch (_e) {
-      message.error('创建失败');
+    } catch (error) {
+      message.error(getBackendErrorMessage(error, '创建失败'));
     }
   };
 

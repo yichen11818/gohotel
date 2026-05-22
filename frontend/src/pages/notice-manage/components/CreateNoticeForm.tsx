@@ -8,9 +8,11 @@ import {
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Button, message } from 'antd';
+import dayjs from 'dayjs';
 import type { FC } from 'react';
 import { useRef } from 'react';
 import { postAdminNotices } from '@/services/api/gonggaoguanli';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 
 interface CreateNoticeFormProps {
@@ -21,16 +23,43 @@ const CreateNoticeForm: FC<CreateNoticeFormProps> = (props) => {
   const { reload } = props;
   const [messageApi, contextHolder] = message.useMessage();
   const formRef = useRef<ProFormInstance>(null);
+  const normalizeDateTime = (value: any) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return dayjs(value).format('YYYY-MM-DD HH:mm:ss');
+  };
 
   // 表单提交
   const { run, loading } = useRequest(
     async (data: any) => {
       try {
-        await postAdminNotices(data);
+        const payload: Parameters<typeof postAdminNotices>[0] = {
+          title: data.title,
+          link_url: data.link_url,
+          sort: data.sort,
+        };
+        const startTime = normalizeDateTime((data as any)?.start_time);
+        const endTime = normalizeDateTime((data as any)?.end_time);
+        if (startTime) {
+          payload.start_time = startTime;
+        } else {
+          delete payload.start_time;
+        }
+        if (endTime) {
+          payload.end_time = endTime;
+        } else {
+          delete payload.end_time;
+        }
+        await postAdminNotices(payload);
         messageApi.success('公告创建成功');
         return true;
       } catch (error) {
-        messageApi.error('公告创建失败，请重试');
+        const errorMessage = getBackendErrorMessage(error, '公告创建失败，请重试');
+        messageApi.error(errorMessage);
         throw error;
       }
     },

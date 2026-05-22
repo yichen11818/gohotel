@@ -16,6 +16,7 @@ import type { FC } from 'react';
 import { useState, useRef } from 'react';
 import { postAdminBanners } from '@/services/api/huodongguanli';
 import { postUploadImage } from '@/services/api/wenjianshangchuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 interface CreateActivityFormProps {
   reload?: () => void;
@@ -30,8 +31,7 @@ const CreateActivityForm: FC<CreateActivityFormProps> = (props) => {
   const formRef = useRef<ProFormInstance>(null);
 
 	const normalizeDateTime = (v: any) => {
-		if (v === undefined) return undefined;
-		if (v === null) return undefined;
+		if (v === undefined || v === null || v === '') return undefined;
 		if (typeof v === 'string') return v;
 		return dayjs(v).format('YYYY-MM-DD HH:mm:ss');
 	};

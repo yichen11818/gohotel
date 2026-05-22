@@ -3,14 +3,14 @@ import {
   type ActionType,
   ModalForm,
   ProFormText,
-  ProFormTextArea,
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Button, message } from 'antd';
 import type { FC } from 'react';
 import { postAdminUsersUser } from '@/services/api/guanliyuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 interface CreateFormProps {
-  reload?: ActionType['reload'];
+  reload?: () => void | Promise<void>;
 }
 const CreateForm: FC<CreateFormProps> = (props) => {
   const { reload } = props;
@@ -27,7 +27,7 @@ const CreateForm: FC<CreateFormProps> = (props) => {
         messageApi.success('用户创建成功');
         return true;
       } catch (error) {
-        messageApi.error('用户创建失败，请重试');
+        messageApi.error(getBackendErrorMessage(error, '用户创建失败，请重试'));
         throw error;
       }
     },

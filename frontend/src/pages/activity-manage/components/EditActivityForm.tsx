@@ -16,6 +16,7 @@ import type { FC } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { postAdminBannersId } from '@/services/api/huodongguanli';
 import { postUploadImage } from '@/services/api/wenjianshangchuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 interface EditActivityFormProps {
   visible: boolean;
@@ -33,9 +34,7 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
   const formRef = useRef<ProFormInstance>(null);
 
 	const normalizeDateTime = (v: any) => {
-		if (v === '') return '';
-		if (v === null) return '';
-		if (v === undefined) return undefined;
+		if (v === undefined || v === null || v === '') return undefined;
 		if (typeof v === 'string') return v;
 		return dayjs(v).format('YYYY-MM-DD HH:mm:ss');
 	};
@@ -140,19 +139,31 @@ const EditActivityForm: FC<EditActivityFormProps> = (props) => {
   const { run, loading } = useRequest(
     async (data: any) => {
       try {
-        // 调用API更新活动
-        await postAdminBannersId({
-          id: String(activityData.id),
-        }, {
+        const payload: Record<string, any> = {
           ...data,
-				temp_url: tempImageUrl,
-				start_time: normalizeDateTime((data as any)?.start_time),
-				end_time: normalizeDateTime((data as any)?.end_time),
-        });
+        };
+        const startTime = normalizeDateTime((data as any)?.start_time);
+        const endTime = normalizeDateTime((data as any)?.end_time);
+        if (tempImageUrl) {
+          payload.temp_url = tempImageUrl;
+        }
+        if (startTime) {
+          payload.start_time = startTime;
+        }
+        if (endTime) {
+          payload.end_time = endTime;
+        }
+        await postAdminBannersId(
+          {
+            id: String(activityData.id),
+          },
+          payload,
+        );
         messageApi.success('活动更新成功');
         return true;
       } catch (error) {
-        messageApi.error('活动更新失败，请重试');
+        const errorMessage = getBackendErrorMessage(error, '活动更新失败，请重试');
+        messageApi.error(errorMessage);
         throw error;
       }
     },

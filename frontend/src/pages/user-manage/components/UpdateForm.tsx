@@ -7,6 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { Modal, message } from 'antd';
 import React, { cloneElement, useCallback, useState } from 'react';
+import { getBackendErrorMessage } from '@/utils/backendError';
 export type FormValueType = Partial<API.User>;
 export type UpdateFormProps = {
   trigger?: React.ReactElement<any>;
@@ -22,8 +23,13 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
       throw new Error('缺少用户ID');
     }
 
-    await postAdminUsersId({ id: Number(values.id) }, data);
-    messageApi.success('更新用户成功');
+    try {
+      await postAdminUsersId({ id: Number(values.id) }, data);
+      messageApi.success('更新用户成功');
+    } catch (error) {
+      messageApi.error(getBackendErrorMessage(error, '更新用户失败'));
+      throw error;
+    }
   };
   const onCancel = useCallback(() => {
     setOpen(false);
@@ -33,9 +39,14 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   }, []);
   const onFinish = useCallback(
     async (values?: any) => {
-      await run(values as API.UpdateUserRequest);
-      onOk?.();
-      onCancel();
+      try {
+        await run(values as API.UpdateUserRequest);
+        onOk?.();
+        onCancel();
+        return true;
+      } catch (_error) {
+        return false;
+      }
     },
     [onCancel, onOk],
   );
@@ -55,10 +66,12 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
           return (
             <Modal
               width={640}
-              bodyStyle={{
-                padding: '32px 40px 48px',
+              styles={{
+                body: {
+                  padding: '32px 40px 48px',
+                },
               }}
-              destroyOnClose
+              destroyOnHidden
               title={'编辑用户'}
               open={open}
               footer={submitter}

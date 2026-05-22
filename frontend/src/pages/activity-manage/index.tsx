@@ -5,6 +5,7 @@ import { message, Popconfirm } from 'antd';
 import React, { useRef, useState } from 'react';
 import CreateActivityForm from './components/CreateActivityForm';
 import EditActivityForm from './components/EditActivityForm';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 const ActivityManage: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
@@ -187,7 +188,8 @@ const ActivityManage: React.FC = () => {
                 actionRef.current?.reload();
               }
             } catch (error) {
-              messageApi.error('删除失败');
+              const errorMessage = getBackendErrorMessage(error, '删除失败');
+              messageApi.error(errorMessage);
               console.error('删除活动失败:', error);
             }
           }}
@@ -230,7 +232,8 @@ const ActivityManage: React.FC = () => {
         total: 0,
       };
     } catch (error) {
-      messageApi.error('获取活动列表失败');
+      const errorMessage = getBackendErrorMessage(error, '获取活动列表失败');
+      messageApi.error(errorMessage);
       console.error('获取活动列表失败:', error);
       return {
         data: [],
