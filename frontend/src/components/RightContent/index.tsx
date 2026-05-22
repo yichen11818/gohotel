@@ -1,14 +1,13 @@
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { CustomerServiceOutlined } from '@ant-design/icons';
 
 export type SiderTheme = 'light' | 'dark';
 
 export const SelectLang: React.FC = () => null;
 
-export const Question: React.FC = () => {
+export const SupportLink: React.FC = () => {
   return (
     <a
-      href="https://pro.ant.design/docs/getting-started"
-      target="_blank"
+      href="mailto:ops@gohotel.com?subject=GoHotel%20运营支持"
       rel="noreferrer"
       style={{
         display: 'inline-flex',
@@ -17,7 +16,7 @@ export const Question: React.FC = () => {
         color: 'inherit',
       }}
     >
-      <QuestionCircleOutlined />
+      <CustomerServiceOutlined />
     </a>
   );
 };

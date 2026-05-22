@@ -110,6 +110,7 @@ const Login: React.FC = () => {
   };
   const handleSubmit = async (values: API.LoginParams) => {
     try {
+      setUserLoginState({});
       // 登录
       const msg = await postAuthLogin({
         username: values.username || '',
@@ -158,11 +159,30 @@ const Login: React.FC = () => {
         history.push(getSafeRedirectPath(urlParams.get('redirect')));
         return;
       } else {
-        message.error(msg.message || '登录失败，请重试！');
+        setUserLoginState({
+          status: 'error',
+          type: 'account',
+        });
       }
     } catch (error) {
-      console.log(error);
-      message.error('登录失败，请重试！');
+      const statusCode = (error as any)?.response?.status;
+      const backendMessage =
+        (error as any)?.response?.data?.error?.message ||
+        (error as any)?.response?.data?.message;
+
+      if (statusCode === 401) {
+        setUserLoginState({
+          status: 'error',
+          type: 'account',
+        });
+        return;
+      }
+
+      if (statusCode) {
+        return;
+      }
+
+      message.error(backendMessage || '登录失败，请稍后重试');
     }
   };
   const { status, type: loginType } = userLoginState;
@@ -187,8 +207,8 @@ const Login: React.FC = () => {
             maxWidth: '75vw',
           }}
           logo={<img alt="logo" src="/logo.svg" />}
-          title="Ant Design"
-          subTitle={'Ant Design 是西湖区最具影响力的 Web 设计规范'}
+          title="GoHotel 管理后台"
+          subTitle={'酒店预订与运营管理后台'}
           initialValues={{
             autoLogin: true,
           }}
@@ -214,7 +234,7 @@ const Login: React.FC = () => {
           />
 
           {status === 'error' && loginType === 'account' && (
-            <LoginMessage content={'错误的用户名和密码(admin/ant.design)'} />
+            <LoginMessage content={'账号或密码错误'} />
           )}
           {type === 'account' && (
             <>
@@ -238,7 +258,7 @@ const Login: React.FC = () => {
                   size: 'large',
                   prefix: <LockOutlined />,
                 }}
-                placeholder={'密码: ant.design'}
+                placeholder={'请输入密码'}
                 rules={[
                   {
                     required: true,

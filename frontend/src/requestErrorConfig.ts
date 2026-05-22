@@ -30,6 +30,39 @@ interface BackendErrorResponse {
 	};
 }
 
+const AUTH_REDIRECT_DEBOUNCE_MS = 1500;
+let lastAuthRedirectAt = 0;
+
+const clearAuthStorage = () => {
+	localStorage.removeItem('token');
+	localStorage.removeItem('userInfo');
+	sessionStorage.removeItem('token');
+};
+
+const getCurrentPathWithQuery = () => {
+	const { pathname, search, hash } = history.location;
+	return `${pathname || '/'}${search || ''}${hash || ''}`;
+};
+
+const buildLoginRedirectPath = () => {
+	const currentPath = getCurrentPathWithQuery();
+	if (currentPath.startsWith('/user/login')) {
+		return '/user/login';
+	}
+	return `/user/login?redirect=${encodeURIComponent(currentPath)}`;
+};
+
+const isLoginRequest = (url?: string) => {
+	if (!url) return false;
+	return /\/api\/auth\/login(?:\?|$)/.test(url);
+};
+
+const AUTH_FORBIDDEN_MESSAGES = new Set([
+  '账号已被封禁',
+  '需要管理员权限',
+  '无效的登录信息',
+]);
+
 /**
  * @name 错误处理
  * pro 自带的错误处理， 可以在这里做自己的改动
@@ -85,18 +118,45 @@ export const errorConfig: RequestConfig = {
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
         const backendResp = error.response.data as BackendErrorResponse | undefined;
         const backendMessage = backendResp?.error?.message || backendResp?.message;
+        const requestUrl = error?.response?.config?.url as string | undefined;
 
         if (error.response.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userInfo');
-          sessionStorage.removeItem('token');
-          message.error(backendMessage || '登录已过期，请重新登录');
-          history.push('/user/login');
-          window.location.reload();
+          // 登录接口 401 交给登录页自行处理，避免被误判为会话过期
+          if (isLoginRequest(requestUrl)) {
+            throw error;
+          }
+
+          const now = Date.now();
+          const shouldNotify = now - lastAuthRedirectAt > AUTH_REDIRECT_DEBOUNCE_MS;
+          const hasToken = Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
+
+          clearAuthStorage();
+
+          if (shouldNotify) {
+            message.warning(backendMessage || (hasToken ? '登录状态已过期，请重新登录' : '请先登录'));
+            lastAuthRedirectAt = now;
+          }
+
+          if (history.location.pathname !== '/user/login') {
+            history.replace(buildLoginRedirectPath());
+          }
           return;
         }
 
 		if (error.response.status === 403) {
+      const shouldForceRelogin =
+        Boolean(backendMessage && AUTH_FORBIDDEN_MESSAGES.has(backendMessage)) &&
+        Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
+
+      if (shouldForceRelogin) {
+        clearAuthStorage();
+        message.warning(backendMessage || '当前账号已无权限继续访问，请重新登录');
+        if (history.location.pathname !== '/user/login') {
+          history.replace(buildLoginRedirectPath());
+        }
+        return;
+      }
+
 			message.error(backendMessage || '没有权限访问该资源');
 			return;
 		}
@@ -140,12 +200,6 @@ export const errorConfig: RequestConfig = {
   // 响应拦截器
   responseInterceptors: [
     (response) => {
-      // 拦截响应数据，进行个性化处理
-      const { data } = response as unknown as ResponseStructure;
-
-      if (data?.success === false) {
-        message.error('请求失败！');
-      }
       return response;
     },
   ],

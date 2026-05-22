@@ -1,7 +1,7 @@
 // https://umijs.org/config/
 
 import { defineConfig } from '@umijs/max';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import defaultSettings from './defaultSettings';
 import proxy from './proxy';
 import routes from './routes';
@@ -78,7 +78,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: 'GoHotel 酒店运营中台',
   layout: {
     locale: true,
     ...defaultSettings,
@@ -130,7 +130,7 @@ export default defineConfig({
   headScripts: [
     // 解决首次加载时白屏的问题
     {
-      src: join(PUBLIC_PATH, 'scripts/loading.js'),
+      src: posix.join(PUBLIC_PATH, 'scripts/loading.js'),
       async: true,
     },
   ],

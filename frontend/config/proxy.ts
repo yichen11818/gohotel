@@ -1,3 +1,5 @@
+const apiTarget = process.env.UMI_APP_API_BASE_URL || 'http://127.0.0.1:18080';
+
 /**
  * @name 代理的配置
  * @see 在生产环境 代理是无法生效的，所以这里没有生产环境的配置
@@ -13,7 +15,7 @@ export default {
   // 如果需要自定义本地开发服务器  请取消注释按需调整
   dev: {
     '/api/': {
-      target: 'http://127.0.0.1:19999',
+      target: apiTarget,
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },
@@ -25,7 +27,7 @@ export default {
   test: {
     // localhost:8000/api/** -> https://preview.pro.ant.design/api/**
     '/api/': {
-      target: 'http://127.0.0.1:19999',
+      target: apiTarget,
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },

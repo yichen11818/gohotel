@@ -1,32 +1,33 @@
-import { GithubOutlined } from '@ant-design/icons';
 import { DefaultFooter } from '@ant-design/pro-components';
 import React from 'react';
 
 const Footer: React.FC = () => {
+  const year = new Date().getFullYear();
+
   return (
     <DefaultFooter
       style={{
         background: 'none',
       }}
-      copyright="Powered by Ant Desgin"
+      copyright={`${year} GoHotel 酒店运营中台`}
       links={[
         {
-          key: 'Ant Design Pro',
-          title: 'Ant Design Pro',
-          href: 'https://pro.ant.design',
-          blankTarget: true,
+          key: 'support',
+          title: 'GoHotel 运营手册',
+          href: 'mailto:ops@gohotel.com',
+          blankTarget: false,
         },
         {
-          key: 'github',
-          title: <GithubOutlined />,
-          href: 'https://github.com/ant-design/ant-design-pro',
-          blankTarget: true,
+          key: 'room-inventory',
+          title: '房态库存矩阵',
+          href: '/room-manage/inventory',
+          blankTarget: false,
         },
         {
-          key: 'Ant Design',
-          title: 'Ant Design',
-          href: 'https://ant.design',
-          blankTarget: true,
+          key: 'order-manage',
+          title: '订单与账务中心',
+          href: '/order-manage',
+          blankTarget: false,
         },
       ]}
     />

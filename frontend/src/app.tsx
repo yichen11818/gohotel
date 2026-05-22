@@ -1,29 +1,87 @@
-import { AvatarDropdown, AvatarName, Footer, Question } from '@/components';
+import { AvatarDropdown, AvatarName, Footer } from '@/components';
 import { getUsersProfile } from '@/services/api/yonghu';
-import { LinkOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
-import { SettingDrawer } from '@ant-design/pro-components';
 import '@ant-design/v5-patch-for-react-19';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
-import { history, Link } from '@umijs/max';
+import { history } from '@umijs/max';
+import { message } from 'antd';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
-const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
+const SESSION_EXPIRED_PARAM = 'sessionExpired';
+let sessionExpiredNotified = false;
+const getCurrentPathWithQuery = () => {
+  const { pathname, search, hash } = history.location;
+  return `${pathname || '/'}${search || ''}${hash || ''}`;
+};
 
-const API_BASE_URL_STORAGE_KEY = 'gohotel_admin_api_base_url';
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:19999';
+const buildLoginPathWithRedirect = (sessionExpired = false) => {
+  const currentPath = getCurrentPathWithQuery();
+  const params = new URLSearchParams();
+  if (currentPath.startsWith(loginPath)) {
+    if (sessionExpired) {
+      params.set(SESSION_EXPIRED_PARAM, '1');
+      return `${loginPath}?${params.toString()}`;
+    }
+    return loginPath;
+  }
+  params.set('redirect', currentPath);
+  if (sessionExpired) {
+    params.set(SESSION_EXPIRED_PARAM, '1');
+  }
+  return `${loginPath}?${params.toString()}`;
+};
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userInfo');
+  sessionStorage.removeItem('token');
+};
+
+const normalizeApiBaseURL = (value?: string) => {
+  if (!value) return '';
+  return value.trim().replace(/\/+$/, '');
+};
+
+const LEGACY_API_BASE_URL_STORAGE_KEY = 'gohotel_admin_api_base_url';
+
+const getBrowserOriginBaseURL = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const origin = normalizeApiBaseURL(window.location.origin);
+  if (!/^https?:\/\//i.test(origin)) {
+    return '';
+  }
+
+  return origin;
+};
+
+const DEFAULT_API_BASE_URL = normalizeApiBaseURL(process.env.UMI_APP_API_BASE_URL);
 
 const getApiBaseURL = () => {
-	try {
-		const raw = localStorage.getItem(API_BASE_URL_STORAGE_KEY);
-		if (!raw) return DEFAULT_API_BASE_URL;
-		const trimmed = raw.trim().replace(/\/+$/, '');
-		if (!/^https?:\/\//i.test(trimmed)) return DEFAULT_API_BASE_URL;
-		return trimmed;
-	} catch (_e) {
-		return DEFAULT_API_BASE_URL;
-	}
+  const browserOrigin = getBrowserOriginBaseURL();
+
+  try {
+    // 历史版本允许通过 localStorage 覆盖 API 地址，容易把页面请求指到旧服务。
+    // 现在统一优先走环境变量或当前站点同源 API，并清理遗留值，避免页面与接口跨服务错位。
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(LEGACY_API_BASE_URL_STORAGE_KEY);
+    }
+  } catch (_e) {
+    // Ignore storage cleanup failure and fall back to runtime defaults.
+  }
+
+  return DEFAULT_API_BASE_URL || browserOrigin || '';
+};
+
+const maybeShowSessionExpiredNotice = () => {
+  const params = new URLSearchParams(history.location.search);
+  if (params.get(SESSION_EXPIRED_PARAM) === '1' && !sessionExpiredNotified) {
+    message.info('会话已过期，请重新登录以继续操作');
+    sessionExpiredNotified = true;
+  }
 };
 
 /**
@@ -36,7 +94,7 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     if (!token) {
       return undefined;
@@ -63,7 +121,10 @@ export async function getInitialState(): Promise<{
         role: userInfo.role,
       } as API.CurrentUser;
     } catch (error) {
-      console.error('获取当前用户信息失败:', error);
+      const statusCode = (error as any)?.response?.status;
+      if (statusCode !== 401) {
+        console.error('获取当前用户信息失败:', error);
+      }
       return undefined;
     }
   };
@@ -74,11 +135,9 @@ export async function getInitialState(): Promise<{
     const currentUser = await fetchUserInfo();
 
 	// 仅允许管理员登录：如果本地有用户信息但角色不是管理员，直接清理并跳转登录
-	if (currentUser && (currentUser as any).role !== 'admin') {
-		localStorage.removeItem('token');
-		localStorage.removeItem('userInfo');
-		sessionStorage.removeItem('token');
-		history.push(loginPath);
+		if (currentUser && (currentUser as any).role !== 'admin') {
+		clearAuthStorage();
+		history.replace(buildLoginPathWithRedirect(true));
 		return {
 			fetchUserInfo,
 			currentUser: undefined,
@@ -87,10 +146,9 @@ export async function getInitialState(): Promise<{
 	}
     
     // 如果没有用户信息且有 token，说明 token 可能过期，跳转登录页
-    if (!currentUser && localStorage.getItem('token')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userInfo');
-      history.push(loginPath);
+    if (!currentUser && (localStorage.getItem('token') || sessionStorage.getItem('token'))) {
+      clearAuthStorage();
+      history.replace(buildLoginPathWithRedirect(true));
     }
     
     return {
@@ -106,9 +164,9 @@ export async function getInitialState(): Promise<{
 }
 
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
-export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) => {
+export const layout: RunTimeLayoutConfig = ({ initialState }) => {
+  maybeShowSessionExpiredNotice();
   return {
-    actionsRender: () => [<Question key="doc" />],
     avatarProps: {
       src: initialState?.currentUser?.avatar,
       title: <AvatarName />,
@@ -122,71 +180,51 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     footerRender: () => <Footer />,
     onPageChange: () => {
       const { location } = history;
+      const hasToken = Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
       // 如果没有登录，重定向到 login
       if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
+        history.replace(buildLoginPathWithRedirect(hasToken));
       }
 
 		// 仅允许管理员登录：如果已登录但不是管理员，同样强制回到登录页
 		if (initialState?.currentUser && (initialState as any).currentUser?.role !== 'admin' && location.pathname !== loginPath) {
-			localStorage.removeItem('token');
-			localStorage.removeItem('userInfo');
-			sessionStorage.removeItem('token');
-			history.push(loginPath);
+			clearAuthStorage();
+			history.replace(buildLoginPathWithRedirect(true));
 		}
+
+      maybeShowSessionExpiredNotice();
     },
-    bgLayoutImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
-    ],
-    links: isDev
-      ? [
-          <Link key="openapi" to="/umi/plugin/openapi" target="_blank">
-            <LinkOutlined />
-            <span>OpenAPI 文档</span>
-          </Link>,
-        ]
-      : [],
-    menuHeaderRender: undefined,
+    layoutBgStyle: {
+      background:
+        'linear-gradient(180deg, #f8fbff 0%, #f1f6fb 42%, #eef3f8 100%)',
+    },
+    bgLayoutImgList: [],
+    menuHeaderRender: (logoDom, titleDom) => (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '12px 0 10px',
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+          color: '#16324a',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {logoDom}
+          <span style={{ fontSize: 18 }}>GoHotel</span>
+        </div>
+        <span style={{ fontSize: 12, color: '#6d8093' }}>酒店运营中台</span>
+      </div>
+    ),
+    headerTitleRender: () => (
+      <span style={{ fontWeight: 600, color: '#16324a' }}>GoHotel 管理控制台</span>
+    ),
     // 自定义 403 页面
     // unAccessible: <div>unAccessible</div>,
     // 增加一个 loading 的状态
     childrenRender: (children) => {
-      // if (initialState?.loading) return <PageLoading />;
-      return (
-        <>
-          {children}
-          {isDev && (
-            <SettingDrawer
-              disableUrlParams
-              enableDarkTheme
-              settings={initialState?.settings}
-              onSettingChange={(settings) => {
-                setInitialState((preInitialState) => ({
-                  ...preInitialState,
-                  settings,
-                }));
-              }}
-            />
-          )}
-        </>
-      );
+      return <>{children}</>;
     },
     ...initialState?.settings,
   };

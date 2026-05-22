@@ -1,102 +1,86 @@
-﻿// @ts-ignore
-import { startMock } from '@@/requestRecordMock';
-import { TestBrowser } from '@@/testBrowser';
-import { fireEvent, render } from '@testing-library/react';
-import React, { act } from 'react';
+import { postAuthLogin } from '@/services/api/renzheng';
+import { App } from 'antd';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import Login from './index';
 
-const waitTime = (time: number = 100) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    }, time);
-  });
-};
+jest.mock('@/services/api/renzheng', () => ({
+  postAuthLogin: jest.fn(),
+}));
 
-let server: {
-  close: () => void;
-};
+jest.mock('@/services/ant-design-pro/login', () => ({
+  getFakeCaptcha: jest.fn().mockResolvedValue(true),
+}));
+
+jest.mock('@umijs/max', () => ({
+  Helmet: (props: any) => props.children || null,
+  history: {
+    push: jest.fn(),
+  },
+  useModel: jest.fn(),
+}));
+
+const mockHistory = jest.requireMock('@umijs/max').history as { push: jest.Mock };
+const mockUseModel = jest.requireMock('@umijs/max').useModel as jest.Mock;
+
+let mockSetInitialState: jest.Mock;
+
+const renderLogin = () =>
+  render(React.createElement(App, null, React.createElement(Login)));
 
 describe('Login Page', () => {
-  beforeAll(async () => {
-    server = await startMock({
-      port: 8000,
-      scene: 'login',
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSetInitialState = jest.fn();
+    mockUseModel.mockReturnValue({
+      initialState: undefined,
+      setInitialState: mockSetInitialState,
     });
+    window.history.pushState({}, '', '/user/login');
   });
 
-  afterAll(() => {
-    server?.close();
+  it('should show current login form', async () => {
+    renderLogin();
+
+    expect(await screen.findByText('账户密码登录')).toBeTruthy();
+    expect(screen.getByPlaceholderText('用户名/手机号/邮箱')).toBeTruthy();
+    expect(screen.getByPlaceholderText('请输入密码')).toBeTruthy();
+    expect(screen.getByText('GoHotel 管理后台')).toBeTruthy();
+    expect(screen.getByText('酒店预订与运营管理后台')).toBeTruthy();
   });
 
-  it('should show login form', async () => {
-    const historyRef = React.createRef<any>();
-    const rootContainer = render(
-      <TestBrowser
-        historyRef={historyRef}
-        location={{
-          pathname: '/user/login',
-        }}
-      />,
-    );
-
-    await rootContainer.findAllByText('Ant Design');
-
-    act(() => {
-      historyRef.current?.push('/user/login');
+  it('should login success for admin', async () => {
+    (postAuthLogin as any).mockResolvedValue({
+      success: true,
+      message: '登录成功！',
+      data: {
+        token: 'mock-token',
+        user: {
+          id: '1',
+          username: 'admin',
+          role: 'admin',
+        },
+      },
     });
 
-    expect(
-      rootContainer.baseElement?.querySelector('.ant-pro-form-login-desc')
-        ?.textContent,
-    ).toBe(
-      'Ant Design is the most influential web design specification in Xihu district',
-    );
+    renderLogin();
 
-    expect(rootContainer.asFragment()).toMatchSnapshot();
-
-    rootContainer.unmount();
-  });
-
-  it('should login success', async () => {
-    const historyRef = React.createRef<any>();
-    const rootContainer = render(
-      <TestBrowser
-        historyRef={historyRef}
-        location={{
-          pathname: '/user/login',
-        }}
-      />,
-    );
-
-    await rootContainer.findAllByText('Ant Design');
-
-    const userNameInput = await rootContainer.findByPlaceholderText(
-      'Username: admin or user',
-    );
-
-    act(() => {
-      fireEvent.change(userNameInput, { target: { value: 'admin' } });
+    fireEvent.change(await screen.findByPlaceholderText('用户名/手机号/邮箱'), {
+      target: { value: 'admin' },
     });
+    fireEvent.change(screen.getByPlaceholderText('请输入密码'), {
+      target: { value: 'Admin@123456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }));
 
-    const passwordInput = await rootContainer.findByPlaceholderText(
-      'Password: ant.design',
+    await waitFor(() =>
+      expect(postAuthLogin).toHaveBeenCalledWith({
+        username: 'admin',
+        password: 'Admin@123456',
+      }),
     );
 
-    act(() => {
-      fireEvent.change(passwordInput, { target: { value: 'ant.design' } });
-    });
-
-    await (await rootContainer.findByText('Login')).click();
-
-    // 等待接口返回结果
-    await waitTime(5000);
-
-    await rootContainer.findAllByText('Ant Design Pro');
-
-    expect(rootContainer.asFragment()).toMatchSnapshot();
-
-    await waitTime(2000);
-
-    rootContainer.unmount();
+    expect(mockHistory.push).toHaveBeenCalledWith('/');
+    expect(mockSetInitialState).toHaveBeenCalled();
   });
 });
