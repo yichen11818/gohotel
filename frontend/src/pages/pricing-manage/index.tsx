@@ -3,12 +3,31 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, Select, DatePicker, InputNumber, message, Switch } from 'antd';
 import React, { useRef, useState } from 'react';
 import { getAdminPricingRules as listPricingRules, postAdminPricingRules as createPricingRule } from '@/services/api/dingjiaguanli';
-import dayjs from 'dayjs';
+import { type Dayjs } from 'dayjs';
+import { getBackendErrorMessage } from '@/utils/backendError';
+import { useRoomCategoryOptions } from '@/utils/roomCategory';
+
+type CreatePricingRulePayload = {
+  adjustment: number;
+  end_date: string;
+  is_percent?: boolean;
+  name: string;
+  priority?: number;
+  room_type?: string;
+  start_date: string;
+  type: string;
+};
+
+type PricingFormValues = Omit<CreatePricingRulePayload, 'start_date' | 'end_date'> & {
+  dateRange: [Dayjs, Dayjs];
+};
 
 const PricingManage: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
-  const [form] = Form.useForm();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form] = Form.useForm<PricingFormValues>();
+  const { options: roomCategoryOptions } = useRoomCategoryOptions();
 
   const columns: ProColumns<API.PricingRule>[] = [
     {
@@ -60,21 +79,59 @@ const PricingManage: React.FC = () => {
     },
   ];
 
-  const handleCreate = async (values: any) => {
+  const resetForm = () => {
+    form.resetFields();
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setCreateModalVisible(true);
+  };
+
+  const closeCreateModal = () => {
+    setCreateModalVisible(false);
+    resetForm();
+  };
+
+  const handleCreate = async (values: PricingFormValues) => {
+    const { dateRange, ...rest } = values;
+    if (!dateRange || dateRange.length !== 2) {
+      message.error('请选择有效期');
+      return;
+    }
+
+    const [start, end] = dateRange;
+    if (!start || !end) {
+      message.error('请选择完整的有效期区间');
+      return;
+    }
+
+    if (end.isBefore(start, 'day')) {
+      message.error('结束日期不能早于开始日期');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      const { dateRange, ...rest } = values;
-      const res = await createPricingRule({
+      const response = await createPricingRule({
         ...rest,
-        start_date: dateRange[0].format('YYYY-MM-DD'),
-        end_date: dateRange[1].format('YYYY-MM-DD'),
+        start_date: start.format('YYYY-MM-DD'),
+        end_date: end.format('YYYY-MM-DD'),
+        adjustment: Number(rest.adjustment),
+        priority: rest.priority ?? 0,
+        is_percent: Boolean(rest.is_percent),
       });
-      if (res.success) {
+      if (response.success) {
         message.success('规则创建成功');
-        setCreateModalVisible(false);
+        closeCreateModal();
         actionRef.current?.reload();
+      } else {
+        message.error(response.message || '创建失败');
       }
     } catch (error) {
-      message.error('创建失败');
+      message.error(getBackendErrorMessage(error, '创建失败'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,16 +143,24 @@ const PricingManage: React.FC = () => {
         rowKey="id"
         search={{ labelWidth: 120 }}
         toolBarRender={() => [
-          <Button key="create" type="primary" onClick={() => setCreateModalVisible(true)}>
+          <Button key="create" type="primary" onClick={openCreateModal}>
             新建规则
           </Button>,
         ]}
         request={async () => {
-          const res = await listPricingRules();
-          return {
-            data: res.data || [],
-            success: true,
-          };
+          try {
+            const res = await listPricingRules();
+            return {
+              data: res.data || [],
+              success: res.success ?? true,
+            };
+          } catch (error) {
+            message.error(getBackendErrorMessage(error, '获取失败'));
+            return {
+              data: [],
+              success: false,
+            };
+          }
         }}
         columns={columns}
       />
@@ -103,9 +168,10 @@ const PricingManage: React.FC = () => {
       <Modal
         title="新建定价规则"
         open={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
+        onCancel={closeCreateModal}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
+        okButtonProps={{ loading: isSubmitting }}
       >
         <Form form={form} onFinish={handleCreate} layout="vertical">
           <Form.Item name="name" label="规则名称" rules={[{ required: true }]}>
@@ -119,13 +185,7 @@ const PricingManage: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item name="room_type" label="适用房型">
-            <Select allowClear placeholder="全部房型">
-              <Select.Option value="标准间">标准间</Select.Option>
-              <Select.Option value="单人间">单人间</Select.Option>
-              <Select.Option value="双人间">双人间</Select.Option>
-              <Select.Option value="豪华套房">豪华套房</Select.Option>
-              <Select.Option value="总统套房">总统套房</Select.Option>
-            </Select>
+            <Select allowClear placeholder="全部房型" options={roomCategoryOptions} />
           </Form.Item>
           <Form.Item name="dateRange" label="有效期" rules={[{ required: true }]}>
             <DatePicker.RangePicker style={{ width: '100%' }} />

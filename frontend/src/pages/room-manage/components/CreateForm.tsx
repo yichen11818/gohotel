@@ -5,20 +5,22 @@ import {
   ProFormText,
   ProFormDigit,
   ProFormSelect,
-  ProFormTextArea,
 } from '@ant-design/pro-components';
-import { useRequest } from '@umijs/max';
-import { Button, message } from 'antd';
+import { history, useRequest } from '@umijs/max';
+import { Alert, Button, message } from 'antd';
 import type { FC } from 'react';
 import { postRooms } from '@/services/api/guanliyuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 interface CreateFormProps {
   reload?: ActionType['reload'];
+  roomCategories?: API.RoomCategory[];
 }
 
 const CreateForm: FC<CreateFormProps> = (props) => {
-  const { reload } = props;
+  const { reload, roomCategories = [] } = props;
   const [messageApi, contextHolder] = message.useMessage();
+  const hasRoomCategories = roomCategories.some((item) => item.name);
 
   const { run, loading } = useRequest(
     async (data: { data: API.CreateRoomRequest }) => {
@@ -27,7 +29,7 @@ const CreateForm: FC<CreateFormProps> = (props) => {
         messageApi.success('房间创建成功');
         return true;
       } catch (error) {
-        messageApi.error('房间创建失败，请重试');
+        messageApi.error(getBackendErrorMessage(error, '房间创建失败，请重试'));
         throw error;
       }
     },
@@ -53,6 +55,10 @@ const CreateForm: FC<CreateFormProps> = (props) => {
           },
         }}
         onFinish={async (value) => {
+          if (!hasRoomCategories) {
+            messageApi.warning('请先创建房型分类后再新增房间');
+            return false;
+          }
           try {
             await run({
               data: value as API.CreateRoomRequest,
@@ -66,6 +72,19 @@ const CreateForm: FC<CreateFormProps> = (props) => {
           }
         }}
       >
+        {!hasRoomCategories && (
+          <Alert
+            type="warning"
+            showIcon
+            message="请先创建房型分类"
+            description="房间必须绑定已有房型分类后才能创建。"
+            action={
+              <Button size="small" type="link" onClick={() => history.push('/room-manage/category')}>
+                去维护房型分类
+              </Button>
+            }
+          />
+        )}
         <ProFormText
           rules={[
             {
@@ -89,13 +108,9 @@ const CreateForm: FC<CreateFormProps> = (props) => {
           width="md"
           name="room_type"
           label="房型"
-          valueEnum={{
-            '单人间': '单人间',
-            '双人间': '双人间',
-            '豪华套房': '豪华套房',
-            '总统套房': '总统套房',
-            '商务套房': '商务套房',
-          }}
+          options={roomCategories
+            .filter((item) => item.name)
+            .map((item) => ({ label: item.name as string, value: item.name as string }))}
           placeholder="请选择房型"
         />
 
@@ -191,24 +206,12 @@ const CreateForm: FC<CreateFormProps> = (props) => {
           }}
         />
 
-        <ProFormTextArea
-          width="md"
-          name="description"
-          label="房间描述"
-          placeholder="请输入房间描述"
-          fieldProps={{
-            rows: 3,
-          }}
-        />
-
-        <ProFormTextArea
-          width="md"
-          name="facilities"
-          label="设施(JSON格式)"
-          placeholder='例如: ["WiFi", "空调", "电视"]'
-          fieldProps={{
-            rows: 2,
-          }}
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginTop: 12 }}
+          message="房型描述、预览图、设施由“房型分类”统一维护"
+          description="当前房间只维护房号、楼层、价格、可住人数等差异化信息。"
         />
       </ModalForm>
     </>

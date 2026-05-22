@@ -7,11 +7,16 @@ import {
   ProDescriptions,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer, message, Popconfirm } from 'antd';
+import { history } from '@umijs/max';
+import { Alert, Button, Drawer, Image, Tag, Typography, message, Popconfirm } from 'antd';
 import React, { useRef, useState } from 'react';
+import { getBackendErrorMessage } from '@/utils/backendError';
+import { parseJsonArray, useRoomCategoryOptions } from '@/utils/roomCategory';
 import BatchCreateForm from './components/BatchCreateForm';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
+
+const { Paragraph } = Typography;
 
 const RoomList: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
@@ -20,6 +25,11 @@ const RoomList: React.FC = () => {
   const [selectedRowsState, setSelectedRows] = useState<API.Room[]>([]);
 
   const [messageApi, contextHolder] = message.useMessage();
+  const { categories, error: roomCategoryError, loading: roomCategoryLoading, valueEnum } =
+    useRoomCategoryOptions();
+  const triggerReload: ActionType['reload'] = async (resetPageIndex?: boolean) => {
+    await actionRef.current?.reload?.(resetPageIndex);
+  };
 
   const columns: ProColumns<API.Room>[] = [
     {
@@ -47,25 +57,47 @@ const RoomList: React.FC = () => {
     {
       title: '房型',
       dataIndex: 'room_type',
-      valueEnum: {
-        '标准间': {
-          text: '标准间',
-        },
-        '单人间': {
-          text: '单人间',
-        },
-        '双人间': {
-          text: '双人间',
-        },
-        '豪华套房': {
-          text: '豪华套房',
-        },
-        '总统套房': {
-          text: '总统套房',
-        },
-        '商务套房': {
-          text: '商务套房',
-        },
+      valueEnum,
+    },
+    {
+      title: '预览图',
+      dataIndex: 'images',
+      hideInSearch: true,
+      render: (_, entity) => {
+        const images = parseJsonArray(entity.images);
+        if (!images.length) {
+          return '-';
+        }
+
+        return (
+          <Image
+            src={images[0]}
+            width={72}
+            height={48}
+            style={{ objectFit: 'cover', borderRadius: 8 }}
+          />
+        );
+      },
+    },
+    {
+      title: '房型描述',
+      dataIndex: 'description',
+      hideInSearch: true,
+      render: (_, entity) => (
+        <Paragraph ellipsis={{ rows: 2, tooltip: entity.description }}>{entity.description || '-'}</Paragraph>
+      ),
+    },
+    {
+      title: '设施',
+      dataIndex: 'facilities',
+      hideInSearch: true,
+      render: (_, entity) => {
+        const facilities = parseJsonArray(entity.facilities);
+        if (!facilities.length) {
+          return '-';
+        }
+
+        return facilities.slice(0, 4).map((item) => <Tag key={item}>{item}</Tag>);
       },
     },
     {
@@ -159,23 +191,24 @@ const RoomList: React.FC = () => {
         <UpdateForm
           trigger={<a>编辑</a>}
           key="edit"
-          onOk={actionRef.current?.reload}
+          onOk={triggerReload}
+          roomCategories={categories}
           values={record}
         />,
         <Popconfirm
           key="delete"
           title="确定要删除这个房间吗？"
-          onConfirm={async () => {
-            try {
-              if (record.id) {
-                await postRoomsIdOpenApiDelete({ id: record.id });
-                messageApi.success('删除成功');
-                actionRef.current?.reload();
+            onConfirm={async () => {
+              try {
+                if (record.id) {
+                  await postRoomsIdOpenApiDelete({ id: Number(record.id) });
+                  messageApi.success('删除成功');
+                  actionRef.current?.reload();
+                }
+              } catch (error) {
+                messageApi.error(getBackendErrorMessage(error, '删除失败'));
               }
-            } catch (error) {
-              messageApi.error('删除失败');
-            }
-          }}
+            }}
           okText="确定"
           cancelText="取消"
         >
@@ -221,7 +254,7 @@ const RoomList: React.FC = () => {
         total: 0,
       };
     } catch (error) {
-      messageApi.error('获取房间列表失败');
+      messageApi.error(getBackendErrorMessage(error, '获取房间列表失败'));
       return {
         data: [],
         success: false,
@@ -233,6 +266,24 @@ const RoomList: React.FC = () => {
   return (
     <PageContainer>
       {contextHolder}
+      {!roomCategoryLoading && !categories.length && (
+        <Alert
+          type={roomCategoryError ? 'error' : 'warning'}
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={roomCategoryError ? '房型分类加载失败' : '还没有可用的房型分类'}
+          description={
+            roomCategoryError
+              ? '请检查房型分类接口或登录状态，然后重试。'
+              : '请先去“房型分类”创建房型，再新增房间。'
+          }
+          action={
+            <Button size="small" type="link" onClick={() => history.push('/room-manage/category')}>
+              去房型分类
+            </Button>
+          }
+        />
+      )}
       <ProTable<API.Room>
         headerTitle={'房间列表'}
         actionRef={actionRef}
@@ -241,8 +292,11 @@ const RoomList: React.FC = () => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
-          <BatchCreateForm key="batch-create" reload={actionRef.current?.reload} />,
-          <CreateForm key="create" reload={actionRef.current?.reload} />,
+          <Button key="category" onClick={() => history.push('/room-manage/category')}>
+            房型分类
+          </Button>,
+          <BatchCreateForm key="batch-create" reload={triggerReload} roomCategories={categories} />,
+          <CreateForm key="create" reload={triggerReload} roomCategories={categories} />,
         ]}
         request={fetchRooms}
         columns={columns}
@@ -284,14 +338,14 @@ const RoomList: React.FC = () => {
 
                 // 批量删除
                 await Promise.all(
-                  roomIds.map((id) => postRoomsIdOpenApiDelete({ id }))
+                  roomIds.map((id) => postRoomsIdOpenApiDelete({ id: Number(id) }))
                 );
 
                 messageApi.success('删除成功');
                 actionRef.current?.reload();
                 setSelectedRows([]);
               } catch (error) {
-                messageApi.error('删除失败，请重试');
+                messageApi.error(getBackendErrorMessage(error, '删除失败，请重试'));
                 console.error('删除房间失败:', error);
               }
             }}

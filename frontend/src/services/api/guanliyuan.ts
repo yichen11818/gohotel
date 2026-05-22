@@ -209,6 +209,90 @@ export async function getAdminFacilitiesFloorFloor(
   });
 }
 
+/** 查询房型分类列表（管理员） 管理员分页查询房型分类，返回房型名称、描述、预览图、设施和关联房间数 GET /api/admin/room-categories */
+export async function getAdminRoomCategories(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminRoomCategoriesParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.RoomCategory[]>("/api/admin/room-categories", {
+    method: "GET",
+    params: {
+      // page has a default value: 1
+      page: "1",
+      // page_size has a default value: 50
+      page_size: "50",
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
+/** 创建房型分类（管理员） 管理员创建房型分类，统一维护房型描述、预览图和设施 POST /api/admin/room-categories */
+export async function postAdminRoomCategories(
+  body: API.CreateRoomCategoryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.RoomCategory>("/api/admin/room-categories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 获取房型分类详情（管理员） 管理员根据 ID 获取房型分类详情 GET /api/admin/room-categories/${param0} */
+export async function getAdminRoomCategoriesId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAdminRoomCategoriesIdParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<API.RoomCategory>(`/api/admin/room-categories/${param0}`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 更新房型分类（管理员） 管理员更新房型分类，若修改名称会同步更新房间、库存和定价规则中的房型字段 POST /api/admin/room-categories/${param0} */
+export async function postAdminRoomCategoriesId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminRoomCategoriesIdParams,
+  body: API.UpdateRoomCategoryRequest,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<API.RoomCategory>(`/api/admin/room-categories/${param0}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    params: { ...queryParams },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 删除房型分类（管理员） 管理员删除房型分类；如果仍有关联房间、库存或定价规则，则会阻止删除 POST /api/admin/room-categories/${param0}/delete */
+export async function postAdminRoomCategoriesIdOpenApiDelete(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.postAdminRoomCategoriesId_openAPI_deleteParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params;
+  return request<Record<string, any>>(
+    `/api/admin/room-categories/${param0}/delete`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 获取用户列表（管理员） 管理员获取所有用户列表，支持分页 GET /api/admin/users */
 export async function getAdminUsers(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

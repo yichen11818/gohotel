@@ -2,12 +2,13 @@ import {
   ProFormSelect,
   ProFormText,
   ProFormDigit,
-  ProFormTextArea,
   StepsForm,
 } from '@ant-design/pro-components';
-import { Modal, message } from 'antd';
+import { history } from '@umijs/max';
+import { Alert, Button, Modal, message } from 'antd';
 import React, { cloneElement, useCallback, useState, useEffect } from 'react';
 import { postRoomsId } from '@/services/api/guanliyuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 export type FormValueType = Partial<API.Room>;
 
@@ -15,14 +16,16 @@ export type UpdateFormProps = {
   trigger?: React.ReactElement<any>;
   onOk?: () => void;
   onCancel?: () => void;
+  roomCategories?: API.RoomCategory[];
   values: Partial<API.Room>;
   visible?: boolean; // 受控模式
 };
 
 const UpdateForm: React.FC<UpdateFormProps> = (props) => {
-  const { onOk, values, trigger, visible, onCancel: onCancelProp } = props;
+  const { onOk, values, trigger, visible, onCancel: onCancelProp, roomCategories = [] } = props;
   const [open, setOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const hasRoomCategories = roomCategories.some((item) => item.name);
 
   // 受控模式：当 visible 变化时同步内部状态
   useEffect(() => {
@@ -34,14 +37,14 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   const run = async (data: any) => {
     try {
       if (values.id) {
-        await postRoomsId({ id: values.id }, data as API.UpdateRoomRequest);
+        await postRoomsId({ id: Number(values.id) }, data as API.UpdateRoomRequest);
         messageApi.success('房间更新成功');
         if (onOk) {
           onOk();
         }
       }
     } catch (error) {
-      messageApi.error('房间更新失败');
+      messageApi.error(getBackendErrorMessage(error, '房间更新失败'));
       throw error;
     }
   };
@@ -54,8 +57,12 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   }, [onCancelProp]);
 
   const onOpen = useCallback(() => {
+    if (!hasRoomCategories) {
+      messageApi.warning('请先创建房型分类，再编辑房间');
+      return;
+    }
     setOpen(true);
-  }, []);
+  }, [hasRoomCategories, messageApi]);
 
   const onFinish = useCallback(
     async (values?: any) => {
@@ -81,10 +88,12 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
           return (
             <Modal
               width={640}
-              bodyStyle={{
-                padding: '32px 40px 48px',
+              styles={{
+                body: {
+                  padding: '32px 40px 48px',
+                },
               }}
-              destroyOnClose
+              destroyOnHidden
               title={'编辑房间'}
               open={open}
               footer={submitter}
@@ -118,13 +127,9 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
                 message: '请选择房型！',
               },
             ]}
-            valueEnum={{
-              '单人间': '单人间',
-              '双人间': '双人间',
-              '豪华套房': '豪华套房',
-              '总统套房': '总统套房',
-              '商务套房': '商务套房',
-            }}
+            options={roomCategories
+              .filter((item) => item.name)
+              .map((item) => ({ label: item.name as string, value: item.name as string }))}
           />
           <ProFormDigit
             name="floor"
@@ -221,23 +226,17 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
             }}
           />
         </StepsForm.StepForm>
-        <StepsForm.StepForm initialValues={values} title={'详细信息'}>
-          <ProFormTextArea
-            name="description"
-            label={'房间描述'}
-            width="md"
-            fieldProps={{
-              rows: 3,
-            }}
-          />
-          <ProFormTextArea
-            name="facilities"
-            label={'设施(JSON格式)'}
-            width="md"
-            placeholder='例如: ["WiFi", "空调", "电视"]'
-            fieldProps={{
-              rows: 2,
-            }}
+        <StepsForm.StepForm initialValues={values} title={'分类继承'}>
+          <Alert
+            type="info"
+            showIcon
+            message="房型描述、预览图、设施来自房型分类"
+            description="如果需要统一修改同类房间的展示信息，请前往“房型分类”页面维护。"
+            action={
+              <Button size="small" type="link" onClick={() => history.push('/room-manage/category')}>
+                去维护房型分类
+              </Button>
+            }
           />
         </StepsForm.StepForm>
       </StepsForm>

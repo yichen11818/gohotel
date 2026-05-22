@@ -3,6 +3,8 @@ import { Card, DatePicker, Table, Tag, message, Space, Button, Modal, Form, Inpu
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { getAdminInventoryGrid as getInventoryGrid, postAdminInventoryInit as initInventory, postAdminInventoryUpdate as updateInventory } from '@/services/api/kucunguanli';
+import { getBackendErrorMessage } from '@/utils/backendError';
+import { useRoomCategoryOptions } from '@/utils/roomCategory';
 
 const { RangePicker } = DatePicker;
 
@@ -15,6 +17,7 @@ const InventoryManage: React.FC = () => {
   const [data, setData] = useState<Record<string, API.RoomInventory[]>>({});
   const [initModalVisible, setInitModalVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
+  const { options: roomCategoryOptions } = useRoomCategoryOptions();
 
   const fetchData = async () => {
     setLoading(true);
@@ -27,7 +30,7 @@ const InventoryManage: React.FC = () => {
         setData(res.data || {});
       }
     } catch (error) {
-      message.error('获取房态库存失败');
+      message.error(getBackendErrorMessage(error, '获取房态库存失败'));
     } finally {
       setLoading(false);
     }
@@ -103,7 +106,7 @@ const InventoryManage: React.FC = () => {
         fetchData();
       }
     } catch (error) {
-      message.error('初始化失败');
+      message.error(getBackendErrorMessage(error, '初始化失败'));
     }
   };
 
@@ -140,17 +143,11 @@ const InventoryManage: React.FC = () => {
         open={initModalVisible}
         onCancel={() => setInitModalVisible(false)}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} onFinish={handleInit} layout="vertical">
           <Form.Item name="room_type" label="房型" rules={[{ required: true }]}>
-            <Select>
-              <Select.Option value="标准间">标准间</Select.Option>
-              <Select.Option value="单人间">单人间</Select.Option>
-              <Select.Option value="双人间">双人间</Select.Option>
-              <Select.Option value="豪华套房">豪华套房</Select.Option>
-              <Select.Option value="总统套房">总统套房</Select.Option>
-            </Select>
+            <Select options={roomCategoryOptions} />
           </Form.Item>
           <Form.Item name="total_count" label="总房间数" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />

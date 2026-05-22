@@ -1,15 +1,14 @@
 import { AppstoreAddOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { ModalForm } from '@ant-design/pro-components';
 import type { ActionType } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import {
+  Alert,
   Button,
   Card,
   Col,
-  Divider,
   message,
   Row,
-  Space,
-  Alert,
   Typography,
   Tag,
   Input,
@@ -20,11 +19,13 @@ import {
 import type { FC } from 'react';
 import { useState } from 'react';
 import { postRoomsBatch } from '@/services/api/guanliyuan';
+import { getBackendErrorMessage } from '@/utils/backendError';
 
 const { Text } = Typography;
 
 interface BatchCreateFormProps {
   reload?: ActionType['reload'];
+  roomCategories?: API.RoomCategory[];
 }
 
 interface RoomFormData {
@@ -39,14 +40,6 @@ interface RoomFormData {
   bed_type?: string;
 }
 
-const roomTypeOptions = [
-  { label: '单人间', value: '单人间' },
-  { label: '双人间', value: '双人间' },
-  { label: '豪华套房', value: '豪华套房' },
-  { label: '总统套房', value: '总统套房' },
-  { label: '商务套房', value: '商务套房' },
-];
-
 const bedTypeOptions = [
   { label: '单人床', value: '单人床' },
   { label: '双人床', value: '双人床' },
@@ -55,11 +48,12 @@ const bedTypeOptions = [
 ];
 
 const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
-  const { reload } = props;
+  const { reload, roomCategories = [] } = props;
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<RoomFormData[]>([{ key: '1' }]);
   const [result, setResult] = useState<API.BatchCreateRoomsResult | null>(null);
+  const hasRoomCategories = roomCategories.some((item) => item.name);
 
   // 生成唯一 key
   const generateKey = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -87,27 +81,6 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
     setRooms(rooms.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
   };
 
-  // 快速批量添加
-  const quickAddRooms = (count: number, floor: number, roomType: string, startNumber: number) => {
-    const newRooms: RoomFormData[] = [];
-    for (let i = 0; i < count; i++) {
-      const roomNumber = `${floor}${String(startNumber + i).padStart(2, '0')}`;
-      newRooms.push({
-        key: generateKey(),
-        room_number: roomNumber,
-        room_type: roomType,
-        floor: floor,
-        capacity: roomType === '单人间' ? 1 : 2,
-        price: roomType === '单人间' ? 199 : roomType === '双人间' ? 299 : 499,
-      });
-    }
-    if (rooms.length + newRooms.length > 100) {
-      messageApi.warning('房间总数不能超过100个');
-      return;
-    }
-    setRooms([...rooms, ...newRooms]);
-  };
-
   // 验证单个房间
   const validateRoom = (room: RoomFormData): string | null => {
     if (!room.room_number) return '房间号不能为空';
@@ -121,6 +94,11 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
   // 提交
   const handleSubmit = async () => {
     // 验证所有房间
+    if (!hasRoomCategories) {
+      messageApi.warning('请先创建房型分类后再批量新增房间');
+      return false;
+    }
+
     const validRooms: API.CreateRoomRequest[] = [];
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
@@ -165,7 +143,7 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
       if (reload) reload();
       return false; // 有失败的，不关闭弹窗
     } catch (error) {
-      messageApi.error('批量创建失败，请重试');
+      messageApi.error(getBackendErrorMessage(error, '批量创建失败，请重试'));
       return false;
     } finally {
       setLoading(false);
@@ -194,7 +172,7 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
         }
         width={900}
         modalProps={{
-          destroyOnClose: true,
+          destroyOnHidden: true,
           okButtonProps: { loading },
         }}
         onOpenChange={(open) => {
@@ -210,23 +188,27 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
         }}
         onFinish={handleSubmit}
       >
-        {/* 快捷操作区 */}
-        <Card size="small" title="快捷批量添加" style={{ marginBottom: 16 }}>
-          <Space wrap>
-            <Button size="small" onClick={() => quickAddRooms(5, 1, '单人间', 1)}>
-              1楼5间单人间
-            </Button>
-            <Button size="small" onClick={() => quickAddRooms(5, 2, '双人间', 1)}>
-              2楼5间双人间
-            </Button>
-            <Button size="small" onClick={() => quickAddRooms(3, 3, '豪华套房', 1)}>
-              3楼3间豪华套房
-            </Button>
-            <Button size="small" onClick={() => quickAddRooms(10, 1, '双人间', 1)}>
-              1楼10间双人间
-            </Button>
-          </Space>
-        </Card>
+        {!hasRoomCategories && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="请先创建房型分类"
+            description="批量新建房间前，需要先在“房型分类”里维护可用房型。"
+            action={
+              <Button size="small" type="link" onClick={() => history.push('/room-manage/category')}>
+                去维护房型分类
+              </Button>
+            }
+          />
+        )}
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="房型描述、预览图、设施会自动继承房型分类"
+          description="这里只需要批量录入房号、楼层、价格和入住能力等实际房间数据。"
+        />
 
         {/* 结果展示 */}
         {result && result.failed_count && result.failed_count > 0 && (
@@ -291,7 +273,9 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
                     <Select
                       value={room.room_type}
                       onChange={(v) => updateRoom(room.key, 'room_type', v)}
-                      options={roomTypeOptions}
+                      options={roomCategories
+                        .filter((item) => item.name)
+                        .map((item) => ({ label: item.name as string, value: item.name as string }))}
                       placeholder="选择房型"
                     />
                   </Form.Item>
@@ -387,8 +371,6 @@ const BatchCreateForm: FC<BatchCreateFormProps> = (props) => {
             </Card>
           ))}
         </div>
-
-        <Divider />
 
         <Button
           type="dashed"

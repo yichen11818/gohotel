@@ -23,6 +23,7 @@ import {
 } from '@/services/api/guanliyuan';
 import { postAdminWorkOrdersCleaning as createCleaningTask, postAdminWorkOrdersRepair as createRepairRequest } from '@/services/api/gongdanguanli';
 import Iconfont from '@/components/Iconfont';
+import { getBackendErrorMessage } from '@/utils/backendError';
 import UpdateForm from '../components/UpdateForm';
 
 interface RoomPosition {
@@ -456,7 +457,7 @@ const RoomManage: React.FC = () => {
       }
     } catch (error) {
       console.error('添加设施失败:', error);
-      message.error('添加设施失败，请重试');
+      message.error(getBackendErrorMessage(error, '添加设施失败，请重试'));
     }
   };
 
@@ -478,7 +479,7 @@ const RoomManage: React.FC = () => {
       message.success('设施已删除');
     } catch (error) {
       console.error('删除设施失败:', error);
-      message.error('删除设施失败，请重试');
+      message.error(getBackendErrorMessage(error, '删除设施失败，请重试'));
     }
   };
 
@@ -610,42 +611,61 @@ const RoomManage: React.FC = () => {
 
   // 快捷报修
   const handleQuickRepair = async (room: API.Room) => {
+    if (!room.id) {
+      message.error('无法识别房间 ID');
+      return;
+    }
+    const roomId = Number(room.id);
+    if (!Number.isFinite(roomId)) {
+      message.error('房间 ID 格式无效');
+      return;
+    }
     try {
       await createRepairRequest({
-        room_id: room.id!,
+        room_id: roomId,
         type: 'other',
         description: '来自可视化界面的快捷报修',
       });
       message.success(`房间 ${room.room_number} 报修申请已提交`);
       reloadRooms();
     } catch (error) {
-      message.error('报修失败');
+      message.error(getBackendErrorMessage(error, '报修失败'));
     }
   };
 
   // 快捷清洁
   const handleQuickCleaning = async (room: API.Room) => {
+    if (!room.id) {
+      message.error('无法识别房间 ID');
+      return;
+    }
+    const roomId = Number(room.id);
+    if (!Number.isFinite(roomId)) {
+      message.error('房间 ID 格式无效');
+      return;
+    }
     try {
       await createCleaningTask({
-        room_id: room.id!,
+        room_id: roomId,
         type: room.status === 'occupied' ? 'daily' : 'checkout',
       });
       message.success(`房间 ${room.room_number} 清洁任务已创建`);
       reloadRooms();
     } catch (error) {
-      message.error('创建清洁任务失败');
+      message.error(getBackendErrorMessage(error, '创建清洁任务失败'));
     }
   };
 
   // 删除房间
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string | number) => {
+    const normalizedId = Number(id);
     try {
-      await postRoomsIdOpenApiDelete({ id });
+      await postRoomsIdOpenApiDelete({ id: normalizedId });
       message.success('删除成功');
-      setRoomPositions((prev) => prev.filter((pos) => pos.id !== id));
+      setRoomPositions((prev) => prev.filter((pos) => pos.id !== normalizedId));
       reloadRooms();
     } catch (error) {
-      message.error('删除失败');
+      message.error(getBackendErrorMessage(error, '删除失败'));
     }
   };
 
@@ -750,7 +770,7 @@ const RoomManage: React.FC = () => {
     } catch (error) {
       hideLoading();
       console.error('保存布局失败:', error);
-      message.error('保存布局失败，请重试');
+      message.error(getBackendErrorMessage(error, '保存布局失败，请重试'));
     } finally {
       setSaving(false);
     }

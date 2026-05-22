@@ -145,6 +145,17 @@ declare namespace API {
     status?: string;
   };
 
+  type CreateRoomCategoryRequest = {
+    /** 房型描述 */
+    description?: string;
+    /** 设施 JSON 数组字符串 */
+    facilities?: string;
+    /** 预览图 JSON 数组字符串 */
+    images?: string;
+    /** 房型名称 */
+    name: string;
+  };
+
   type CreateRoomRequest = {
     area?: number;
     bed_type?: string;
@@ -303,6 +314,18 @@ declare namespace API {
     pageSize?: number;
   };
 
+  type getAdminRoomCategoriesIdParams = {
+    /** 房型分类 ID */
+    id: number;
+  };
+
+  type getAdminRoomCategoriesParams = {
+    /** 页码 */
+    page?: number;
+    /** 每页数量 */
+    page_size?: number;
+  };
+
   type getAdminSettingsParams = {
     /** 酒店 ID */
     hotel_id: number;
@@ -380,6 +403,14 @@ declare namespace API {
     page?: number;
     /** 每页数量 */
     page_size?: number;
+    /** 房间号（模糊搜索） */
+    room_number?: string;
+    /** 房型 */
+    room_type?: string;
+    /** 房间状态 */
+    status?: string;
+    /** 清洁状态 */
+    clean_status?: string;
   };
 
   type getRoomsSearchTypeParams = {
@@ -570,6 +601,16 @@ declare namespace API {
     id: string;
   };
 
+  type postAdminRoomCategoriesId_openAPI_deleteParams = {
+    /** 房型分类 ID */
+    id: number;
+  };
+
+  type postAdminRoomCategoriesIdParams = {
+    /** 房型分类 ID */
+    id: number;
+  };
+
   type postAdminUsersIdParams = {
     /** 用户 ID */
     id: number;
@@ -686,6 +727,25 @@ declare namespace API {
     width?: number;
   };
 
+  type RoomCategory = {
+    /** 创建时间 */
+    created_at?: string;
+    /** 房型描述 */
+    description?: string;
+    /** 设施（JSON 数组字符串） */
+    facilities?: string;
+    /** 主键 */
+    id?: number;
+    /** 预览图（JSON 数组字符串） */
+    images?: string;
+    /** 房型名称（唯一） */
+    name?: string;
+    /** 更新时间 */
+    updated_at?: string;
+    /** 关联房间数量（运行时统计） */
+    usage_count?: number;
+  };
+
   type RoomInventory = {
     /** 已售数量 */
     booked_count?: number;
@@ -721,6 +781,17 @@ declare namespace API {
   type UpdateHotelRequest = {
     name?: string;
     status?: string;
+  };
+
+  type UpdateRoomCategoryRequest = {
+    /** 房型描述 */
+    description?: string;
+    /** 设施 JSON 数组字符串 */
+    facilities?: string;
+    /** 预览图 JSON 数组字符串 */
+    images?: string;
+    /** 房型名称 */
+    name?: string;
   };
 
   type UpdateRoomRequest = {

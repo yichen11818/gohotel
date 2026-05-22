@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, message } from 'antd';
+import { useRoomCategoryOptions } from '@/utils/roomCategory';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -13,6 +14,7 @@ interface RoomFormModalProps {
 
 const RoomFormModal: React.FC<RoomFormModalProps> = ({ visible, room, onCancel, onSuccess }) => {
   const [form] = Form.useForm();
+  const { options: roomCategoryOptions } = useRoomCategoryOptions();
 
   useEffect(() => {
     if (visible && room) {
@@ -66,7 +68,7 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ visible, room, onCancel, 
       onCancel={onCancel}
       onOk={handleSubmit}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}
@@ -90,13 +92,7 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ visible, room, onCancel, 
           label="房型"
           rules={[{ required: true, message: '请输入房型' }]}
         >
-          <Select placeholder="请选择房型">
-            <Option value="单人间">单人间</Option>
-            <Option value="双人间">双人间</Option>
-            <Option value="豪华套房">豪华套房</Option>
-            <Option value="总统套房">总统套房</Option>
-            <Option value="商务套房">商务套房</Option>
-          </Select>
+          <Select placeholder="请选择房型" options={roomCategoryOptions} />
         </Form.Item>
 
         <Form.Item
