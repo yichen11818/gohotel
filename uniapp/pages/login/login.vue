@@ -4,8 +4,12 @@
       <view class="gradient-layer"></view>
     </view>
 
-    <view class="back-btn" @click="goBack">
-      <TnIcon name="left" color="#333" size="40" />
+    <!-- 自定义导航栏 -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
+    <view class="nav-header flex-between">
+      <view class="back-btn flex-center" @click="goBack">
+        <image class="icon-back" src="/static/icons/back-white.png" mode="aspectFit" style="filter: brightness(0);" />
+      </view>
     </view>
 
     <view class="main-content">
@@ -14,7 +18,7 @@
           <image class="logo" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=200&fit=crop" mode="aspectFill"></image>
         </view>
         <text class="brand-name">七天酒店</text>
-        <text class="brand-slogan">品质生活，从这里开始</text>
+        <text class="brand-slogan">诚挚待客 · 舒适如家</text>
       </view>
 
       <view class="login-form">
@@ -106,6 +110,7 @@ import TnButton from '@/uni_modules/tuniaoui-vue3/components/button/src/button.v
 const username = ref('')
 const password = ref('')
 const agreed = ref(false)
+const statusBarHeight = ref(44)
 
 const canLogin = computed(() => {
   return username.value.trim().length >= 3 && password.value.length >= 6 && agreed.value
@@ -193,6 +198,8 @@ const goToPrivacy = () => {
 }
 
 onLoad(() => {
+  const sysInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = sysInfo.statusBarHeight || 44
   const token = uni.getStorageSync(TOKEN_KEY)
   if (token) {
     uni.navigateBack()
@@ -205,6 +212,26 @@ onLoad(() => {
   min-height: 100vh;
   background: #FAFAFA;
   position: relative;
+}
+
+.nav-header {
+  height: 88rpx;
+  padding: 0 30rpx;
+  position: relative;
+  z-index: 100;
+
+  .back-btn {
+    width: 64rpx;
+    height: 64rpx;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+    .icon-back { width: 32rpx; height: 32rpx; }
+
+    &:active {
+      transform: scale(0.9);
+    }
+  }
 }
 
 .header-bg {
@@ -224,30 +251,11 @@ onLoad(() => {
   }
 }
 
-.back-btn {
-  position: absolute;
-  top: 88rpx;
-  left: 32rpx;
-  width: 72rpx;
-  height: 72rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
-  z-index: 100;
-
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
 .main-content {
   position: relative;
   z-index: 10;
   padding: 0 48rpx;
-  padding-top: 180rpx;
+  padding-top: 100rpx;
 }
 
 .logo-section {

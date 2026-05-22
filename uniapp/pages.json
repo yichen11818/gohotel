@@ -111,6 +111,34 @@
         "navigationBarTitleText": "用户协议",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/wallet/wallet",
+      "style": {
+        "navigationBarTitleText": "我的余额",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/points/points",
+      "style": {
+        "navigationBarTitleText": "我的积分",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coupons/coupons",
+      "style": {
+        "navigationBarTitleText": "优惠券",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/pay-result/pay-result",
+      "style": {
+        "navigationBarTitleText": "支付结果",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {
@@ -122,26 +150,26 @@
       {
         "pagePath": "pages/index/index",
         "text": "订房",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
+        "iconPath": "/static/tabbar/home.png",
+        "selectedIconPath": "/static/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/hotel/hotel",
         "text": "酒店",
-        "iconPath": "static/tabbar/hotel.png",
-        "selectedIconPath": "static/tabbar/hotel-active.png"
+        "iconPath": "/static/tabbar/hotel.png",
+        "selectedIconPath": "/static/tabbar/hotel-active.png"
       },
       {
         "pagePath": "pages/service/service",
         "text": "服务",
-        "iconPath": "static/tabbar/service.png",
-        "selectedIconPath": "static/tabbar/service-active.png"
+        "iconPath": "/static/tabbar/service.png",
+        "selectedIconPath": "/static/tabbar/service-active.png"
       },
       {
         "pagePath": "pages/my/my",
         "text": "我的",
-        "iconPath": "static/tabbar/my.png",
-        "selectedIconPath": "static/tabbar/my-active.png"
+        "iconPath": "/static/tabbar/my.png",
+        "selectedIconPath": "/static/tabbar/my-active.png"
       }
     ]
   },

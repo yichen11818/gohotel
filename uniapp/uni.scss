@@ -1,37 +1,73 @@
 $primary-color: #C29D71;
-$bg-color: #F9F9F9;
-$text-main: #333333;
-$text-sub: #999999;
+$primary-light: #F9F4ED;
+$primary-gradient: linear-gradient(135deg, #D4B184 0%, #C29D71 50%, #B88A5E 100%);
+$bg-color: #F8F9FB;
+$text-main: #1D1D1F;
+$text-second: #424245;
+$text-sub: #86868B;
 $border-color: rgba(0, 0, 0, 0.05);
 $shadow-light: 0 8rpx 32rpx rgba(0, 0, 0, 0.04);
 $shadow-premium: 0 16rpx 48rpx rgba(194, 157, 113, 0.15);
+$radius-sm: 12rpx;
+$radius-md: 24rpx;
+$radius-lg: 32rpx;
+$radius-xl: 48rpx;
 
 page {
   background-color: $bg-color;
   color: $text-main;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+// 常用样式类
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .premium-card {
   background: #ffffff;
-  border-radius: 32rpx;
+  border-radius: $radius-lg;
   box-shadow: $shadow-light;
   border: 1rpx solid $border-color;
   overflow: hidden;
 }
 
 .premium-button {
-  background: linear-gradient(135deg, #D4B184 0%, #C29D71 50%, #B88A5E 100%);
+  background: $primary-gradient;
   color: #ffffff;
   border-radius: 100rpx;
   box-shadow: 0 12rpx 24rpx rgba(194, 157, 113, 0.3);
   font-weight: 600;
-  transition: all 0.3s ease;
-  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
   &:active {
-    transform: scale(0.98);
-    box-shadow: 0 8rpx 16rpx rgba(194, 157, 113, 0.2);
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+
+  &[disabled] {
+    background: #E5E5E7;
+    color: #A1A1A6;
+    box-shadow: none;
   }
 }
 

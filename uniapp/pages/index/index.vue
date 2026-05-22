@@ -1,101 +1,156 @@
 <template>
-  <scroll-view class="page" scroll-y>
+  <view class="page">
+    <!-- 自定义导航栏 -->
+    <view class="custom-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="nav-content">
+        <text class="nav-title">{{ hotelInfo.name }}</text>
+      </view>
+    </view>
+
+    <!-- Banner 区域 -->
     <view class="hero">
-      <swiper class="hero-swiper" circular autoplay indicator-dots>
+      <swiper class="hero-swiper" circular autoplay interval="5000" duration="1000">
         <swiper-item v-for="(image, index) in bannerImages" :key="index">
           <image class="hero-image" :src="image" mode="aspectFill" />
         </swiper-item>
       </swiper>
       <view class="hero-mask"></view>
-      <view class="hero-content">
+      <view class="hero-content" :style="{ bottom: '80rpx' }">
+        <view class="hotel-info-tag">
+          <text class="tag-text">优选酒店</text>
+        </view>
         <text class="hotel-name">{{ hotelInfo.name }}</text>
-        <text class="hotel-address">{{ hotelInfo.address }}</text>
-        <view class="hero-actions">
-          <button class="ghost-btn" size="mini" @click="openMap">地图导航</button>
-          <button class="ghost-btn" size="mini" @click="callHotel" :disabled="!hotelInfo.phone">联系前台</button>
+        <view class="hotel-location" @click="goToMap">
+          <image class="icon-location" src="/static/icons/location-white.png" mode="aspectFit" />
+          <text class="address-text">{{ hotelInfo.address }}</text>
         </view>
       </view>
     </view>
 
     <view class="content">
-      <view class="card">
-        <view class="card-header">
-          <text class="card-title">入住日期</text>
-          <text class="card-subtitle">选择日期后查看可订房型</text>
-        </view>
-        <view class="date-grid">
-          <picker mode="date" :value="checkInDate" @change="onCheckInChange">
-            <view class="date-box">
-              <text class="date-label">入住</text>
-              <text class="date-value">{{ checkInDate }}</text>
+      <!-- 核心操作区：日期选择 -->
+      <view class="card date-card premium-card">
+        <view class="date-selection" @click="showCalendar = true">
+          <view class="date-item">
+            <text class="date-label">入住</text>
+            <view class="date-val-wrap">
+              <text class="date-day">{{ checkInDateDisplay.day }}</text>
+              <text class="date-month">{{ checkInDateDisplay.month }}月</text>
             </view>
-          </picker>
-          <picker mode="date" :value="checkOutDate" @change="onCheckOutChange">
-            <view class="date-box">
-              <text class="date-label">离店</text>
-              <text class="date-value">{{ checkOutDate }}</text>
+          </view>
+          <view class="date-duration">
+            <view class="duration-line"></view>
+            <text class="duration-text">{{ nights }}晚</text>
+            <view class="duration-line"></view>
+          </view>
+          <view class="date-item">
+            <text class="date-label">离店</text>
+            <view class="date-val-wrap">
+              <text class="date-day">{{ checkOutDateDisplay.day }}</text>
+              <text class="date-month">{{ checkOutDateDisplay.month }}月</text>
             </view>
-          </picker>
+          </view>
         </view>
-        <view class="booking-summary">
-          <text>共 {{ nights }} 晚</text>
-          <text v-if="hotelInfo.lowestPrice">低至 ¥{{ hotelInfo.lowestPrice }}/晚</text>
-        </view>
-        <button class="primary-btn" @click="goToHotel">查看可订房型</button>
+        <button class="primary-btn premium-button" @click="goToHotel">立即预订</button>
       </view>
 
-      <view v-if="notices.length" class="card">
-        <view class="card-header">
-          <text class="card-title">酒店公告</text>
-        </view>
-        <view v-for="notice in notices" :key="notice.id" class="notice-item">
-          <text class="notice-title">{{ notice.title }}</text>
-        </view>
-      </view>
-
-      <view class="card">
-        <view class="card-header">
-          <text class="card-title">酒店信息</text>
-        </view>
-        <view class="info-row">
-          <text class="info-label">前台电话</text>
-          <text class="info-value">{{ hotelInfo.phone || '暂未配置' }}</text>
-        </view>
-        <view class="info-row">
-          <text class="info-label">服务时间</text>
-          <text class="info-value">{{ hotelInfo.serviceTime }}</text>
-        </view>
-        <view class="info-row">
-          <text class="info-label">入住 / 退房</text>
-          <text class="info-value">{{ hotelInfo.checkInTime }} / {{ hotelInfo.checkOutTime }}</text>
-        </view>
-        <text class="hotel-intro">{{ hotelIntroText }}</text>
-      </view>
-
+      <!-- 金刚区 (Quick Actions) -->
       <view class="quick-grid">
-        <view class="quick-item" @click="goToHotel">
-          <text class="quick-title">房型预订</text>
-          <text class="quick-desc">浏览可订房型</text>
-        </view>
         <view class="quick-item" @click="goToService">
+          <view class="quick-icon-wrap service">
+            <image class="quick-icon" src="/static/icons/service.png" mode="aspectFit" />
+          </view>
           <text class="quick-title">酒店服务</text>
-          <text class="quick-desc">查看服务信息</text>
         </view>
         <view class="quick-item" @click="goToOrders">
+          <view class="quick-icon-wrap orders">
+            <image class="quick-icon" src="/static/icons/order.png" mode="aspectFit" />
+          </view>
           <text class="quick-title">我的订单</text>
-          <text class="quick-desc">查看预订状态</text>
+        </view>
+        <view class="quick-item" @click="callHotel">
+          <view class="quick-icon-wrap contact">
+            <image class="quick-icon" src="/static/icons/phone.png" mode="aspectFit" />
+          </view>
+          <text class="quick-title">联系前台</text>
+        </view>
+        <view class="quick-item" @click="goToMap">
+          <view class="quick-icon-wrap map">
+            <image class="quick-icon" src="/static/icons/map.png" mode="aspectFit" />
+          </view>
+          <text class="quick-title">地图导航</text>
+        </view>
+      </view>
+
+      <!-- 智能推荐 -->
+      <view v-if="recommendedRooms.length" class="section">
+        <view class="section-header">
+          <view class="header-left">
+            <text class="section-title">智能推荐</text>
+            <text class="section-subtitle">为你精选最适合的房型</text>
+          </view>
+          <text class="more-link" @click="goToHotel">查看全部</text>
+        </view>
+        <scroll-view scroll-x class="recommend-scroll">
+          <view class="recommend-list">
+            <view
+              v-for="room in recommendedRooms"
+              :key="room.id"
+              class="recommend-card premium-card"
+              @click="goToRecommendedRoom(room)"
+            >
+              <image class="recommend-image" :src="room.image" mode="aspectFill" />
+              <view class="recommend-info">
+                <text class="room-name">{{ room.name }}</text>
+                <view class="price-wrap">
+                  <text class="price-symbol">¥</text>
+                  <text class="price-value">{{ room.price }}</text>
+                  <text class="price-unit">/晚起</text>
+                </view>
+                <view class="recommend-tags">
+                  <text v-for="tag in room.recommendationTags.slice(0, 2)" :key="tag" class="tag">
+                    {{ tag }}
+                  </text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- 酒店信息 -->
+      <view class="section">
+        <view class="section-header">
+          <text class="section-title">酒店详情</text>
+        </view>
+        <view class="card info-card premium-card">
+          <view class="info-row">
+            <text class="info-label">服务时间</text>
+            <text class="info-value">{{ hotelInfo.serviceTime }}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">入住/退房</text>
+            <text class="info-value">{{ hotelInfo.checkInTime }} / {{ hotelInfo.checkOutTime }}</text>
+          </view>
+          <view class="hotel-intro-box">
+            <text class="hotel-intro-text">{{ hotelIntroText }}</text>
+          </view>
         </view>
       </view>
     </view>
-  </scroll-view>
+    <HotelCalendar v-model:show="showCalendar" :check-in="checkInDate" :check-out="checkOutDate" @confirm="onCalendarConfirm" />
+  </view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { banner, hotel } from '@/api/index.js'
 import { API_BASE_URL, TOKEN_KEY } from '@/config/api.config.js'
+import HotelCalendar from '@/components/hotel-calendar/hotel-calendar.vue'
 
+const statusBarHeight = ref(44)
+const showCalendar = ref(false)
 const hotelId = ref(hotel.DEFAULT_HOTEL_ID || 1)
 const hotelInfo = ref({
   id: hotelId.value,
@@ -113,10 +168,26 @@ const hotelInfo = ref({
 })
 const bannerImages = ref(['https://dummyimage.com/1200x720/f3ede5/8b6b47&text=GoHotel'])
 const notices = ref([])
+const recommendedRooms = ref([])
 const checkInDate = ref('')
 const checkOutDate = ref('')
+const HOTEL_TAB_CONTEXT_KEY = 'gohotel_hotel_tab_context'
+
+// 计算日期显示格式
+const checkInDateDisplay = computed(() => {
+  if (!checkInDate.value) return { month: '--', day: '--' }
+  const d = new Date(checkInDate.value)
+  return { month: d.getMonth() + 1, day: d.getDate() }
+})
+
+const checkOutDateDisplay = computed(() => {
+  if (!checkOutDate.value) return { month: '--', day: '--' }
+  const d = new Date(checkOutDate.value)
+  return { month: d.getMonth() + 1, day: d.getDate() }
+})
 
 const nights = computed(() => {
+  if (!checkInDate.value || !checkOutDate.value) return 1
   const start = new Date(checkInDate.value)
   const end = new Date(checkOutDate.value)
   const diff = end.getTime() - start.getTime()
@@ -135,9 +206,7 @@ const formatDate = (date) => {
 }
 
 const ensureDates = () => {
-  if (checkInDate.value && checkOutDate.value) {
-    return
-  }
+  if (checkInDate.value && checkOutDate.value) return
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -147,117 +216,68 @@ const ensureDates = () => {
   checkOutDate.value = formatDate(tomorrow)
 }
 
-const normalizeAssetUrl = (url) => {
-  if (!url) return ''
-  if (/^https?:\/\//i.test(url)) return url
-  if (url.startsWith('//')) return `https:${url}`
-  const firstSegment = String(url).split('/')[0]
-  if (firstSegment.includes('.') || firstSegment.includes(':')) return `http://${url}`
-  if (url.startsWith('/')) return `${API_BASE_URL}${url}`
-  return `${API_BASE_URL}/${url}`
-}
-
 const loadData = async () => {
   try {
-    const [hotelRes, bannerRes] = await Promise.all([
+    const [hotelRes, bannerRes, recommendationRes] = await Promise.all([
       hotel.getHotelDetail(hotelId.value),
       banner.getActiveBanners().catch(() => []),
+      hotel.getRecommendedRooms({ limit: 5 }).catch(() => []),
     ])
 
     hotelInfo.value = hotelRes
     notices.value = hotelRes.notices || []
+    recommendedRooms.value = recommendationRes
 
     const normalizedBanners = (Array.isArray(bannerRes) ? bannerRes : [])
-      .map((item) => normalizeAssetUrl(item?.image_url || item?.temp_url || item?.image))
+      .map((item) => item?.image_url || item?.temp_url || item?.image)
       .filter(Boolean)
 
     if (normalizedBanners.length > 0) {
       bannerImages.value = normalizedBanners
-      return
-    }
-
-    const coverImages = (hotelRes.coverImages || []).map(normalizeAssetUrl).filter(Boolean)
-    if (coverImages.length > 0) {
-      bannerImages.value = coverImages
     }
   } catch (error) {
     console.error('load home data failed:', error)
   }
 }
 
-const ensureCheckoutAfterCheckin = () => {
-  if (new Date(checkOutDate.value) <= new Date(checkInDate.value)) {
-    const next = new Date(checkInDate.value)
-    next.setDate(next.getDate() + 1)
-    checkOutDate.value = formatDate(next)
-  }
-}
-
-const onCheckInChange = (event) => {
-  checkInDate.value = event.detail.value
-  ensureCheckoutAfterCheckin()
-}
-
-const onCheckOutChange = (event) => {
-  const nextValue = event.detail.value
-  if (new Date(nextValue) <= new Date(checkInDate.value)) {
-    uni.showToast({ title: '离店日期需晚于入住日期', icon: 'none' })
-    return
-  }
-  checkOutDate.value = nextValue
+const onCalendarConfirm = (dates) => {
+  checkInDate.value = dates.checkIn
+  checkOutDate.value = dates.checkOut
 }
 
 const goToHotel = () => {
+  uni.setStorageSync(HOTEL_TAB_CONTEXT_KEY, {
+    hotelId: hotelId.value,
+    checkIn: checkInDate.value,
+    checkOut: checkOutDate.value,
+  })
+  uni.switchTab({ url: '/pages/hotel/hotel' })
+}
+
+const goToRecommendedRoom = (room) => {
   uni.navigateTo({
-    url: `/pages/hotel/hotel?id=${hotelId.value}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
+    url: `/pages/room-detail/room-detail?id=${room.id}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
   })
 }
 
-const goToService = () => {
-  uni.switchTab({ url: '/pages/service/service' })
-}
-
+const goToService = () => uni.switchTab({ url: '/pages/service/service' })
 const goToOrders = () => {
   const token = uni.getStorageSync(TOKEN_KEY)
-  if (!token) {
-    uni.navigateTo({ url: '/pages/login/login' })
-    return
-  }
-
-  uni.navigateTo({ url: '/pages/orders/orders' })
+  token ? uni.navigateTo({ url: '/pages/orders/orders' }) : uni.navigateTo({ url: '/pages/login/login' })
 }
-
 const callHotel = () => {
   const phone = String(hotelInfo.value.phone || '').trim()
-  if (!phone) {
-    uni.showToast({ title: '暂未配置联系电话', icon: 'none' })
-    return
-  }
-
-  uni.makePhoneCall({ phoneNumber: phone })
+  phone ? uni.makePhoneCall({ phoneNumber: phone }) : uni.showToast({ title: '暂未配置联系电话', icon: 'none' })
 }
-
-const openMap = () => {
-  const latitude = Number(hotelInfo.value.latitude)
-  const longitude = Number(hotelInfo.value.longitude)
-
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    uni.showToast({ title: '暂未配置地图坐标', icon: 'none' })
-    return
-  }
-
-  uni.openLocation({
-    latitude,
-    longitude,
-    name: hotelInfo.value.name,
-    address: hotelInfo.value.address,
-  })
+const goToMap = () => {
+  const { latitude, longitude, name, address } = hotelInfo.value
+  uni.openLocation({ latitude: Number(latitude), longitude: Number(longitude), name, address })
 }
 
 onLoad((options) => {
-  if (options?.hotelId) {
-    hotelId.value = Number(options.hotelId)
-  }
+  const sysInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = sysInfo.statusBarHeight || 44
+  if (options?.hotelId) hotelId.value = Number(options.hotelId)
   ensureDates()
 })
 
@@ -271,197 +291,343 @@ onShow(() => {
 .page {
   min-height: 100vh;
   background: #f6f7fb;
+  padding-bottom: 60rpx;
+}
+
+/* 自定义导航栏 */
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.3s;
+
+  .nav-content {
+    height: 88rpx;
+    display: flex;
+    align-items: center;
+    padding: 0 32rpx;
+  }
+
+  .nav-title {
+    font-size: 34rpx;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0; /* 滚动时根据需求显示 */
+  }
 }
 
 .hero {
   position: relative;
-  height: 480rpx;
-}
+  height: 600rpx;
 
-.hero-swiper,
-.hero-image {
-  width: 100%;
-  height: 100%;
-}
+  .hero-swiper, .hero-image {
+    width: 100%;
+    height: 100%;
+  }
 
-.hero-mask {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(17, 24, 39, 0.1) 0%, rgba(17, 24, 39, 0.58) 100%);
-}
+  .hero-mask {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%);
+  }
 
-.hero-content {
-  position: absolute;
-  left: 32rpx;
-  right: 32rpx;
-  bottom: 32rpx;
-  color: #fff;
-}
+  .hero-content {
+    position: absolute;
+    left: 40rpx;
+    right: 40rpx;
+    color: #fff;
 
-.hotel-name {
-  display: block;
-  font-size: 40rpx;
-  font-weight: 700;
-}
+    .hotel-info-tag {
+      display: inline-block;
+      padding: 4rpx 16rpx;
+      background: #c9a977;
+      border-radius: 8rpx;
+      margin-bottom: 16rpx;
 
-.hotel-address {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  opacity: 0.92;
-}
+      .tag-text {
+        font-size: 20rpx;
+        font-weight: 600;
+      }
+    }
 
-.hero-actions {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 24rpx;
-}
+    .hotel-name {
+      display: block;
+      font-size: 48rpx;
+      font-weight: 700;
+      margin-bottom: 12rpx;
+      text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.3);
+    }
 
-.ghost-btn {
-  margin: 0;
-  padding: 0 28rpx;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 999rpx;
+    .hotel-location {
+      display: flex;
+      align-items: center;
+      opacity: 0.9;
+
+      .icon-location {
+        width: 24rpx;
+        height: 24rpx;
+        margin-right: 8rpx;
+      }
+
+      .address-text {
+        font-size: 24rpx;
+      }
+    }
+  }
 }
 
 .content {
-  padding: 24rpx;
-  margin-top: -24rpx;
+  padding: 0 30rpx;
+  margin-top: -60rpx;
+  position: relative;
+  z-index: 10;
 }
 
 .card {
-  padding: 28rpx;
-  margin-bottom: 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.06);
+  padding: 40rpx;
+  margin-bottom: 30rpx;
 }
 
-.card-header {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  margin-bottom: 24rpx;
+/* 日期选择卡片 */
+.date-card {
+  .date-selection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40rpx;
+
+    .date-item {
+      .date-label {
+        font-size: 24rpx;
+        color: #6b7280;
+        margin-bottom: 10rpx;
+        display: block;
+      }
+
+      .date-val-wrap {
+        display: flex;
+        align-items: baseline;
+
+        .date-day {
+          font-size: 44rpx;
+          font-weight: 700;
+          color: #111827;
+          margin-right: 4rpx;
+        }
+
+        .date-month {
+          font-size: 26rpx;
+          color: #111827;
+        }
+      }
+    }
+
+    .date-duration {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      .duration-line {
+        width: 60rpx;
+        height: 1rpx;
+        background: #eee;
+      }
+
+      .duration-text {
+        font-size: 22rpx;
+        color: #c9a977;
+        margin: 4rpx 0;
+        padding: 2rpx 12rpx;
+        border: 1rpx solid #c9a977;
+        border-radius: 20rpx;
+      }
+    }
+  }
+
+  .primary-btn {
+    height: 90rpx;
+    font-size: 32rpx;
+  }
 }
 
-.card-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.card-subtitle {
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.date-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
-}
-
-.date-box {
-  padding: 24rpx;
-  background: #f9fafb;
-  border: 1px solid #eef2f7;
-  border-radius: 20rpx;
-}
-
-.date-label {
-  display: block;
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.date-value {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-.booking-summary,
-.info-row {
+/* 金刚区 */
+.quick-grid {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16rpx;
-  margin-top: 20rpx;
-  font-size: 26rpx;
-  color: #4b5563;
+  padding: 10rpx 10rpx 40rpx;
+
+  .quick-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 25%;
+
+    .quick-icon-wrap {
+      width: 96rpx;
+      height: 96rpx;
+      border-radius: 32rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16rpx;
+      box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.05);
+
+      &.service { background: #EBF3FF; }
+      &.orders { background: #FFF4E8; }
+      &.contact { background: #E8F8F2; }
+      &.map { background: #F3EBFF; }
+
+      .quick-icon {
+        width: 48rpx;
+        height: 48rpx;
+      }
+    }
+
+    .quick-title {
+      font-size: 24rpx;
+      color: #4b5563;
+      font-weight: 500;
+    }
+  }
 }
 
-.primary-btn {
-  margin-top: 28rpx;
-  background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
-  color: #fff;
-  border-radius: 999rpx;
+/* 章节标题 */
+.section {
+  margin-bottom: 40rpx;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24rpx;
+    padding: 0 10rpx;
+
+    .header-left {
+      .section-title {
+        font-size: 36rpx;
+        font-weight: 700;
+        color: #1f2937;
+        display: block;
+      }
+
+      .section-subtitle {
+        font-size: 22rpx;
+        color: #6b7280;
+        margin-top: 4rpx;
+      }
+    }
+
+    .more-link {
+      font-size: 24rpx;
+      color: #c9a977;
+    }
+  }
 }
 
-.notice-item {
-  padding: 18rpx 0;
-  border-bottom: 1px solid #f1f5f9;
+/* 推荐滚动列表 */
+.recommend-scroll {
+  width: 100%;
+  white-space: nowrap;
+
+  .recommend-list {
+    display: inline-flex;
+    padding: 10rpx;
+    gap: 24rpx;
+  }
+
+  .recommend-card {
+    width: 420rpx;
+    display: inline-block;
+    padding: 0;
+
+    .recommend-image {
+      width: 100%;
+      height: 260rpx;
+    }
+
+    .recommend-info {
+      padding: 20rpx;
+
+      .room-name {
+        font-size: 28rpx;
+        font-weight: 600;
+        color: #1f2937;
+        display: block;
+        margin-bottom: 12rpx;
+      }
+
+      .price-wrap {
+        margin-bottom: 12rpx;
+
+        .price-symbol {
+          font-size: 24rpx;
+          color: #E64340;
+          font-weight: 700;
+        }
+
+        .price-value {
+          font-size: 36rpx;
+          color: #E64340;
+          font-weight: 700;
+        }
+
+        .price-unit {
+          font-size: 20rpx;
+          color: #6b7280;
+          margin-left: 4rpx;
+        }
+      }
+
+      .recommend-tags {
+        display: flex;
+        gap: 8rpx;
+
+        .tag {
+          font-size: 20rpx;
+          padding: 4rpx 12rpx;
+          background: #F5F5F7;
+          color: #6b7280;
+          border-radius: 4rpx;
+        }
+      }
+    }
+  }
 }
 
-.notice-item:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
+/* 详情卡片 */
+.info-card {
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24rpx;
 
-.notice-title {
-  font-size: 26rpx;
-  color: #374151;
-  line-height: 1.6;
-}
+    &:last-of-type { margin-bottom: 0; }
 
-.info-label {
-  color: #6b7280;
-}
+    .info-label {
+      font-size: 28rpx;
+      color: #6b7280;
+    }
 
-.info-value {
-  flex: 1;
-  text-align: right;
-  color: #111827;
-}
+    .info-value {
+      font-size: 28rpx;
+      color: #1f2937;
+      font-weight: 500;
+    }
+  }
 
-.hotel-intro {
-  display: block;
-  margin-top: 24rpx;
-  font-size: 26rpx;
-  color: #4b5563;
-  line-height: 1.7;
-}
+  .hotel-intro-box {
+    margin-top: 30rpx;
+    padding-top: 30rpx;
+    border-top: 1rpx solid #F2F2F7;
 
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20rpx;
-  padding-bottom: 36rpx;
-}
-
-.quick-item {
-  padding: 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.05);
-}
-
-.quick-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.quick-desc {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  color: #6b7280;
-  line-height: 1.5;
+    .hotel-intro-text {
+      font-size: 26rpx;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+  }
 }
 </style>

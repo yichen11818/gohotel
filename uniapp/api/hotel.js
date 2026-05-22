@@ -3,6 +3,7 @@
  */
 
 import { get, post } from '@/utils/request.js'
+import { TOKEN_KEY } from '@/config/api.config.js'
 
 export const DEFAULT_HOTEL_ID = 1
 
@@ -68,6 +69,20 @@ const normalizeRoom = (room = {}) => {
     status: room.status || 'available',
     cleanStatus: room.clean_status || '',
     raw: room,
+  }
+}
+
+const normalizeRecommendedRoom = (item = {}) => {
+  const normalizedRoom = normalizeRoom(item.room || item)
+
+  return {
+    ...normalizedRoom,
+    recommendationReason: item.reason || '基于你的浏览与预订偏好推荐',
+    recommendationTags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
+    recommendationScore: ensureNumber(item.score),
+    collaborativeScore: ensureNumber(item.collaborative_score),
+    neuralScore: ensureNumber(item.neural_score),
+    popularityScore: ensureNumber(item.popularity_score),
   }
 }
 
@@ -174,6 +189,35 @@ export const getRoomTypes = async (_hotelId = DEFAULT_HOTEL_ID, params = {}) => 
 export const getRoomDetail = async (id) => {
   const result = await get(`/rooms/${id}`)
   return normalizeRoom(result)
+}
+
+export const getRecommendedRooms = async (params = {}) => {
+  const result = await get('/recommendations/rooms', {
+    limit: params.limit || 6,
+    exclude_room_id: params.excludeRoomId || params.exclude_room_id || '',
+  })
+
+  return (Array.isArray(result) ? result : []).map(normalizeRecommendedRoom)
+}
+
+export const trackRoomBehavior = async (roomId, behaviorType = 'view_detail', source = 'room_detail', metadata = {}) => {
+  const token = uni.getStorageSync(TOKEN_KEY)
+  if (!token || !roomId) {
+    return false
+  }
+
+  try {
+    await post('/recommendations/behavior', {
+      room_id: Number(roomId),
+      behavior_type: behaviorType,
+      source,
+      metadata,
+    })
+    return true
+  } catch (error) {
+    console.warn('track room behavior failed:', error)
+    return false
+  }
 }
 
 // === 管理员房间接口 ===

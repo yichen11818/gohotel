@@ -1,79 +1,122 @@
 <template>
-  <scroll-view class="page" scroll-y>
-    <view class="content">
-      <view class="section room-card">
-        <image class="room-image" :src="roomInfo.image" mode="aspectFill" />
-        <view class="room-body">
-          <text class="room-name">{{ roomInfo.name }}</text>
-          <text class="room-meta">{{ roomInfo.area }}㎡ · {{ roomInfo.bedType }}</text>
-          <text class="room-price">¥{{ roomInfo.price }}/晚</text>
-        </view>
+  <view class="page">
+    <!-- 自定义导航栏 -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
+    <view class="nav-header flex-between">
+      <view class="back-btn flex-center" @click="goBack">
+        <image class="icon-back" src="/static/icons/back-white.png" mode="aspectFit" style="filter: brightness(0);" />
       </view>
-
-      <view class="section">
-        <text class="section-title">入住信息</text>
-        <view class="date-row">
-          <text>入住</text>
-          <text>{{ checkInDate }}</text>
-        </view>
-        <view class="date-row">
-          <text>离店</text>
-          <text>{{ checkOutDate }}</text>
-        </view>
-        <view class="date-row">
-          <text>共计</text>
-          <text>{{ nights }} 晚</text>
-        </view>
-      </view>
-
-      <view class="section">
-        <text class="section-title">入住人信息</text>
-        <view class="field">
-          <text class="field-label">姓名</text>
-          <input v-model="guestInfo.name" class="field-input" placeholder="请输入入住人姓名" />
-        </view>
-        <view class="field">
-          <text class="field-label">手机号</text>
-          <input v-model="guestInfo.phone" class="field-input" type="number" maxlength="11" placeholder="请输入手机号" />
-        </view>
-        <view class="field">
-          <text class="field-label">身份证号</text>
-          <input v-model="guestInfo.idCard" class="field-input" placeholder="选填，用于快捷入住" />
-        </view>
-        <view class="field">
-          <text class="field-label">特殊需求</text>
-          <textarea v-model="specialRequest" class="field-textarea" maxlength="200" placeholder="选填，如安静房、尽量高楼层等" />
-        </view>
-      </view>
-
-      <view class="section">
-        <text class="section-title">价格明细</text>
-        <view class="date-row">
-          <text>房费</text>
-          <text>¥{{ roomInfo.price }} × {{ nights }} 晚</text>
-        </view>
-        <view class="date-row total-row">
-          <text>合计</text>
-          <text class="total-price">¥{{ totalPrice }}</text>
-        </view>
-      </view>
-
-      <view class="section tips">
-        <text class="tip-text">- 提交后将生成预订订单，等待酒店确认。</text>
-        <text class="tip-text">- 当前版本不支持在线支付，订单请在“我的订单”中查看状态。</text>
-      </view>
+      <text class="page-title">确认订单</text>
+      <view class="placeholder-view"></view>
     </view>
 
-    <view class="bottom-bar">
-      <view>
-        <text class="bottom-note">订单金额</text>
-        <text class="bottom-price">¥{{ totalPrice }}</text>
+    <scroll-view class="scroll-container" scroll-y>
+      <view class="content">
+        <!-- 房型卡片 -->
+        <view class="section room-card premium-card">
+          <image class="room-image" :src="roomInfo.image" mode="aspectFill" />
+          <view class="room-body">
+            <text class="room-name">{{ roomInfo.name }}</text>
+            <text class="room-meta">{{ roomInfo.area }}㎡ · {{ roomInfo.bedType }}</text>
+            <view class="room-price">
+              <text class="symbol">¥</text>
+              <text class="val">{{ roomInfo.price }}</text>
+              <text class="unit">/晚</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 入住信息 -->
+        <view class="section premium-card" @click="showCalendar = true">
+          <view class="section-header flex-between">
+            <text class="section-title">入住信息</text>
+            <text class="color-primary" style="font-size: 24rpx;">修改</text>
+          </view>
+          <view class="date-list">
+            <view class="date-row flex-between">
+              <text class="label">入住日期</text>
+              <text class="val">{{ checkInDate }}</text>
+            </view>
+            <view class="date-row flex-between">
+              <text class="label">离店日期</text>
+              <text class="val">{{ checkOutDate }}</text>
+            </view>
+            <view class="date-row flex-between">
+              <text class="label">共计晚数</text>
+              <text class="val color-primary">{{ nights }} 晚</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 入住人信息 -->
+        <view class="section premium-card">
+          <view class="section-header">
+            <text class="section-title">入住人信息</text>
+          </view>
+          <view class="form-list">
+            <view class="field">
+              <text class="field-label">姓名</text>
+              <input v-model="guestInfo.name" class="field-input" placeholder="请输入入住人姓名" placeholder-class="placeholder" />
+            </view>
+            <view class="field">
+              <text class="field-label">手机号</text>
+              <input v-model="guestInfo.phone" class="field-input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="placeholder" />
+            </view>
+            <view class="field">
+              <text class="field-label">身份证号</text>
+              <input v-model="guestInfo.idCard" class="field-input" placeholder="选填，用于快捷入住" placeholder-class="placeholder" />
+            </view>
+            <view class="field">
+              <text class="field-label">特殊需求</text>
+              <textarea v-model="specialRequest" class="field-textarea" maxlength="200" placeholder="选填，如安静房、尽量高楼层等" placeholder-class="placeholder" />
+            </view>
+          </view>
+        </view>
+
+        <!-- 价格明细 -->
+        <view class="section premium-card">
+          <view class="section-header">
+            <text class="section-title">价格明细</text>
+          </view>
+          <view class="price-list">
+            <view class="price-row flex-between">
+              <text class="label">在线支付房费</text>
+              <text class="val">¥{{ roomInfo.price }} × {{ nights }}</text>
+            </view>
+            <view class="total-row flex-between">
+              <text class="label">应付总额</text>
+              <view class="price">
+                <text class="symbol">¥</text>
+                <text class="val">{{ totalPrice }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 温馨提示 -->
+        <view class="section tips">
+          <text class="tip-text">· 提交后将生成预订订单，请在 15 分钟内完成确认。</text>
+          <text class="tip-text">· 入住时请出示有效身份证件。</text>
+        </view>
       </view>
-      <button class="primary-btn" :disabled="submitting" @click="handleSubmit">
-        {{ submitting ? '提交中...' : '提交订单' }}
+      <view class="bottom-space"></view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar safe-area-inset-bottom">
+      <view class="price-info">
+        <text class="bottom-note">应付金额</text>
+        <view class="bottom-price">
+          <text class="symbol">¥</text>
+          <text class="val">{{ totalPrice }}</text>
+        </view>
+      </view>
+      <button class="primary-btn premium-button" :disabled="submitting" @click="handleSubmit">
+        <text>{{ submitting ? '正在提交...' : '确认预订' }}</text>
       </button>
     </view>
-  </scroll-view>
+    <HotelCalendar v-model:show="showCalendar" :check-in="checkInDate" :check-out="checkOutDate" @confirm="onCalendarConfirm" />
+  </view>
 </template>
 
 <script setup>
@@ -81,12 +124,15 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { booking, hotel, user } from '@/api/index.js'
 import { TOKEN_KEY, USER_INFO_KEY } from '@/config/api.config.js'
+import HotelCalendar from '@/components/hotel-calendar/hotel-calendar.vue'
 
+const statusBarHeight = ref(44)
+const showCalendar = ref(false)
 const submitting = ref(false)
 const roomInfo = ref({
   id: '',
   name: '',
-  image: 'https://dummyimage.com/720x420/f5f5f5/999999&text=Room',
+  image: '',
   area: 0,
   bedType: '',
   price: 0,
@@ -101,6 +147,7 @@ const guestInfo = ref({
 })
 
 const nights = computed(() => {
+  if (!checkInDate.value || !checkOutDate.value) return 1
   const start = new Date(checkInDate.value)
   const end = new Date(checkOutDate.value)
   const diff = end.getTime() - start.getTime()
@@ -109,26 +156,13 @@ const nights = computed(() => {
 
 const totalPrice = computed(() => Number(roomInfo.value.price || 0) * nights.value)
 
-const formatDate = (date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+const onCalendarConfirm = (dates) => {
+  checkInDate.value = dates.checkIn
+  checkOutDate.value = dates.checkOut
 }
 
-const normalizeDateParam = (value) => {
-  if (!value) return ''
-  return String(value).slice(0, 10)
-}
-
-const ensureDates = () => {
-  if (!checkInDate.value || !checkOutDate.value) {
-    const today = new Date()
-    const tomorrow = new Date()
-    tomorrow.setDate(today.getDate() + 1)
-    checkInDate.value = formatDate(today)
-    checkOutDate.value = formatDate(tomorrow)
-  }
+const goBack = () => {
+  uni.navigateBack()
 }
 
 const loadRoomInfo = async (roomId) => {
@@ -149,21 +183,22 @@ const loadRoomInfo = async (roomId) => {
 
 const fillGuestInfo = async () => {
   const token = uni.getStorageSync(TOKEN_KEY)
-  if (!token) {
-    uni.redirectTo({ url: '/pages/login/login' })
-    return
-  }
+  if (!token) return
 
+  // 1. 先尝试从缓存读
   const cache = uni.getStorageSync(USER_INFO_KEY)
   if (cache) {
-    guestInfo.value.name = cache.nickname || cache.real_name || cache.username || ''
+    guestInfo.value.name = cache.real_name || cache.nickname || cache.username || ''
     guestInfo.value.phone = cache.phone || ''
+    guestInfo.value.idCard = cache.id_card || ''
   }
 
+  // 2. 异步请求最新数据（更准）
   try {
     const profile = await user.getUserInfo()
-    guestInfo.value.name = profile.nickname || profile.real_name || profile.username || guestInfo.value.name
+    guestInfo.value.name = profile.real_name || profile.nickname || profile.username || guestInfo.value.name
     guestInfo.value.phone = profile.phone || guestInfo.value.phone
+    guestInfo.value.idCard = profile.id_card || guestInfo.value.idCard
   } catch (_error) {}
 }
 
@@ -172,15 +207,14 @@ const handleSubmit = async () => {
     uni.showToast({ title: '请输入入住人姓名', icon: 'none' })
     return
   }
-
   if (!/^1\d{10}$/.test(guestInfo.value.phone)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    uni.showToast({ title: '手机号格式不正确', icon: 'none' })
     return
   }
 
   try {
     submitting.value = true
-    uni.showLoading({ title: '提交中...' })
+    uni.showLoading({ title: '提交预订' })
 
     const result = await booking.createBooking({
       room_id: roomInfo.value.id,
@@ -193,13 +227,13 @@ const handleSubmit = async () => {
     })
 
     uni.hideLoading()
-    uni.showToast({ title: '预订提交成功', icon: 'success' })
+    uni.showToast({ title: '预订成功', icon: 'success' })
 
     setTimeout(() => {
       uni.redirectTo({
         url: `/pages/order-detail/order-detail?id=${result.id}`,
       })
-    }, 800)
+    }, 1000)
   } catch (_error) {
     uni.hideLoading()
   } finally {
@@ -208,12 +242,12 @@ const handleSubmit = async () => {
 }
 
 onLoad((options) => {
-  if (options?.roomId) {
-    loadRoomInfo(options.roomId)
-  }
-  checkInDate.value = normalizeDateParam(options?.checkIn)
-  checkOutDate.value = normalizeDateParam(options?.checkOut)
-  ensureDates()
+  const sysInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = sysInfo.statusBarHeight || 44
+
+  if (options?.roomId) loadRoomInfo(options.roomId)
+  checkInDate.value = options?.checkIn || ''
+  checkOutDate.value = options?.checkOut || ''
   fillGuestInfo()
 })
 </script>
@@ -221,104 +255,155 @@ onLoad((options) => {
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
-  background: #f6f7fb;
-  padding-bottom: 160rpx;
+  background: $bg-color;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-header {
+  height: 88rpx;
+  padding: 0 30rpx;
+  background: #fff;
+
+  .back-btn {
+    width: 64rpx;
+    height: 64rpx;
+    .icon-back { width: 40rpx; height: 40rpx; }
+  }
+
+  .page-title {
+    font-size: 34rpx;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  .placeholder-view { width: 64rpx; }
+}
+
+.scroll-container {
+  flex: 1;
+  height: 0;
 }
 
 .content {
-  padding: 24rpx;
+  padding: 30rpx;
+}
+
+/* 房型卡片 */
+.room-card {
+  display: flex;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+
+  .room-image {
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 12rpx;
+    background: #f5f5f5;
+    margin-right: 24rpx;
+  }
+
+  .room-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    .room-name {
+      font-size: 32rpx;
+      font-weight: 700;
+      color: $text-main;
+    }
+    .room-meta {
+      font-size: 24rpx;
+      color: $text-sub;
+    }
+    .room-price {
+      .symbol { font-size: 24rpx; color: #E64340; font-weight: 700; }
+      .val { font-size: 36rpx; color: #E64340; font-weight: 700; }
+      .unit { font-size: 22rpx; color: $text-sub; margin-left: 4rpx; }
+    }
+  }
 }
 
 .section {
-  padding: 28rpx;
-  margin-bottom: 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.05);
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+
+  .section-header {
+    margin-bottom: 30rpx;
+    .section-title {
+      font-size: 32rpx;
+      font-weight: 700;
+      color: $text-main;
+    }
+  }
 }
 
-.room-card {
-  display: flex;
-  gap: 20rpx;
-  align-items: center;
+/* 日期/价格 列表 */
+.date-list, .price-list {
+  .date-row, .price-row {
+    padding: 20rpx 0;
+    font-size: 28rpx;
+    .label { color: $text-sub; }
+    .val { color: $text-main; font-weight: 500; }
+    .color-primary { color: $primary-color; }
+  }
+
+  .total-row {
+    margin-top: 10rpx;
+    padding-top: 30rpx;
+    border-top: 1rpx solid #f8f8f8;
+    .label { font-size: 30rpx; font-weight: 700; color: $text-main; }
+    .price {
+      .symbol { font-size: 24rpx; color: #E64340; font-weight: 700; }
+      .val { font-size: 40rpx; color: #E64340; font-weight: 700; }
+    }
+  }
 }
 
-.room-image {
-  width: 220rpx;
-  height: 180rpx;
-  border-radius: 20rpx;
-  background: #f3f4f6;
-}
-
-.room-body {
-  flex: 1;
-}
-
-.room-name,
-.section-title {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #111827;
-}
-
-.room-meta,
-.room-price,
-.field-label,
-.tip-text,
-.bottom-note {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #4b5563;
-}
-
-.room-price,
-.total-price,
-.bottom-price {
-  color: #b7791f;
-  font-weight: 700;
-}
-
+/* 表单 */
 .field {
-  margin-top: 24rpx;
-}
+  margin-bottom: 30rpx;
+  &:last-child { margin-bottom: 0; }
 
-.field-input,
-.field-textarea {
-  width: 100%;
-  margin-top: 12rpx;
-  padding: 22rpx 24rpx;
-  background: #f9fafb;
-  border: 1px solid #eef2f7;
-  border-radius: 18rpx;
-  box-sizing: border-box;
-}
+  .field-label {
+    font-size: 26rpx;
+    color: $text-sub;
+    margin-bottom: 16rpx;
+    display: block;
+  }
 
-.field-textarea {
-  min-height: 160rpx;
-}
+  .field-input, .field-textarea {
+    width: 100%;
+    background: #f9f9f9;
+    border: 1rpx solid #eee;
+    border-radius: 12rpx;
+    padding: 20rpx 24rpx;
+    box-sizing: border-box;
+    font-size: 28rpx;
+    color: $text-main;
 
-.date-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16rpx;
-  padding: 18rpx 0;
-  font-size: 26rpx;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
-}
+    &:focus {
+      background: #fff;
+      border-color: $primary-color;
+    }
+  }
 
-.date-row:last-child {
-  border-bottom: 0;
-}
-
-.total-row {
-  font-weight: 700;
+  .field-textarea { height: 160rpx; }
+  .placeholder { color: #ccc; }
 }
 
 .tips {
-  background: #fffbeb;
+  background: #FFF9F0;
+  border: 0;
+  .tip-text {
+    display: block;
+    font-size: 22rpx;
+    color: #AD8551;
+    line-height: 1.6;
+    margin-bottom: 8rpx;
+  }
 }
 
 .bottom-bar {
@@ -326,20 +411,28 @@ onLoad((options) => {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 100;
+  background: #fff;
+  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24rpx;
-  padding: 24rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid #eef2f7;
+
+  .price-info {
+    .bottom-note { font-size: 22rpx; color: $text-sub; display: block; }
+    .bottom-price {
+      .symbol { font-size: 24rpx; color: #E64340; font-weight: 700; }
+      .val { font-size: 44rpx; color: #E64340; font-weight: 700; }
+    }
+  }
+
+  .primary-btn {
+    width: 280rpx;
+    height: 100rpx;
+    margin: 0;
+  }
 }
 
-.primary-btn {
-  min-width: 240rpx;
-  margin: 0;
-  background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
-  color: #fff;
-  border-radius: 999rpx;
-}
+.bottom-space { height: 60rpx; }
 </style>

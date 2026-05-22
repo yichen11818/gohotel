@@ -1,34 +1,65 @@
 <template>
   <view class="page">
-    <view class="content">
-      <view class="section">
-        <text class="section-title">个人资料</text>
-        <view class="field">
-          <text class="field-label">真实姓名</text>
-          <input v-model="form.real_name" class="field-input" placeholder="请输入真实姓名" />
+    <!-- 自定义导航栏 -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
+    <view class="nav-header flex-between">
+      <view class="back-btn flex-center" @click="goBack">
+        <image class="icon-back" src="/static/icons/back-white.png" mode="aspectFit" style="filter: brightness(0);" />
+      </view>
+      <text class="page-title">个人资料</text>
+      <view class="placeholder-view"></view>
+    </view>
+
+    <scroll-view class="content" scroll-y>
+      <!-- 头像修改区 -->
+      <view class="avatar-section flex-center">
+        <view class="avatar-wrapper" @click="handleChooseAvatar">
+          <image class="avatar" :src="form.avatar || '/static/icons/people.png'" mode="aspectFill" />
+          <view class="camera-tag flex-center">
+            <image src="/static/icons/menu-service.png" mode="aspectFit" style="width: 24rpx; height: 24rpx; filter: brightness(100);" />
+          </view>
         </view>
-        <view class="field">
-          <text class="field-label">手机号</text>
-          <input v-model="form.phone" class="field-input" type="number" maxlength="11" placeholder="请输入手机号" />
+        <text class="avatar-tip">点击修改头像</text>
+      </view>
+
+      <!-- 表单卡片 -->
+      <view class="form-card premium-card">
+        <view class="field-item">
+          <text class="label">真实姓名</text>
+          <input v-model="form.real_name" class="input" placeholder="请输入真实姓名" placeholder-class="placeholder" />
         </view>
-        <view class="field">
-          <text class="field-label">头像 URL</text>
-          <input v-model="form.avatar" class="field-input" placeholder="请输入头像链接（选填）" />
+
+        <view class="field-item">
+          <text class="label">手机号</text>
+          <input v-model="form.phone" class="input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="placeholder" />
         </view>
-        <button class="primary-btn" :disabled="saving" @click="handleSave">
-          {{ saving ? '保存中...' : '保存资料' }}
+
+        <view class="field-item">
+          <text class="label">头像链接</text>
+          <input v-model="form.avatar" class="input" placeholder="可粘贴图片链接" placeholder-class="placeholder" />
+        </view>
+      </view>
+
+      <view class="action-box">
+        <button class="save-btn premium-button" :disabled="saving" @click="handleSave">
+          <text>{{ saving ? '正在保存...' : '确认保存' }}</text>
         </button>
       </view>
-    </view>
+
+      <view class="safe-tips">
+        <text>· 您的个人信息将严格保密，仅用于订单确认。</text>
+      </view>
+    </scroll-view>
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { user } from '@/api/index.js'
 import { TOKEN_KEY } from '@/config/api.config.js'
 
+const statusBarHeight = ref(44)
 const saving = ref(false)
 const form = ref({
   real_name: '',
@@ -62,16 +93,32 @@ const handleSave = async () => {
 
   try {
     saving.value = true
-    uni.showLoading({ title: '保存中...' })
+    uni.showLoading({ title: '保存中' })
     await user.updateUserInfo(form.value)
     uni.hideLoading()
-    uni.showToast({ title: '保存成功', icon: 'success' })
+    uni.showToast({ title: '资料已更新', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
   } catch (_error) {
     uni.hideLoading()
   } finally {
     saving.value = false
   }
 }
+
+const handleChooseAvatar = () => {
+  uni.showToast({ title: '请在输入框粘贴链接或直接输入', icon: 'none' })
+}
+
+const goBack = () => {
+  uni.navigateBack()
+}
+
+onLoad(() => {
+  const sysInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = sysInfo.statusBarHeight || 44
+})
 
 onShow(() => {
   loadProfile()
@@ -81,50 +128,118 @@ onShow(() => {
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
-  background: #f6f7fb;
+  background: $bg-color;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-header {
+  height: 88rpx;
+  padding: 0 30rpx;
+  background: #fff;
+
+  .back-btn {
+    width: 64rpx;
+    height: 64rpx;
+    .icon-back { width: 40rpx; height: 40rpx; }
+  }
+
+  .page-title {
+    font-size: 34rpx;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  .placeholder-view { width: 64rpx; }
 }
 
 .content {
-  padding: 24rpx;
+  flex: 1;
+  height: 0;
+  padding: 0 30rpx;
 }
 
-.section {
-  padding: 28rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.05);
+/* 头像区 */
+.avatar-section {
+  padding: 60rpx 0;
+  flex-direction: column;
+
+  .avatar-wrapper {
+    position: relative;
+    width: 160rpx;
+    height: 160rpx;
+    margin-bottom: 24rpx;
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #eee;
+      border: 4rpx solid #fff;
+      box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.1);
+    }
+
+    .camera-tag {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 48rpx;
+      height: 48rpx;
+      background: $primary-color;
+      border-radius: 50%;
+      border: 4rpx solid #fff;
+    }
+  }
+
+  .avatar-tip {
+    font-size: 24rpx;
+    color: $text-sub;
+  }
 }
 
-.section-title,
-.field-label {
-  display: block;
-  font-size: 28rpx;
-  color: #111827;
+/* 表单卡片 */
+.form-card {
+  padding: 0 40rpx;
+
+  .field-item {
+    padding: 36rpx 0;
+    border-bottom: 1rpx solid #f8f8f8;
+    &:last-child { border-bottom: 0; }
+
+    .label {
+      font-size: 26rpx;
+      color: $text-sub;
+      margin-bottom: 20rpx;
+      display: block;
+    }
+
+    .input {
+      font-size: 30rpx;
+      color: $text-main;
+      font-weight: 500;
+    }
+
+    .placeholder {
+      color: #ccc;
+      font-weight: 400;
+    }
+  }
 }
 
-.section-title {
-  font-size: 32rpx;
-  font-weight: 700;
+.action-box {
+  margin-top: 60rpx;
+  .save-btn {
+    height: 100rpx;
+    font-size: 32rpx;
+    font-weight: 700;
+  }
 }
 
-.field {
-  margin-top: 24rpx;
-}
-
-.field-input {
-  width: 100%;
-  margin-top: 12rpx;
-  padding: 22rpx 24rpx;
-  box-sizing: border-box;
-  background: #f9fafb;
-  border: 1px solid #eef2f7;
-  border-radius: 18rpx;
-}
-
-.primary-btn {
-  margin-top: 32rpx;
-  background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
-  color: #fff;
-  border-radius: 999rpx;
+.safe-tips {
+  margin-top: 40rpx;
+  padding: 0 20rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: $text-sub;
 }
 </style>

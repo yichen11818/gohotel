@@ -1,7 +1,16 @@
 <template>
-  <scroll-view class="page" scroll-y>
-    <swiper class="image-swiper" circular indicator-dots>
-      <swiper-item v-for="(image, index) in roomImages" :key="index">
+  <view class="page">
+    <!-- 自定义导航栏（沉浸式） -->
+    <view class="custom-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="nav-content">
+        <view class="back-btn flex-center" @click="goBack">
+          <image class="icon-back" src="/static/icons/back-white.png" mode="aspectFit" />
+        </view>
+      </view>
+    </view>
+
+    <swiper class="image-swiper" circular autoplay interval="3500">
+      <swiper-item v-for="image in roomImages" :key="image">
         <image class="room-image" :src="image" mode="aspectFill" />
       </swiper-item>
     </swiper>
@@ -23,19 +32,22 @@
 
       <view class="section">
         <text class="section-title">入住日期</text>
-        <view class="date-grid">
-          <picker mode="date" :value="checkInDate" @change="onCheckInChange">
-            <view class="date-box">
-              <text class="date-label">入住</text>
-              <text class="date-value">{{ checkInDate }}</text>
+        <!-- 日期选择卡片 -->
+        <view class="date-card premium-card flex-between" @click="showCalendar = true">
+          <view class="date-group flex-center">
+            <view class="date-item">
+              <text class="label">入住</text>
+              <text class="val">{{ checkInDisplay }}</text>
             </view>
-          </picker>
-          <picker mode="date" :value="checkOutDate" @change="onCheckOutChange">
-            <view class="date-box">
-              <text class="date-label">离店</text>
-              <text class="date-value">{{ checkOutDate }}</text>
+            <view class="duration">
+              <text class="duration-val">{{ nights }}晚</text>
             </view>
-          </picker>
+            <view class="date-item">
+              <text class="label">离店</text>
+              <text class="val">{{ checkOutDisplay }}</text>
+            </view>
+          </view>
+          <text class="change-btn">修改日期</text>
         </view>
         <view class="summary-row">
           <text>共 {{ nights }} 晚</text>
@@ -55,6 +67,34 @@
         <text class="rule-text">- 仅展示当前可预订房间，提交订单后等待酒店确认。</text>
         <text class="rule-text">- 入住日期需早于离店日期，取消规则以订单状态为准。</text>
       </view>
+
+      <view v-if="recommendedRooms.length" class="section">
+        <text class="section-title">猜你喜欢</text>
+        <view
+          v-for="room in recommendedRooms"
+          :key="room.id"
+          class="recommend-item"
+          @click="handleRecommendClick(room)"
+        >
+          <image class="recommend-image" :src="room.image" mode="aspectFill" />
+          <view class="recommend-body">
+            <view class="recommend-top">
+              <text class="recommend-name">{{ room.name }}</text>
+              <text class="recommend-price">¥{{ room.price }}/晚</text>
+            </view>
+            <text class="recommend-reason">{{ room.recommendationReason }}</text>
+            <view class="facility-list recommend-tags">
+              <text
+                v-for="tag in room.recommendationTags.slice(0, 3)"
+                :key="tag"
+                class="facility-item"
+              >
+                {{ tag }}
+              </text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <view class="bottom-bar">
@@ -64,7 +104,8 @@
       </view>
       <button class="primary-btn" @click="handleBook">立即预订</button>
     </view>
-  </scroll-view>
+    <HotelCalendar v-model:show="showCalendar" :check-in="checkInDate" :check-out="checkOutDate" @confirm="onCalendarConfirm" />
+  </view>
 </template>
 
 <script setup>
@@ -72,9 +113,22 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { hotel } from '@/api/index.js'
 import { TOKEN_KEY } from '@/config/api.config.js'
+import HotelCalendar from '@/components/hotel-calendar/hotel-calendar.vue'
 
 const roomId = ref('')
+const statusBarHeight = ref(44)
+const showCalendar = ref(false)
 const roomImages = ref([])
+
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    uni.switchTab({ url: '/pages/index/index' })
+  }
+}
+const recommendedRooms = ref([])
 const roomDetail = ref({
   id: '',
   name: '',
@@ -142,11 +196,24 @@ const onCheckOutChange = (event) => {
   checkOutDate.value = nextValue
 }
 
+const onCalendarConfirm = (dates) => {
+  checkInDate.value = dates.checkIn
+  checkOutDate.value = dates.checkOut
+}
+
 const loadRoomDetail = async () => {
   try {
     const detail = await hotel.getRoomDetail(roomId.value)
     roomDetail.value = detail
     roomImages.value = detail.images?.length ? detail.images : [detail.image]
+    recommendedRooms.value = (await hotel.getRecommendedRooms({
+      limit: 3,
+      excludeRoomId: detail.id,
+    }).catch(() => [])).filter((item) => item.id !== detail.id)
+    hotel.trackRoomBehavior(detail.id, 'view_detail', 'room_detail', {
+      check_in: checkInDate.value,
+      check_out: checkOutDate.value,
+    })
   } catch (error) {
     console.error('load room detail failed:', error)
   }
@@ -159,12 +226,29 @@ const handleBook = () => {
     return
   }
 
+  hotel.trackRoomBehavior(roomDetail.value.id, 'book_intent', 'room_detail_booking', {
+    check_in: checkInDate.value,
+    check_out: checkOutDate.value,
+  })
+
   uni.navigateTo({
     url: `/pages/booking/booking?roomId=${roomDetail.value.id}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
   })
 }
 
+const handleRecommendClick = async (room) => {
+  await hotel.trackRoomBehavior(room.id, 'click_recommendation', 'room_detail_recommendation', {
+    current_room_id: roomDetail.value.id,
+  })
+
+  uni.redirectTo({
+    url: `/pages/room-detail/room-detail?id=${room.id}&checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`,
+  })
+}
+
 onLoad((options) => {
+  const sysInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = sysInfo.statusBarHeight || 44
   if (options?.id) {
     roomId.value = String(options.id)
   }
@@ -180,6 +264,38 @@ onLoad((options) => {
   min-height: 100vh;
   background: #f6f7fb;
   padding-bottom: 160rpx;
+}
+
+/* 导航栏 */
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+
+  .nav-content {
+    height: 88rpx;
+    display: flex;
+    align-items: center;
+    padding: 0 32rpx;
+
+    .back-btn {
+      width: 64rpx;
+      height: 64rpx;
+      background: rgba(0,0,0,0.25);
+      border-radius: 50%;
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .icon-back {
+        width: 32rpx;
+        height: 32rpx;
+      }
+    }
+  }
 }
 
 .image-swiper,
@@ -308,5 +424,54 @@ onLoad((options) => {
   background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
   color: #fff;
   border-radius: 999rpx;
+}
+
+.recommend-item {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.recommend-image {
+  width: 176rpx;
+  height: 132rpx;
+  border-radius: 18rpx;
+  flex-shrink: 0;
+}
+
+.recommend-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.recommend-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.recommend-name {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.recommend-price {
+  font-size: 28rpx;
+  color: #b7791f;
+  font-weight: 700;
+}
+
+.recommend-reason {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.recommend-tags {
+  margin-top: 16rpx;
 }
 </style>
