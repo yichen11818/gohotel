@@ -182,14 +182,22 @@ func (h *RoomHandler) DeleteRoom(c *gin.Context) {
 // @Produce json
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
+// @Param room_number query string false "房间号（模糊搜索）"
+// @Param room_type query string false "房型"
+// @Param status query string false "房间状态"
+// @Param clean_status query string false "清洁状态"
 // @Success 200 {array} models.Room
 // @Failure 400 {object} errors.ErrorResponse
 // @Router /api/rooms [get]
 func (h *RoomHandler) ListRooms(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	roomNumber := c.Query("room_number")
+	roomType := c.Query("room_type")
+	status := c.Query("status")
+	cleanStatus := c.Query("clean_status")
 
-	rooms, total, err := h.roomService.ListRooms(page, pageSize)
+	rooms, total, err := h.roomService.ListRooms(page, pageSize, roomNumber, roomType, status, cleanStatus)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return

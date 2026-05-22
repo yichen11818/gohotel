@@ -76,9 +76,20 @@ func (r *UserRepository) ExistsByPhoneExcludingUser(phone string, excludeUserID 
 	return count > 0, err
 }
 
+// CountByRole 统计指定角色的用户数量
+func (r *UserRepository) CountByRole(role string) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.User{}).Where("role = ?", role).Count(&count).Error
+	return count, err
+}
+
 // Update 更新用户信息
 func (r *UserRepository) Update(user *models.User) error {
-	return r.db.Save(user).Error
+	return r.db.Model(&models.User{}).
+		Where("id = ?", user.ID).
+		Omit("id", "created_at").
+		Select("*").
+		Updates(user).Error
 }
 
 // Delete 删除用户

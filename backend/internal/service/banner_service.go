@@ -4,6 +4,7 @@ import (
 	"gohotel/internal/models"
 	"gohotel/internal/repository"
 	"gohotel/pkg/utils"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -394,8 +395,12 @@ func (s *BannerService) DeleteBanner(id int64) error {
 		return err
 	}
 
-	if err := s.cosService.DeleteFile(banner.ImageURL); err != nil {
-		return err
+	if banner.ImageURL != "" {
+		if s.cosService == nil {
+			log.Printf("⚠️  删除活动 %d 时跳过 COS 文件清理：COS服务未初始化，image_url=%s", banner.ID, banner.ImageURL)
+		} else if err := s.cosService.DeleteFile(banner.ImageURL); err != nil {
+			log.Printf("⚠️  删除活动 %d 时清理 COS 文件失败，继续删除数据库记录: %v", banner.ID, err)
+		}
 	}
 
 	// 删除时间轮任务

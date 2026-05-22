@@ -8,23 +8,24 @@ import (
 // User 用户模型
 // 对应数据库中的 users 表
 type User struct {
-	ID         utils.JSONInt64 `gorm:"primaryKey;autoIncrement:false" json:"id"`        // 主键（使用雪花算法生成，JSON序列化为字符串）
-	Username   string          `gorm:"unique;not null;size:50" json:"username"`         // 用户名（唯一）
-	Email      string          `gorm:"unique;not null;size:100" json:"email"`           // 邮箱（唯一）
-	Password   string          `gorm:"not null;size:255" json:"-"`                      // 密码（不返回给前端）
-	Phone      *string         `gorm:"unique;size:20" json:"phone"`                     // 手机号（唯一，可为空）
-	RealName   string          `gorm:"size:50" json:"real_name"`                        // 真实姓名
-	Avatar     string          `gorm:"size:255" json:"avatar"`                          // 头像 URL
-	Role       string          `gorm:"default:'user';size:20" json:"role"`              // 角色：user, admin
-	OpenID     *string         `gorm:"unique;size:100" json:"open_id,omitempty"`        // 微信 OpenID（仅微信登录用户有值）
-	Status     string          `gorm:"default:'active';size:20" json:"status"`          // 状态：active, blocked
-	Level      string          `gorm:"default:'normal';size:20" json:"level"`           // 会员等级：normal, silver, gold, platinum
-	Points     int             `gorm:"default:0" json:"points"`                         // 积分
-	Balance    float64         `gorm:"default:0;type:decimal(10,2)" json:"balance"`     // 余额
-	TotalSpend float64         `gorm:"default:0;type:decimal(10,2)" json:"total_spend"` // 总消费
-	FirstLogin bool            `gorm:"default:false" json:"first_login"`                // 是否首次登录
-	CreatedAt  time.Time       `json:"created_at"`                                      // 创建时间
-	UpdatedAt  time.Time       `json:"updated_at"`                                      // 更新时间
+	ID           utils.JSONInt64 `gorm:"primaryKey;autoIncrement:false" json:"id"`        // 主键（使用雪花算法生成，JSON序列化为字符串）
+	Username     string          `gorm:"unique;not null;size:50" json:"username"`         // 用户名（唯一）
+	Email        string          `gorm:"unique;not null;size:100" json:"email"`           // 邮箱（唯一）
+	Password     string          `gorm:"not null;size:255" json:"-"`                      // 密码（不返回给前端）
+	Phone        *string         `gorm:"unique;size:20" json:"phone"`                     // 手机号（唯一，可为空）
+	RealName     string          `gorm:"size:50" json:"real_name"`                        // 真实姓名
+	Avatar       string          `gorm:"size:255" json:"avatar"`                          // 头像 URL
+	Role         string          `gorm:"default:'user';size:20" json:"role"`              // 角色：user, admin
+	OpenID       *string         `gorm:"unique;size:100" json:"open_id,omitempty"`        // 微信 OpenID（仅微信登录用户有值）
+	Status       string          `gorm:"default:'active';size:20" json:"status"`          // 状态：active, blocked
+	Level        string          `gorm:"default:'normal';size:20" json:"level"`           // 会员等级：normal, silver, gold, platinum
+	Points       int             `gorm:"default:0" json:"points"`                         // 积分
+	Balance      float64         `gorm:"default:0;type:decimal(10,2)" json:"balance"`     // 余额
+	TotalSpend   float64         `gorm:"default:0;type:decimal(10,2)" json:"total_spend"` // 总消费
+	TokenVersion int             `gorm:"default:0" json:"-"`                              // Token 版本号，用于密码修改后立即使旧令牌失效
+	FirstLogin   bool            `gorm:"default:false" json:"first_login"`                // 是否首次登录
+	CreatedAt    time.Time       `json:"created_at"`                                      // 创建时间
+	UpdatedAt    time.Time       `json:"updated_at"`                                      // 更新时间
 }
 
 // TableName 指定表名

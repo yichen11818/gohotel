@@ -10,24 +10,26 @@ import (
 
 // Claims JWT 声明结构
 type Claims struct {
-	UserID   int64  `json:"user_id"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	UserID       int64  `json:"user_id"`
+	Username     string `json:"username"`
+	Role         string `json:"role"`
+	TokenVersion int    `json:"token_version"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken 生成 JWT 令牌
 // 参数：用户ID、用户名、角色
 // 返回：令牌字符串、错误
-func GenerateToken(userID int64, username string, role string) (string, error) {
+func GenerateToken(userID int64, username string, role string, tokenVersion int) (string, error) {
 	// 设置过期时间
 	expirationTime := time.Now().Add(config.AppConfig.JWT.ExpireTime)
 
 	// 创建声明
 	claims := &Claims{
-		UserID:   userID,
-		Username: username,
-		Role:     role,
+		UserID:       userID,
+		Username:     username,
+		Role:         role,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

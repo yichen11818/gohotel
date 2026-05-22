@@ -83,9 +83,10 @@ func (s *inventoryService) UpdateInventory(ctx context.Context, roomType string,
 
 func (s *inventoryService) InitInventory(ctx context.Context, roomType string, totalCount int, price float64, days int) error {
 	now := time.Now()
+	startDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	var inventories []models.RoomInventory
 	for i := 0; i < days; i++ {
-		date := now.AddDate(0, 0, i)
+		date := startDate.AddDate(0, 0, i)
 		inventories = append(inventories, models.RoomInventory{
 			RoomType:   roomType,
 			Date:       date,

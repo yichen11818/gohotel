@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -37,6 +39,7 @@ type COSConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
+	Host         string        // 服务器主机地址，如 "0.0.0.0"
 	Port         string        // 服务器端口，如 ":8080"
 	Mode         string        // 运行模式：debug, release, test
 	ReadTimeout  time.Duration // 读取超时时间
@@ -45,11 +48,13 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
+	Driver          string        // 数据库驱动：mysql, sqlite
 	Host            string        // 数据库主机地址
 	Port            string        // 数据库端口
 	User            string        // 数据库用户名
 	Password        string        // 数据库密码
 	DBName          string        // 数据库名称
+	SQLitePath      string        // SQLite 数据库文件路径
 	MaxIdleConns    int           // 最大空闲连接数
 	MaxOpenConns    int           // 最大打开连接数
 	ConnMaxLifetime time.Duration // 连接最大生命周期
@@ -92,17 +97,20 @@ func Load() error {
 
 	AppConfig = &Config{
 		Server: ServerConfig{
-			Port:         getEnv("SERVER_PORT", ":8080"),
+			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
+			Port:         getEnv("SERVER_PORT", "8080"),
 			Mode:         getEnv("SERVER_MODE", "debug"),
 			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 10*time.Second),
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 10*time.Second),
 		},
 		Database: DatabaseConfig{
+			Driver:          getEnv("DB_DRIVER", "mysql"),
 			Host:            getEnv("DB_HOST", "localhost"),
 			Port:            getEnv("DB_PORT", "3306"),
 			User:            getEnv("DB_USER", "root"),
 			Password:        getEnv("DB_PASSWORD", ""),
 			DBName:          getEnv("DB_NAME", "hotel"),
+			SQLitePath:      getEnv("DB_SQLITE_PATH", "./data/gohotel.db"),
 			MaxIdleConns:    getIntEnv("DB_MAX_IDLE_CONNS", 10),
 			MaxOpenConns:    getIntEnv("DB_MAX_OPEN_CONNS", 100),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", time.Hour),
@@ -141,10 +149,56 @@ func Load() error {
 	return nil
 }
 
+// NormalizedDriver 返回归一化后的数据库驱动名称
+func (c DatabaseConfig) NormalizedDriver() string {
+	driver := strings.TrimSpace(strings.ToLower(c.Driver))
+	switch driver {
+	case "sqlite", "sqlite3":
+		return "sqlite"
+	default:
+		return "mysql"
+	}
+}
+
+// UsesSQLite 判断当前是否使用 SQLite
+func (c DatabaseConfig) UsesSQLite() bool {
+	return c.NormalizedDriver() == "sqlite"
+}
+
+// ListenAddress 返回服务监听地址
+// 兼容 SERVER_PORT=":8080" 和 SERVER_PORT="8080" 两种写法
+func (c ServerConfig) ListenAddress() string {
+	rawPort := strings.TrimSpace(c.Port)
+	if rawPort != "" && strings.Contains(rawPort, ":") && !strings.HasPrefix(rawPort, ":") {
+		return rawPort
+	}
+
+	host := strings.TrimSpace(c.Host)
+	if host == "" {
+		host = "0.0.0.0"
+	}
+
+	port := strings.TrimPrefix(rawPort, ":")
+	if port == "" {
+		port = "8080"
+	}
+
+	return net.JoinHostPort(host, port)
+}
+
+// HTTPBaseURL 返回服务的基础访问地址
+func (c ServerConfig) HTTPBaseURL() string {
+	return "http://" + c.ListenAddress()
+}
+
 // GetDSN 获取数据库连接字符串
 // DSN (Data Source Name) 是数据库连接的标准格式
 // 格式：用户名:密码@tcp(主机:端口)/数据库名?参数
 func (c *Config) GetDSN() string {
+	if c.Database.UsesSQLite() {
+		return c.Database.SQLitePath
+	}
+
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.Database.User,
 		c.Database.Password,

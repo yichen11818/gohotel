@@ -2103,6 +2103,335 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/room-categories": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员分页查询房型分类，返回房型名称、描述、预览图、设施和关联房间数",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "查询房型分类列表（管理员）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.RoomCategory"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员创建房型分类，统一维护房型描述、预览图和设施",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "创建房型分类（管理员）",
+                "parameters": [
+                    {
+                        "description": "房型分类信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateRoomCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RoomCategory"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/room-categories/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员根据 ID 获取房型分类详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "获取房型分类详情（管理员）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "房型分类 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RoomCategory"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员更新房型分类，若修改名称会同步更新房间、库存和定价规则中的房型字段",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "更新房型分类（管理员）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "房型分类 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "房型分类信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateRoomCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RoomCategory"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/room-categories/{id}/delete": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "管理员删除房型分类；如果仍有关联房间、库存或定价规则，则会阻止删除",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员"
+                ],
+                "summary": "删除房型分类（管理员）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "房型分类 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/settings": {
             "get": {
                 "security": [
@@ -3538,6 +3867,30 @@ const docTemplate = `{
                         "description": "每页数量",
                         "name": "page_size",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "房间号（模糊搜索）",
+                        "name": "room_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "房型",
+                        "name": "room_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "房间状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "清洁状态",
+                        "name": "clean_status",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4835,6 +5188,43 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RoomCategory": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "房型描述",
+                    "type": "string"
+                },
+                "facilities": {
+                    "description": "设施（JSON 数组字符串）",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键",
+                    "type": "integer"
+                },
+                "images": {
+                    "description": "预览图（JSON 数组字符串）",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "房型名称（唯一）",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "更新时间",
+                    "type": "string"
+                },
+                "usage_count": {
+                    "description": "关联房间数量（运行时统计）",
+                    "type": "integer"
+                }
+            }
+        },
         "models.RoomInventory": {
             "type": "object",
             "properties": {
@@ -4960,7 +5350,7 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "maxLength": 20,
-                    "minLength": 3
+                    "minLength": 2
                 }
             }
         },
@@ -5130,6 +5520,30 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.CreateRoomCategoryRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "description": "房型描述",
+                    "type": "string"
+                },
+                "facilities": {
+                    "description": "设施 JSON 数组字符串",
+                    "type": "string"
+                },
+                "images": {
+                    "description": "预览图 JSON 数组字符串",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "房型名称",
                     "type": "string"
                 }
             }
@@ -5312,7 +5726,7 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "maxLength": 20,
-                    "minLength": 3
+                    "minLength": 2
                 }
             }
         },
@@ -5368,6 +5782,27 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.UpdateRoomCategoryRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "description": "房型描述",
+                    "type": "string"
+                },
+                "facilities": {
+                    "description": "设施 JSON 数组字符串",
+                    "type": "string"
+                },
+                "images": {
+                    "description": "预览图 JSON 数组字符串",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "房型名称",
                     "type": "string"
                 }
             }
@@ -5462,7 +5897,7 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "maxLength": 20,
-                    "minLength": 3
+                    "minLength": 2
                 }
             }
         },
@@ -5567,7 +6002,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "127.0.0.1:19999",
+	Host:             "127.0.0.1:18080",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "酒店管理系统 API",

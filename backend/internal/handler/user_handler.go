@@ -158,9 +158,9 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	var req struct {
-		Phone    string `json:"phone"`
-		RealName string `json:"real_name"`
-		Avatar   string `json:"avatar"`
+		Phone    *string `json:"phone"`
+		RealName *string `json:"real_name"`
+		Avatar   *string `json:"avatar"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -372,8 +372,14 @@ func (h *UserHandler) DeleteUsers(c *gin.Context) {
 		return
 	}
 
+	operatorUserID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, errors.NewUnauthorizedError("未登录"))
+		return
+	}
+
 	// 2. 调用 Service 层
-	err := h.userService.DeleteUsers(&req)
+	err := h.userService.DeleteUsers(operatorUserID.(int64), &req)
 	if err != nil {
 		utils.ErrorResponse(c, err)
 		return

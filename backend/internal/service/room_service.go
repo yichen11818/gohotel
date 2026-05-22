@@ -11,12 +11,16 @@ import (
 
 // RoomService 房间业务逻辑层
 type RoomService struct {
-	roomRepo repository.RoomRepository
+	roomRepo         repository.RoomRepository
+	roomCategoryRepo repository.RoomCategoryRepository
 }
 
 // NewRoomService 创建房间服务实例
-func NewRoomService(roomRepo repository.RoomRepository) *RoomService {
-	return &RoomService{roomRepo: roomRepo}
+func NewRoomService(roomRepo repository.RoomRepository, roomCategoryRepo repository.RoomCategoryRepository) *RoomService {
+	return &RoomService{
+		roomRepo:         roomRepo,
+		roomCategoryRepo: roomCategoryRepo,
+	}
 }
 
 // CreateRoomRequest 创建房间请求
@@ -40,21 +44,21 @@ type CreateRoomRequest struct {
 
 // UpdateRoomRequest 更新房间请求
 type UpdateRoomRequest struct {
-	RoomType      string  `json:"room_type"`
-	Floor         int     `json:"floor"`
-	Price         float64 `json:"price"`
-	OriginalPrice float64 `json:"original_price"`
-	Capacity      int     `json:"capacity"`
-	Area          float64 `json:"area"`
-	BedType       string  `json:"bed_type"`
-	Description   string  `json:"description"`
-	Facilities    string  `json:"facilities"`
-	Images        string  `json:"images"`
-	Status        string  `json:"status"`
-	Left          int     `json:"left"`
-	Top           int     `json:"top"`
-	Width         int     `json:"width"`
-	Height        int     `json:"height"`
+	RoomType      string   `json:"room_type"`
+	Floor         *int     `json:"floor"`
+	Price         *float64 `json:"price"`
+	OriginalPrice *float64 `json:"original_price"`
+	Capacity      *int     `json:"capacity"`
+	Area          *float64 `json:"area"`
+	BedType       string   `json:"bed_type"`
+	Description   string   `json:"description"`
+	Facilities    string   `json:"facilities"`
+	Images        string   `json:"images"`
+	Status        string   `json:"status"`
+	Left          *int     `json:"left"`
+	Top           *int     `json:"top"`
+	Width         *int     `json:"width"`
+	Height        *int     `json:"height"`
 }
 
 // CreateRoom 创建房间
@@ -86,6 +90,10 @@ func (s *RoomService) CreateRoom(req *CreateRoomRequest) (*models.Room, error) {
 		Top:           req.Top,
 		Width:         req.Width,
 		Height:        req.Height,
+	}
+
+	if err := s.applyRoomCategoryDetails(room); err != nil {
+		return nil, err
 	}
 
 	// 3. 保存到数据库
@@ -123,20 +131,20 @@ func (s *RoomService) UpdateRoom(id uint, req *UpdateRoomRequest) (*models.Room,
 	if req.RoomType != "" {
 		room.RoomType = req.RoomType
 	}
-	if req.Floor > 0 {
-		room.Floor = req.Floor
+	if req.Floor != nil && *req.Floor > 0 {
+		room.Floor = *req.Floor
 	}
-	if req.Price > 0 {
-		room.Price = req.Price
+	if req.Price != nil && *req.Price > 0 {
+		room.Price = *req.Price
 	}
-	if req.OriginalPrice > 0 {
-		room.OriginalPrice = req.OriginalPrice
+	if req.OriginalPrice != nil && *req.OriginalPrice > 0 {
+		room.OriginalPrice = *req.OriginalPrice
 	}
-	if req.Capacity > 0 {
-		room.Capacity = req.Capacity
+	if req.Capacity != nil && *req.Capacity > 0 {
+		room.Capacity = *req.Capacity
 	}
-	if req.Area > 0 {
-		room.Area = req.Area
+	if req.Area != nil && *req.Area > 0 {
+		room.Area = *req.Area
 	}
 	if req.BedType != "" {
 		room.BedType = req.BedType
@@ -153,17 +161,21 @@ func (s *RoomService) UpdateRoom(id uint, req *UpdateRoomRequest) (*models.Room,
 	if req.Status != "" {
 		room.Status = req.Status
 	}
-	if req.Left > 0 {
-		room.Left = req.Left
+	if req.Left != nil {
+		room.Left = *req.Left
 	}
-	if req.Top > 0 {
-		room.Top = req.Top
+	if req.Top != nil {
+		room.Top = *req.Top
 	}
-	if req.Width > 0 {
-		room.Width = req.Width
+	if req.Width != nil && *req.Width > 0 {
+		room.Width = *req.Width
 	}
-	if req.Height > 0 {
-		room.Height = req.Height
+	if req.Height != nil && *req.Height > 0 {
+		room.Height = *req.Height
+	}
+
+	if err := s.applyRoomCategoryDetails(room); err != nil {
+		return nil, err
 	}
 
 	// 3. 保存更新
@@ -194,7 +206,7 @@ func (s *RoomService) DeleteRoom(id uint) error {
 }
 
 // ListRooms 获取所有房间列表（分页）
-func (s *RoomService) ListRooms(page, pageSize int) ([]models.Room, int64, error) {
+func (s *RoomService) ListRooms(page, pageSize int, roomNumber, roomType, status, cleanStatus string) ([]models.Room, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -202,7 +214,7 @@ func (s *RoomService) ListRooms(page, pageSize int) ([]models.Room, int64, error
 		pageSize = 10
 	}
 
-	rooms, total, err := s.roomRepo.FindAll(page, pageSize)
+	rooms, total, err := s.roomRepo.FindAll(page, pageSize, roomNumber, roomType, status, cleanStatus)
 	if err != nil {
 		return nil, 0, errors.NewDatabaseError("list rooms", err)
 	}
@@ -405,6 +417,14 @@ func (s *RoomService) BatchCreateRooms(req *BatchCreateRoomRequest) (*BatchCreat
 			Images:        r.Images,
 			Status:        "available",
 		}
+		if err := s.applyRoomCategoryDetails(room); err != nil {
+			result.FailedRooms = append(result.FailedRooms, FailedRoom{
+				RoomNumber: r.RoomNumber,
+				Reason:     err.Error(),
+			})
+			result.FailedCount++
+			continue
+		}
 		roomsToCreate = append(roomsToCreate, room)
 	}
 
@@ -418,4 +438,35 @@ func (s *RoomService) BatchCreateRooms(req *BatchCreateRoomRequest) (*BatchCreat
 	}
 
 	return result, nil
+}
+
+func (s *RoomService) applyRoomCategoryDetails(room *models.Room) error {
+	if s.roomCategoryRepo == nil {
+		return nil
+	}
+
+	roomType := room.RoomType
+	if roomType == "" {
+		return errors.NewBadRequestError("房型不能为空")
+	}
+
+	category, err := s.roomCategoryRepo.FindByName(roomType)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.NewBadRequestError("房型分类不存在，请先创建房型分类")
+		}
+		return errors.NewDatabaseError("find room category by name", err)
+	}
+
+	if category.Description != "" {
+		room.Description = category.Description
+	}
+	if category.Facilities != "" {
+		room.Facilities = category.Facilities
+	}
+	if category.Images != "" {
+		room.Images = category.Images
+	}
+
+	return nil
 }

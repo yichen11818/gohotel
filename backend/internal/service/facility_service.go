@@ -30,14 +30,14 @@ type CreateFacilityRequest struct {
 
 // UpdateFacilityRequest 更新设施请求
 type UpdateFacilityRequest struct {
-	Type     string `json:"type"`
-	Floor    int    `json:"floor"`
-	Left     int    `json:"left"`
-	Top      int    `json:"top"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-	Rotation int    `json:"rotation"`
-	Label    string `json:"label"`
+	Type     *string `json:"type"`
+	Floor    *int    `json:"floor"`
+	Left     *int    `json:"left"`
+	Top      *int    `json:"top"`
+	Width    *int    `json:"width"`
+	Height   *int    `json:"height"`
+	Rotation *int    `json:"rotation"`
+	Label    *string `json:"label"`
 }
 
 // BatchUpdateFacilityItem 批量更新设施项
@@ -81,26 +81,30 @@ func (s *FacilityService) UpdateFacility(id uint, req *UpdateFacilityRequest) (*
 	}
 
 	// 更新所有字段
-	if req.Type != "" {
-		facility.Type = req.Type
+	if req.Type != nil && *req.Type != "" {
+		facility.Type = *req.Type
 	}
-	if req.Floor != 0 {
-		facility.Floor = req.Floor
+	if req.Floor != nil && *req.Floor > 0 {
+		facility.Floor = *req.Floor
 	}
-	if req.Left != 0 {
-		facility.Left = req.Left
+	if req.Left != nil {
+		facility.Left = *req.Left
 	}
-	if req.Top != 0 {
-		facility.Top = req.Top
+	if req.Top != nil {
+		facility.Top = *req.Top
 	}
-	if req.Width != 0 {
-		facility.Width = req.Width
+	if req.Width != nil && *req.Width > 0 {
+		facility.Width = *req.Width
 	}
-	if req.Height != 0 {
-		facility.Height = req.Height
+	if req.Height != nil && *req.Height > 0 {
+		facility.Height = *req.Height
 	}
-	facility.Rotation = req.Rotation
-	facility.Label = req.Label
+	if req.Rotation != nil {
+		facility.Rotation = *req.Rotation
+	}
+	if req.Label != nil {
+		facility.Label = *req.Label
+	}
 
 	if err := s.facilityRepo.Update(facility); err != nil {
 		return nil, errors.NewDatabaseError("update facility", err)

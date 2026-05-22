@@ -10,6 +10,7 @@ import (
 	"gohotel/pkg/utils"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ func NewUserService(userRepo *repository.UserRepository) *UserService {
 
 // RegisterRequest 注册请求结构
 type RegisterRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=20"`
+	Username string `json:"username" binding:"required,min=2,max=20"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 	Phone    string `json:"phone"`
@@ -36,7 +37,7 @@ type RegisterRequest struct {
 
 // AddUserRequest 添加用户请求结构
 type AddUserRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=20"`
+	Username string `json:"username" binding:"required,min=2,max=20"`
 	Email    string `json:"email" binding:"required,email"`
 	Phone    string `json:"phone"`
 	RealName string `json:"real_name"`
@@ -45,17 +46,17 @@ type AddUserRequest struct {
 
 // UpdateUserRequest 管理员更新用户请求结构
 type UpdateUserRequest struct {
-	Username   string  `json:"username" binding:"required,min=3,max=20"`
-	Email      string  `json:"email" binding:"required,email"`
-	Phone      string  `json:"phone"`
-	RealName   string  `json:"real_name"`
-	Avatar     string  `json:"avatar"`
-	Role       string  `json:"role"`
-	Status     string  `json:"status"`
-	Level      string  `json:"level"`
-	Points     int     `json:"points"`
-	Balance    float64 `json:"balance"`
-	TotalSpend float64 `json:"total_spend"`
+	Username   string   `json:"username" binding:"required,min=2,max=20"`
+	Email      string   `json:"email" binding:"required,email"`
+	Phone      *string  `json:"phone"`
+	RealName   *string  `json:"real_name"`
+	Avatar     *string  `json:"avatar"`
+	Role       *string  `json:"role"`
+	Status     *string  `json:"status"`
+	Level      *string  `json:"level"`
+	Points     *int     `json:"points"`
+	Balance    *float64 `json:"balance"`
+	TotalSpend *float64 `json:"total_spend"`
 }
 
 // LoginRequest 登录请求结构
@@ -200,7 +201,7 @@ func (s *UserService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}
 
 	// 4. 生成 JWT 令牌
-	token, err := utils.GenerateToken(user.ID.Int64(), user.Username, user.Role)
+	token, err := utils.GenerateToken(user.ID.Int64(), user.Username, user.Role, user.TokenVersion)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成令牌失败")
 	}
@@ -284,7 +285,7 @@ func (s *UserService) WeChatLogin(req *WeChatLoginRequest) (*LoginResponse, erro
 	}
 
 	// 4. 生成 JWT 令牌
-	token, err := utils.GenerateToken(user.ID.Int64(), user.Username, user.Role)
+	token, err := utils.GenerateToken(user.ID.Int64(), user.Username, user.Role, user.TokenVersion)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成令牌失败")
 	}
@@ -296,7 +297,7 @@ func (s *UserService) WeChatLogin(req *WeChatLoginRequest) (*LoginResponse, erro
 }
 
 // UpdateProfile 更新用户资料
-func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar string) (*models.User, error) {
+func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar *string) (*models.User, error) {
 	// 1. 查找用户
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
@@ -307,31 +308,33 @@ func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar string
 	}
 
 	// 2. 检查手机号是否已被其他用户使用（如果要更新手机号）
-	if phone != "" {
-		var currentPhone string
-		if user.Phone != nil {
-			currentPhone = *user.Phone
-		}
-		if phone != currentPhone {
-			exists, err := s.userRepo.ExistsByPhoneExcludingUser(phone, userID)
-			if err != nil {
-				return nil, errors.NewDatabaseError("check phone", err)
+	if phone != nil {
+		trimmed := strings.TrimSpace(*phone)
+		if trimmed == "" {
+			user.Phone = nil
+		} else {
+			var currentPhone string
+			if user.Phone != nil {
+				currentPhone = strings.TrimSpace(*user.Phone)
 			}
-			if exists {
-				return nil, errors.NewConflictError("手机号已被使用")
+			if trimmed != currentPhone {
+				exists, err := s.userRepo.ExistsByPhoneExcludingUser(trimmed, userID)
+				if err != nil {
+					return nil, errors.NewDatabaseError("check phone", err)
+				}
+				if exists {
+					return nil, errors.NewConflictError("手机号已被使用")
+				}
 			}
-			phonePtr := &phone
-			user.Phone = phonePtr
+			phoneCopy := trimmed
+			user.Phone = &phoneCopy
 		}
-	} else {
-		// 如果传入空字符串，清空手机号
-		user.Phone = nil
 	}
-	if realName != "" {
-		user.RealName = realName
+	if realName != nil {
+		user.RealName = strings.TrimSpace(*realName)
 	}
-	if avatar != "" {
-		user.Avatar = avatar
+	if avatar != nil {
+		user.Avatar = strings.TrimSpace(*avatar)
 	}
 
 	// 3. 保存更新
@@ -339,7 +342,12 @@ func (s *UserService) UpdateProfile(userID int64, phone, realName, avatar string
 		return nil, errors.NewDatabaseError("update user", err)
 	}
 
-	return user, nil
+	updatedUser, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, errors.NewDatabaseError("reload user", err)
+	}
+
+	return updatedUser, nil
 }
 
 // ChangePassword 修改密码
@@ -366,6 +374,7 @@ func (s *UserService) ChangePassword(userID int64, oldPassword, newPassword stri
 
 	// 4. 更新密码
 	user.Password = hashedPassword
+	user.TokenVersion++
 	if err := s.userRepo.Update(user); err != nil {
 		return errors.NewDatabaseError("update password", err)
 	}
@@ -397,6 +406,12 @@ func (s *UserService) GetUser(page, pageSize int, username, email, phone, realNa
 
 // AddUser 添加用户
 func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.TrimSpace(req.Email)
+	req.Phone = strings.TrimSpace(req.Phone)
+	req.RealName = strings.TrimSpace(req.RealName)
+	req.Role = strings.TrimSpace(req.Role)
+
 	// 1. 检查用户名是否已存在
 	exists, err := s.userRepo.ExistsByUsername(req.Username)
 	if err != nil {
@@ -415,6 +430,20 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 		return nil, errors.NewConflictError("邮箱已被使用")
 	}
 
+	if req.Phone != "" {
+		exists, err = s.userRepo.ExistsByPhone(req.Phone)
+		if err != nil {
+			return nil, errors.NewDatabaseError("check phone", err)
+		}
+		if exists {
+			return nil, errors.NewConflictError("手机号已被使用")
+		}
+	}
+
+	if req.Role == "" {
+		req.Role = "user"
+	}
+
 	// 3. 加密默认密码
 	hashedPassword, err := utils.HashPassword("yumi123456")
 	if err != nil {
@@ -431,11 +460,10 @@ func (s *UserService) AddUser(req *AddUserRequest) (*models.User, error) {
 		Email:      req.Email,
 		Password:   hashedPassword,
 		RealName:   req.RealName,
-		Role:       "user", // 默认角色为 user
+		Role:       req.Role,
 		Status:     "active",
 		FirstLogin: true,
 	}
-	user.Role = req.Role // 处理 Phone 字段，将 string 转换为 *string
 	if req.Phone != "" {
 		phone := req.Phone
 		user.Phone = &phone
@@ -474,44 +502,84 @@ func (s *UserService) UpdateUser(userID int64, req *UpdateUserRequest) (*models.
 		return nil, errors.NewConflictError("邮箱已被使用")
 	}
 
-	if req.Phone != "" {
-		exists, err = s.userRepo.ExistsByPhoneExcludingUser(req.Phone, userID)
-		if err != nil {
-			return nil, errors.NewDatabaseError("check phone", err)
+	user.Username = strings.TrimSpace(req.Username)
+	user.Email = strings.TrimSpace(req.Email)
+
+	if req.RealName != nil {
+		user.RealName = strings.TrimSpace(*req.RealName)
+	}
+	if req.Avatar != nil {
+		user.Avatar = strings.TrimSpace(*req.Avatar)
+	}
+
+	tokenBump := false
+	if req.Role != nil {
+		roleVal := strings.TrimSpace(*req.Role)
+		if roleVal != "" && roleVal != user.Role {
+			user.Role = roleVal
+			tokenBump = true
 		}
-		if exists {
-			return nil, errors.NewConflictError("手机号已被使用")
+	}
+	if req.Status != nil {
+		statusVal := strings.TrimSpace(*req.Status)
+		if statusVal != "" && statusVal != user.Status {
+			user.Status = statusVal
+			tokenBump = true
+		}
+	}
+	if req.Level != nil {
+		levelVal := strings.TrimSpace(*req.Level)
+		if levelVal != "" {
+			user.Level = levelVal
+		}
+	}
+	if req.Points != nil {
+		user.Points = *req.Points
+	}
+	if req.Balance != nil {
+		user.Balance = *req.Balance
+	}
+	if req.TotalSpend != nil {
+		user.TotalSpend = *req.TotalSpend
+	}
+
+	if req.Phone != nil {
+		trimmed := strings.TrimSpace(*req.Phone)
+		if trimmed == "" {
+			user.Phone = nil
+		} else {
+			var currentPhone string
+			if user.Phone != nil {
+				currentPhone = strings.TrimSpace(*user.Phone)
+			}
+			if trimmed != currentPhone {
+				exists, err = s.userRepo.ExistsByPhoneExcludingUser(trimmed, userID)
+				if err != nil {
+					return nil, errors.NewDatabaseError("check phone", err)
+				}
+				if exists {
+					return nil, errors.NewConflictError("手机号已被使用")
+				}
+			}
+			phoneCopy := trimmed
+			user.Phone = &phoneCopy
 		}
 	}
 
-	user.Username = req.Username
-	user.Email = req.Email
-	user.RealName = req.RealName
-	user.Avatar = req.Avatar
-	if req.Role != "" {
-		user.Role = req.Role
-	}
-	if req.Status != "" {
-		user.Status = req.Status
-	}
-	if req.Level != "" {
-		user.Level = req.Level
-	}
-	user.Points = req.Points
-	user.Balance = req.Balance
-	user.TotalSpend = req.TotalSpend
-	if req.Phone != "" {
-		phone := req.Phone
-		user.Phone = &phone
-	} else {
-		user.Phone = nil
+	if tokenBump {
+		user.TokenVersion++
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, errors.NewDatabaseError("update user", err)
 	}
 
-	return user, nil
+	updatedUser, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, errors.NewDatabaseError("reload user", err)
+	}
+
+	return updatedUser, nil
 }
 
 // UpdateSpendAndPoints 更新消费金额和积分
@@ -537,14 +605,64 @@ func (s *UserService) UpdateSpendAndPoints(userID int64, spend float64, points i
 }
 
 // DeleteUsers 批量删除用户
-func (s *UserService) DeleteUsers(req *DeleteUsersRequest) error {
+func (s *UserService) DeleteUsers(operatorUserID int64, req *DeleteUsersRequest) error {
 	// 检查用户ID列表是否为空
 	if len(req.UserIDs) == 0 {
 		return errors.NewBadRequestError("用户ID列表不能为空")
 	}
 
+	targetAdminCount := int64(0)
+	normalizedUserIDs := make([]string, 0, len(req.UserIDs))
+	seen := make(map[string]struct{}, len(req.UserIDs))
+
+	for _, rawID := range req.UserIDs {
+		userID := strings.TrimSpace(rawID)
+		if userID == "" {
+			return errors.NewBadRequestError("存在无效的用户ID")
+		}
+		if _, exists := seen[userID]; exists {
+			continue
+		}
+		seen[userID] = struct{}{}
+
+		parsedID, err := strconv.ParseInt(userID, 10, 64)
+		if err != nil {
+			return errors.NewBadRequestError("存在无效的用户ID")
+		}
+		if parsedID == operatorUserID {
+			return errors.NewBadRequestError("不能删除当前登录账号")
+		}
+
+		user, err := s.userRepo.FindByID(parsedID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return errors.NewNotFoundError("待删除用户不存在")
+			}
+			return errors.NewDatabaseError("find user", err)
+		}
+		if user.Role == "admin" {
+			targetAdminCount++
+		}
+
+		normalizedUserIDs = append(normalizedUserIDs, userID)
+	}
+
+	if len(normalizedUserIDs) == 0 {
+		return errors.NewBadRequestError("用户ID列表不能为空")
+	}
+
+	if targetAdminCount > 0 {
+		adminCount, err := s.userRepo.CountByRole("admin")
+		if err != nil {
+			return errors.NewDatabaseError("count admins", err)
+		}
+		if adminCount-targetAdminCount < 1 {
+			return errors.NewBadRequestError("至少保留一个管理员账号")
+		}
+	}
+
 	// 执行批量删除操作
-	err := s.userRepo.BatchDelete(req.UserIDs)
+	err := s.userRepo.BatchDelete(normalizedUserIDs)
 	if err != nil {
 		return errors.NewDatabaseError("batch delete users", err)
 	}

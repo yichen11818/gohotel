@@ -2,6 +2,8 @@ package middleware
 
 import (
 	stderrors "errors"
+	"gohotel/internal/database"
+	"gohotel/internal/models"
 	"gohotel/pkg/errors"
 	"gohotel/pkg/utils"
 	"strings"
@@ -47,12 +49,30 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 4. 将用户信息存入上下文
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
-		c.Set("role", claims.Role)
+		// 4. 从数据库重新确认用户状态与 token 版本，避免密码修改后旧令牌继续生效。
+		var user models.User
+		if err := database.DB.First(&user, claims.UserID).Error; err != nil {
+			utils.ErrorResponse(c, errors.NewUnauthorizedError("登录状态已失效"))
+			c.Abort()
+			return
+		}
+		if !user.IsActive() {
+			utils.ErrorResponse(c, errors.NewForbiddenError("账号已被封禁"))
+			c.Abort()
+			return
+		}
+		if claims.TokenVersion != user.TokenVersion {
+			utils.ErrorResponse(c, errors.NewUnauthorizedError("登录状态已失效，请重新登录"))
+			c.Abort()
+			return
+		}
 
-		// 5. 继续处理请求
+		// 5. 将最新的用户信息存入上下文
+		c.Set("user_id", user.ID.Int64())
+		c.Set("username", user.Username)
+		c.Set("role", user.Role)
+
+		// 6. 继续处理请求
 		c.Next()
 	}
 }

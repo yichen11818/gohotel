@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"gohotel/internal/models"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -14,7 +15,7 @@ type RoomRepository interface {
 	FindByRoomNumber(roomNumber string) (*models.Room, error)
 	Update(room *models.Room) error
 	Delete(id uint) error
-	FindAll(page, pageSize int) ([]models.Room, int64, error)
+	FindAll(page, pageSize int, roomNumber, roomType, status, cleanStatus string) ([]models.Room, int64, error)
 	FindAvailable(page, pageSize int) ([]models.Room, int64, error)
 	FindByRoomType(roomType string, page, pageSize int) ([]models.Room, int64, error)
 	FindByPriceRange(minPrice, maxPrice float64, page, pageSize int) ([]models.Room, int64, error)
@@ -47,6 +48,9 @@ func (r *roomRepository) FindByID(id uint) (*models.Room, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := r.hydrateRooms([]*models.Room{&room}); err != nil {
+		return nil, err
+	}
 	return &room, nil
 }
 
@@ -55,6 +59,9 @@ func (r *roomRepository) FindByRoomNumber(roomNumber string) (*models.Room, erro
 	var room models.Room
 	err := r.db.Where("room_number = ?", roomNumber).First(&room).Error
 	if err != nil {
+		return nil, err
+	}
+	if err := r.hydrateRooms([]*models.Room{&room}); err != nil {
 		return nil, err
 	}
 	return &room, nil
@@ -71,16 +78,33 @@ func (r *roomRepository) Delete(id uint) error {
 }
 
 // FindAll 查询所有房间（分页）
-func (r *roomRepository) FindAll(page, pageSize int) ([]models.Room, int64, error) {
+func (r *roomRepository) FindAll(page, pageSize int, roomNumber, roomType, status, cleanStatus string) ([]models.Room, int64, error) {
 	var rooms []models.Room
 	var total int64
 
-	if err := r.db.Model(&models.Room{}).Count(&total).Error; err != nil {
+	query := r.db.Model(&models.Room{})
+	if roomNumber != "" {
+		query = query.Where("room_number LIKE ?", "%"+roomNumber+"%")
+	}
+	if roomType != "" {
+		query = query.Where("room_type = ?", roomType)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if cleanStatus != "" {
+		query = query.Where("clean_status = ?", cleanStatus)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	offset := (page - 1) * pageSize
-	err := r.db.Offset(offset).Limit(pageSize).Order("room_number").Find(&rooms).Error
+	err := query.Offset(offset).Limit(pageSize).Order("room_number").Find(&rooms).Error
+	if err == nil {
+		err = r.hydrateRoomSlice(rooms)
+	}
 	return rooms, total, err
 }
 
@@ -97,6 +121,9 @@ func (r *roomRepository) FindAvailable(page, pageSize int) ([]models.Room, int64
 
 	offset := (page - 1) * pageSize
 	err := query.Offset(offset).Limit(pageSize).Order("price").Find(&rooms).Error
+	if err == nil {
+		err = r.hydrateRoomSlice(rooms)
+	}
 	return rooms, total, err
 }
 
@@ -113,6 +140,9 @@ func (r *roomRepository) FindByRoomType(roomType string, page, pageSize int) ([]
 
 	offset := (page - 1) * pageSize
 	err := query.Offset(offset).Limit(pageSize).Order("price").Find(&rooms).Error
+	if err == nil {
+		err = r.hydrateRoomSlice(rooms)
+	}
 	return rooms, total, err
 }
 
@@ -129,6 +159,9 @@ func (r *roomRepository) FindByPriceRange(minPrice, maxPrice float64, page, page
 
 	offset := (page - 1) * pageSize
 	err := query.Offset(offset).Limit(pageSize).Order("price").Find(&rooms).Error
+	if err == nil {
+		err = r.hydrateRoomSlice(rooms)
+	}
 	return rooms, total, err
 }
 
@@ -145,6 +178,9 @@ func (r *roomRepository) FindRoomByFloor(floor, page, pageSize int) ([]models.Ro
 
 	offset := (page - 1) * pageSize
 	err := query.Offset(offset).Limit(pageSize).Order("room_number").Find(&rooms).Error //排序方式
+	if err == nil {
+		err = r.hydrateRoomSlice(rooms)
+	}
 	return rooms, total, err
 }
 
@@ -182,4 +218,69 @@ func (r *roomRepository) ExistsByRoomNumbers(roomNumbers []string) ([]string, er
 		existingNumbers = append(existingNumbers, room.RoomNumber)
 	}
 	return existingNumbers, nil
+}
+
+func (r *roomRepository) hydrateRoomSlice(rooms []models.Room) error {
+	if len(rooms) == 0 {
+		return nil
+	}
+
+	roomRefs := make([]*models.Room, 0, len(rooms))
+	for i := range rooms {
+		roomRefs = append(roomRefs, &rooms[i])
+	}
+
+	return r.hydrateRooms(roomRefs)
+}
+
+func (r *roomRepository) hydrateRooms(rooms []*models.Room) error {
+	if len(rooms) == 0 {
+		return nil
+	}
+
+	roomTypes := make([]string, 0, len(rooms))
+	seen := make(map[string]struct{}, len(rooms))
+	for _, room := range rooms {
+		roomType := strings.TrimSpace(room.RoomType)
+		if roomType == "" {
+			continue
+		}
+		if _, exists := seen[roomType]; exists {
+			continue
+		}
+		seen[roomType] = struct{}{}
+		roomTypes = append(roomTypes, roomType)
+	}
+
+	if len(roomTypes) == 0 {
+		return nil
+	}
+
+	var categories []models.RoomCategory
+	if err := r.db.Where("name IN ?", roomTypes).Find(&categories).Error; err != nil {
+		return err
+	}
+
+	categoryMap := make(map[string]models.RoomCategory, len(categories))
+	for _, category := range categories {
+		categoryMap[category.Name] = category
+	}
+
+	for _, room := range rooms {
+		category, exists := categoryMap[room.RoomType]
+		if !exists {
+			continue
+		}
+		if category.Description != "" {
+			room.Description = category.Description
+		}
+		if category.Facilities != "" {
+			room.Facilities = category.Facilities
+		}
+		if category.Images != "" {
+			room.Images = category.Images
+		}
+	}
+
+	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,7 +37,7 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      127.0.0.1:19999
+// @host      127.0.0.1:18080
 // @BasePath
 
 // @securityDefinitions.apikey Bearer
@@ -53,6 +54,7 @@ func main() {
 	fmt.Println("✅ 配置加载成功!")
 
 	backendDir := resolveBackendDir()
+	frontendDistDir := resolveFrontendDistDir(backendDir)
 	swaggerJSONPath := filepath.Join(backendDir, "docs", "swagger.json")
 	if shouldAutoUpdateSwagger(config.AppConfig.Server.Mode) {
 		if err := runSwagInit(backendDir); err != nil {
@@ -91,12 +93,7 @@ func main() {
 		log.Fatal("数据库迁移失败:", err)
 	}
 
-	// 5. 插入测试数据（可选）
-	if err := database.SeedData(); err != nil {
-		log.Fatal("测试数据插入失败:", err)
-	}
-
-	// 6. 初始化雪花算法节点
+	// 5. 初始化雪花算法节点
 	fmt.Println("❄️  正在初始化雪花算法节点...")
 	// 节点ID可以从配置文件读取，这里暂时使用固定值 1
 	// 如果是分布式部署，需要确保每个实例使用不同的节点ID（0-1023）
@@ -104,6 +101,11 @@ func main() {
 		log.Fatal("雪花算法初始化失败:", err)
 	}
 	fmt.Println("✅ 雪花算法初始化成功!")
+
+	// 6. 插入测试数据（可选）
+	if err := database.SeedData(); err != nil {
+		log.Fatal("测试数据插入失败:", err)
+	}
 
 	// 6.1 初始化COS服务
 	fmt.Println("☁️  正在初始化COS服务...")
@@ -135,6 +137,7 @@ func main() {
 	hotelRepo := repository.NewHotelRepository(database.DB)
 	hotelSettingsRepo := repository.NewHotelSettingsRepository(database.DB)
 	roomRepo := repository.NewRoomRepository(database.DB)
+	roomCategoryRepo := repository.NewRoomCategoryRepository(database.DB)
 	bookingRepo := repository.NewBookingRepository(database.DB)
 	logRepo := repository.NewLogRepository(database.DB)
 	facilityRepo := repository.NewFacilityRepository(database.DB)
@@ -151,11 +154,13 @@ func main() {
 	noticeService := service.NewNoticeService(noticeRepo, cosService, timeWheel)
 	inventoryService := service.NewInventoryService(inventoryRepo, pricingRepo)
 	workOrderService := service.NewWorkOrderService(workOrderRepo, roomRepo)
-	roomService := service.NewRoomService(roomRepo)
+	roomService := service.NewRoomService(roomRepo, roomCategoryRepo)
+	roomCategoryService := service.NewRoomCategoryService(database.DB, roomCategoryRepo)
 	bookingService := service.NewBookingService(bookingRepo, roomRepo, userRepo, userService, inventoryService)
 	logService := service.NewLogService(logRepo)
 	facilityService := service.NewFacilityService(facilityRepo)
 	bannerService := service.NewBannerService(bannerRepo, cosService, timeWheel)
+	recommendationService := service.NewRecommendationService(database.DB, roomRepo, userRepo)
 
 	// 加载持久化的时间轮任务
 	fmt.Println("📂 正在加载时间轮任务...")
@@ -202,6 +207,7 @@ func main() {
 	hotelHandler := handler.NewHotelHandler(hotelService)
 	hotelSettingsHandler := handler.NewHotelSettingsHandler(hotelSettingsService)
 	roomHandler := handler.NewRoomHandler(roomService)
+	roomCategoryHandler := handler.NewRoomCategoryHandler(roomCategoryService)
 	bookingHandler := handler.NewBookingHandler(bookingService)
 	logHandler := handler.NewLogHandler(logService)
 	facilityHandler := handler.NewFacilityHandler(facilityService)
@@ -211,6 +217,7 @@ func main() {
 	workOrderHandler := handler.NewWorkOrderHandler(workOrderService)
 	pricingHandler := handler.NewPricingHandler(pricingRepo)
 	inventoryHandler := handler.NewInventoryHandler(inventoryService)
+	recommendationHandler := handler.NewRecommendationHandler(recommendationService)
 
 	// 8. 设置 Gin 模式
 	gin.SetMode(config.AppConfig.Server.Mode)
@@ -224,25 +231,28 @@ func main() {
 	r.Use(middleware.LoggerMiddleware()) // 日志中间件
 
 	// 设置路由
-	setupRoutes(r, userHandler, hotelHandler, hotelSettingsHandler, roomHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, workOrderHandler, pricingHandler, inventoryHandler, swaggerJSONPath)
+	setupRoutes(r, userHandler, hotelHandler, hotelSettingsHandler, roomHandler, roomCategoryHandler, bookingHandler, logHandler, facilityHandler, bannerHandler, noticeHandler, cosHandler, workOrderHandler, pricingHandler, inventoryHandler, recommendationHandler, swaggerJSONPath, frontendDistDir)
 
 	// 12. 启动服务器
+	listenAddr := config.AppConfig.Server.ListenAddress()
+	baseURL := config.AppConfig.Server.HTTPBaseURL()
+
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Println("🏨 酒店管理系统 API 服务器")
 	fmt.Println("═══════════════════════════════════════════════")
-	fmt.Printf("📍 服务器地址: http://%s\n", config.AppConfig.Server.Port)
+	fmt.Printf("📍 服务器地址: %s\n", baseURL)
 	fmt.Printf("📝 运行模式: %s\n", config.AppConfig.Server.Mode)
-	fmt.Printf("📚 Swagger 文档: http://%s/swagger/index.html\n", config.AppConfig.Server.Port)
+	fmt.Printf("📚 Swagger 文档: %s/swagger/index.html\n", baseURL)
 	fmt.Println("═══════════════════════════════════════════════")
 
-	if err := r.Run(config.AppConfig.Server.Port); err != nil {
+	if err := r.Run(listenAddr); err != nil {
 		log.Fatal("服务器启动失败:", err)
 	}
 }
 
 // setupRoutes 设置所有路由
 
-func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *handler.HotelHandler, hotelSettingsHandler *handler.HotelSettingsHandler, roomHandler *handler.RoomHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, workOrderHandler *handler.WorkOrderHandler, pricingHandler *handler.PricingHandler, inventoryHandler *handler.InventoryHandler, swaggerJSONPath string) {
+func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *handler.HotelHandler, hotelSettingsHandler *handler.HotelSettingsHandler, roomHandler *handler.RoomHandler, roomCategoryHandler *handler.RoomCategoryHandler, bookingHandler *handler.BookingHandler, logHandler *handler.LogHandler, facilityHandler *handler.FacilityHandler, bannerHandler *handler.BannerHandler, noticeHandler *handler.NoticeHandler, cosHandler *handler.CosHandler, workOrderHandler *handler.WorkOrderHandler, pricingHandler *handler.PricingHandler, inventoryHandler *handler.InventoryHandler, recommendationHandler *handler.RecommendationHandler, swaggerJSONPath string, frontendDistDir string) {
 	// Swagger 文档路由
 	r.GET("/swagger.json", func(c *gin.Context) {
 		c.File(swaggerJSONPath)
@@ -286,13 +296,18 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 
 			// 需要认证的房间管理路由（管理员）
 			roomsAuth := rooms.Group("")
-			roomsAuth.Use(middleware.AuthMiddleware())
+			roomsAuth.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 			{
 				roomsAuth.POST("", roomHandler.CreateRoom)             // 创建房间
 				roomsAuth.POST("/batch", roomHandler.BatchCreateRooms) // 批量创建房间
 				roomsAuth.POST("/:id", roomHandler.UpdateRoom)         // 更新房间
 				roomsAuth.POST("/:id/delete", roomHandler.DeleteRoom)  // 删除房间
 			}
+		}
+		roomCategories := api.Group("/room-categories")
+		{
+			roomCategories.GET("", roomCategoryHandler.ListRoomCategories)
+			roomCategories.GET("/:id", roomCategoryHandler.GetRoomCategoryByID)
 		}
 		// 设置路由（公开查询）
 		settings := api.Group("/settings")
@@ -310,11 +325,15 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 		{
 			notices.GET("/active", noticeHandler.GetActiveNotices) // 获取激活的公告（前端展示用）
 		}
+		// 推荐路由（公开查询，带 token 时自动个性化）
+		recommendations := api.Group("/recommendations")
+		{
+			recommendations.GET("/rooms", recommendationHandler.GetRoomRecommendations)
+		}
 		// 日志路由
 		logs := api.Group("/logs")
 		{
 			logs.POST("/report", logHandler.Report) // 上报日志
-			logs.GET("", logHandler.GetLogs)        // 获取日志列表
 		}
 
 		// 文件上传路由（需要认证，但不需要管理员权限）
@@ -343,6 +362,11 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 				bookings.GET("/my", bookingHandler.GetMyBookings)          // 我的预订列表
 				bookings.GET("/:id", bookingHandler.GetBookingByID)        // 获取预订详情
 				bookings.POST("/:id/cancel", bookingHandler.CancelBooking) // 取消预订
+			}
+
+			recommendationsAuth := authorized.Group("/recommendations")
+			{
+				recommendationsAuth.POST("/behavior", recommendationHandler.TrackBehavior)
 			}
 
 			// 管理员路由
@@ -401,6 +425,13 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 				admin.POST("/facilities/:id", facilityHandler.UpdateFacility)                // 更新设施
 				admin.POST("/facilities/:id/delete", facilityHandler.DeleteFacility)         // 删除设施
 
+				// 房型分类管理
+				admin.GET("/room-categories", roomCategoryHandler.ListRoomCategories)
+				admin.GET("/room-categories/:id", roomCategoryHandler.GetRoomCategoryByID)
+				admin.POST("/room-categories", roomCategoryHandler.CreateRoomCategory)
+				admin.POST("/room-categories/:id", roomCategoryHandler.UpdateRoomCategory)
+				admin.POST("/room-categories/:id/delete", roomCategoryHandler.DeleteRoomCategory)
+
 				// 活动横幅管理
 				admin.GET("/banners", bannerHandler.GetAllBanners)            // 获取所有活动横幅
 				admin.POST("/banners", bannerHandler.CreateBanner)            // 创建活动横幅
@@ -417,6 +448,8 @@ func setupRoutes(r *gin.Engine, userHandler *handler.UserHandler, hotelHandler *
 			}
 		}
 	}
+
+	setupFrontendStaticRoutes(r, frontendDistDir)
 }
 
 func shouldAutoUpdateSwagger(serverMode string) bool {
@@ -441,6 +474,80 @@ func resolveBackendDir() string {
 	}
 
 	return cwd
+}
+
+func resolveFrontendDistDir(backendDir string) string {
+	candidates := []string{
+		filepath.Join(backendDir, "..", "frontend", "dist"),
+		filepath.Join(backendDir, "frontend", "dist"),
+		filepath.Join(".", "frontend", "dist"),
+	}
+
+	for _, candidate := range candidates {
+		indexPath := filepath.Join(candidate, "index.html")
+		if info, err := os.Stat(indexPath); err == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+func setupFrontendStaticRoutes(r *gin.Engine, frontendDistDir string) {
+	if strings.TrimSpace(frontendDistDir) == "" {
+		log.Println("⚠️  未找到 frontend/dist，跳过前端静态资源托管")
+		return
+	}
+
+	log.Printf("🌐 托管前端静态资源目录: %s", frontendDistDir)
+
+	r.NoRoute(func(c *gin.Context) {
+		requestPath := c.Request.URL.Path
+
+		if strings.HasPrefix(requestPath, "/api/") || strings.HasPrefix(requestPath, "/swagger") || requestPath == "/swagger.json" {
+			c.String(http.StatusNotFound, "Cannot %s %s", c.Request.Method, requestPath)
+			return
+		}
+
+		relativePath := strings.TrimPrefix(filepath.Clean(requestPath), string(filepath.Separator))
+		if relativePath == "." {
+			relativePath = ""
+		}
+
+		serveIfExists := func(paths ...string) bool {
+			for _, p := range paths {
+				fullPath := filepath.Join(frontendDistDir, filepath.FromSlash(p))
+				if !strings.HasPrefix(fullPath, filepath.Clean(frontendDistDir)) {
+					continue
+				}
+
+				info, err := os.Stat(fullPath)
+				if err == nil && !info.IsDir() {
+					c.File(fullPath)
+					return true
+				}
+			}
+			return false
+		}
+
+		if relativePath == "" {
+			if serveIfExists("index.html") {
+				return
+			}
+		}
+
+		if relativePath != "" {
+			if serveIfExists(relativePath) {
+				return
+			}
+
+			if filepath.Ext(relativePath) == "" && serveIfExists(filepath.ToSlash(filepath.Join(relativePath, "index.html")), "index.html") {
+				return
+			}
+		}
+
+		c.String(http.StatusNotFound, "Cannot %s %s", c.Request.Method, requestPath)
+	})
 }
 
 func runSwagInit(backendDir string) error {

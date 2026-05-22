@@ -145,14 +145,14 @@ func (h *WorkOrderHandler) CreateCleaningTask(c *gin.Context) {
 func (h *WorkOrderHandler) AssignStaff(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 32)
 	var req struct {
-		StaffID int64 `json:"staff_id" binding:"required"`
+		StaffID utils.JSONInt64 `json:"staff_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, errors.NewBadRequestError(err.Error()))
 		return
 	}
 
-	if err := h.service.AssignStaff(c.Request.Context(), uint(id), req.StaffID); err != nil {
+	if err := h.service.AssignStaff(c.Request.Context(), uint(id), req.StaffID.Int64()); err != nil {
 		utils.ErrorResponse(c, err)
 		return
 	}

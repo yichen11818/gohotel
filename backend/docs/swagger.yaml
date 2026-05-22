@@ -391,6 +391,33 @@ definitions:
         description: 宽度
         type: integer
     type: object
+  models.RoomCategory:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      description:
+        description: 房型描述
+        type: string
+      facilities:
+        description: 设施（JSON 数组字符串）
+        type: string
+      id:
+        description: 主键
+        type: integer
+      images:
+        description: 预览图（JSON 数组字符串）
+        type: string
+      name:
+        description: 房型名称（唯一）
+        type: string
+      updated_at:
+        description: 更新时间
+        type: string
+      usage_count:
+        description: 关联房间数量（运行时统计）
+        type: integer
+    type: object
   models.RoomInventory:
     properties:
       booked_count:
@@ -478,7 +505,7 @@ definitions:
         type: string
       username:
         maxLength: 20
-        minLength: 3
+        minLength: 2
         type: string
     required:
     - email
@@ -601,6 +628,23 @@ definitions:
     required:
     - name
     type: object
+  service.CreateRoomCategoryRequest:
+    properties:
+      description:
+        description: 房型描述
+        type: string
+      facilities:
+        description: 设施 JSON 数组字符串
+        type: string
+      images:
+        description: 预览图 JSON 数组字符串
+        type: string
+      name:
+        description: 房型名称
+        type: string
+    required:
+    - name
+    type: object
   service.CreateRoomRequest:
     properties:
       area:
@@ -718,7 +762,7 @@ definitions:
         type: string
       username:
         maxLength: 20
-        minLength: 3
+        minLength: 2
         type: string
     required:
     - email
@@ -760,6 +804,21 @@ definitions:
       name:
         type: string
       status:
+        type: string
+    type: object
+  service.UpdateRoomCategoryRequest:
+    properties:
+      description:
+        description: 房型描述
+        type: string
+      facilities:
+        description: 设施 JSON 数组字符串
+        type: string
+      images:
+        description: 预览图 JSON 数组字符串
+        type: string
+      name:
+        description: 房型名称
         type: string
     type: object
   service.UpdateRoomRequest:
@@ -819,7 +878,7 @@ definitions:
         type: number
       username:
         maxLength: 20
-        minLength: 3
+        minLength: 2
         type: string
     required:
     - email
@@ -883,7 +942,7 @@ definitions:
         description: 是否成功
         type: boolean
     type: object
-host: 127.0.0.1:19999
+host: 127.0.0.1:18080
 info:
   contact:
     email: support@gohotel.com
@@ -2225,6 +2284,218 @@ paths:
       summary: 创建定价规则
       tags:
       - 定价管理
+  /api/admin/room-categories:
+    get:
+      consumes:
+      - application/json
+      description: 管理员分页查询房型分类，返回房型名称、描述、预览图、设施和关联房间数
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 50
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.RoomCategory'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 查询房型分类列表（管理员）
+      tags:
+      - 管理员
+    post:
+      consumes:
+      - application/json
+      description: 管理员创建房型分类，统一维护房型描述、预览图和设施
+      parameters:
+      - description: 房型分类信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateRoomCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RoomCategory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 创建房型分类（管理员）
+      tags:
+      - 管理员
+  /api/admin/room-categories/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 管理员根据 ID 获取房型分类详情
+      parameters:
+      - description: 房型分类 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RoomCategory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取房型分类详情（管理员）
+      tags:
+      - 管理员
+    post:
+      consumes:
+      - application/json
+      description: 管理员更新房型分类，若修改名称会同步更新房间、库存和定价规则中的房型字段
+      parameters:
+      - description: 房型分类 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 房型分类信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateRoomCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RoomCategory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新房型分类（管理员）
+      tags:
+      - 管理员
+  /api/admin/room-categories/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 管理员删除房型分类；如果仍有关联房间、库存或定价规则，则会阻止删除
+      parameters:
+      - description: 房型分类 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 删除房型分类（管理员）
+      tags:
+      - 管理员
   /api/admin/settings:
     get:
       consumes:
@@ -3115,6 +3386,22 @@ paths:
         in: query
         name: page_size
         type: integer
+      - description: 房间号（模糊搜索）
+        in: query
+        name: room_number
+        type: string
+      - description: 房型
+        in: query
+        name: room_type
+        type: string
+      - description: 房间状态
+        in: query
+        name: status
+        type: string
+      - description: 清洁状态
+        in: query
+        name: clean_status
+        type: string
       produces:
       - application/json
       responses:

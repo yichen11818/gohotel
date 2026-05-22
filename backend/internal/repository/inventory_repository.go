@@ -26,7 +26,11 @@ func NewInventoryRepository(db *gorm.DB) InventoryRepository {
 
 func (r *inventoryRepository) GetByRoomTypeAndDate(ctx context.Context, roomType string, date time.Time) (*models.RoomInventory, error) {
 	var inventory models.RoomInventory
-	err := r.db.WithContext(ctx).Where("room_type = ? AND date = ?", roomType, date.Format("2006-01-02")).First(&inventory).Error
+	startDate := normalizeInventoryDate(date)
+	endDate := startDate.AddDate(0, 0, 1)
+	err := r.db.WithContext(ctx).
+		Where("room_type = ? AND date >= ? AND date < ?", roomType, startDate.Format("2006-01-02"), endDate.Format("2006-01-02")).
+		First(&inventory).Error
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +39,9 @@ func (r *inventoryRepository) GetByRoomTypeAndDate(ctx context.Context, roomType
 
 func (r *inventoryRepository) GetByDateRange(ctx context.Context, roomType string, startDate, endDate time.Time) ([]models.RoomInventory, error) {
 	var inventories []models.RoomInventory
-	query := r.db.WithContext(ctx).Where("date >= ? AND date <= ?", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	rangeStart := normalizeInventoryDate(startDate)
+	rangeEndExclusive := normalizeInventoryDate(endDate).AddDate(0, 0, 1)
+	query := r.db.WithContext(ctx).Where("date >= ? AND date < ?", rangeStart.Format("2006-01-02"), rangeEndExclusive.Format("2006-01-02"))
 	if roomType != "" {
 		query = query.Where("room_type = ?", roomType)
 	}
@@ -54,4 +60,8 @@ func (r *inventoryRepository) Create(ctx context.Context, inventory *models.Room
 
 func (r *inventoryRepository) BatchCreate(ctx context.Context, inventories []models.RoomInventory) error {
 	return r.db.WithContext(ctx).Create(&inventories).Error
+}
+
+func normalizeInventoryDate(date time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 }

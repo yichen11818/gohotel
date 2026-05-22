@@ -338,11 +338,6 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/admin/banners/{id}/delete [post]
 func (h *BannerHandler) DeleteBanner(c *gin.Context) {
-	if h.cosService == nil {
-		utils.ErrorResponse(c, errors.NewInternalServerError("COS服务未初始化"))
-		return
-	}
-
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

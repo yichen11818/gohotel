@@ -3,10 +3,13 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"gohotel/internal/config"
 
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -14,9 +17,9 @@ import (
 // DB 全局数据库连接对象
 var DB *gorm.DB
 
-// InitMySQL 初始化 MySQL 连接
+// InitMySQL 初始化数据库连接
 // 这个函数会：
-// 1. 连接到 MySQL 数据库
+// 1. 根据配置连接到 MySQL 或 SQLite
 // 2. 配置连接池参数（支持高并发）
 // 3. 设置日志级别
 func InitMySQL() error {
@@ -25,6 +28,14 @@ func InitMySQL() error {
 	// 获取数据库连接字符串 (DSN)
 	// 格式：root:password@tcp(localhost:3306)/hotel?charset=utf8mb4&parseTime=True&loc=Local
 	dsn := config.AppConfig.GetDSN()
+	if config.AppConfig.Database.UsesSQLite() {
+		dbDir := filepath.Dir(dsn)
+		if dbDir != "." && dbDir != "" {
+			if err := os.MkdirAll(dbDir, 0o755); err != nil {
+				return fmt.Errorf("创建 SQLite 数据目录失败: %w", err)
+			}
+		}
+	}
 
 	// 配置 GORM
 	gormConfig := &gorm.Config{
@@ -42,7 +53,11 @@ func InitMySQL() error {
 	}
 
 	// 连接数据库
-	DB, err = gorm.Open(mysql.Open(dsn), gormConfig)
+	if config.AppConfig.Database.UsesSQLite() {
+		DB, err = gorm.Open(sqlite.Open(dsn), gormConfig)
+	} else {
+		DB, err = gorm.Open(mysql.Open(dsn), gormConfig)
+	}
 	if err != nil {
 		return fmt.Errorf("连接数据库失败: %w", err)
 	}
@@ -77,7 +92,12 @@ func InitMySQL() error {
 		return fmt.Errorf("数据库连接测试失败: %w", err)
 	}
 
-	log.Println("✅ MySQL 数据库连接成功！")
+	driverName := "MySQL"
+	if config.AppConfig.Database.UsesSQLite() {
+		driverName = "SQLite"
+	}
+
+	log.Printf("✅ %s 数据库连接成功！", driverName)
 	log.Printf("📊 连接池配置: MaxIdleConns=%d, MaxOpenConns=%d",
 		config.AppConfig.Database.MaxIdleConns,
 		config.AppConfig.Database.MaxOpenConns)
