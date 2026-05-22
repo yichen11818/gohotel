@@ -28,10 +28,16 @@ vendor/
 # IDE 配置
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 *~
 .trae/
+
+# Browser / Playwright local artifacts
+.playwright-cli/
+.playwright-mcp/
+
 # macOS
 .DS_Store
 
@@ -41,5 +47,13 @@ vendor/
 # 临时文件
 tmp/
 temp/
+*.pid
+tmp_*.docx
+
+# Local generated reports and thesis assets
+output/doc/
+output/reports/
+images/generated-*.png
+备份/
 
 backend/data/timewheel_tasks.json
