@@ -221,16 +221,51 @@ onLoad((options) => {
 .page {
   min-height: 100vh;
   background: $bg-color;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 180rpx;
+}
+
+.nav-header {
+  position: relative;
+  z-index: 20;
+  height: 88rpx;
+  padding: 0 30rpx;
+  background: #fff;
+  align-items: center;
+
+  .back-btn {
+    width: 64rpx;
+    height: 64rpx;
+
+    .icon-back {
+      width: 40rpx;
+      height: 40rpx;
+    }
+  }
+
+  .page-title {
+    font-size: 34rpx;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  .placeholder-view {
+    width: 64rpx;
+  }
 }
 
 /* 顶部状态条 */
 .status-banner {
+  position: relative;
+  z-index: 10;
   height: 320rpx;
   background: linear-gradient(135deg, #c9a977 0%, #ad8551 100%);
   padding: 60rpx 40rpx;
   box-sizing: border-box;
   color: #fff;
+  border-bottom-left-radius: 32rpx;
+  border-bottom-right-radius: 32rpx;
 
   .status-header {
     margin-bottom: 16rpx;
@@ -252,8 +287,12 @@ onLoad((options) => {
 }
 
 .content {
+  flex: 1;
+  height: 0;
   padding: 0 30rpx;
   margin-top: -60rpx;
+  position: relative;
+  z-index: 10;
 }
 
 /* 房型卡片 */
